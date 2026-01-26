@@ -9,11 +9,7 @@ const Footer = () => {
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
 					{/* Column 1: Brand & Contact */}
 					<div>
-						<img
-							src={logo}
-							alt="Neverland Logo"
-							className="h-16 w-auto mb-6 brightness-0 invert opacity-90"
-						/>
+						<img src={logo} alt="Neverland Logo" className="h-16 w-auto mb-6" />
 						<p className="text-gray-400 mb-6 text-sm leading-relaxed">
 							El lugar donde los sueños se hacen realidad. Creamos experiencias
 							inolvidables para los más pequeños en un entorno seguro y
