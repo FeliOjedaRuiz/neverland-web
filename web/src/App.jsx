@@ -7,6 +7,7 @@ import ServicesSection from './components/ServicesSection';
 import WorkflowSection from './components/WorkflowSection';
 import FAQSection from './components/FAQSection';
 import Footer from './components/Footer';
+import WhatsAppButton from './components/WhatsAppButton';
 
 function App() {
 	return (
@@ -25,6 +26,7 @@ function App() {
 				<PacksSection />
 			</main>
 			<Footer />
+			<WhatsAppButton />
 		</div>
 	);
 }
