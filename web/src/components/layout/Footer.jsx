@@ -1,10 +1,11 @@
 import React from 'react';
 import { MapPin, Phone, Instagram, Facebook, Clock } from 'lucide-react';
-import logo from '../assets/logo.svg';
+import { Link } from 'react-router-dom';
+import logo from '../../assets/logo.svg';
 
 const Footer = () => {
 	return (
-		<footer className="bg-text-black text-white pt-16 pb-8">
+		<footer className="bg-text-black text-white pt-16 pb-8 font-sans">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
 					{/* Column 1: Brand & Contact */}
@@ -47,7 +48,7 @@ const Footer = () => {
 
 					{/* Column 2: Quick Links */}
 					<div>
-						<h4 className="text-lg font-bold text-white mb-6 border-b border-gray-800 pb-2 inline-block">
+						<h4 className="text-lg font-display font-bold text-white mb-6 border-b border-gray-800 pb-2 inline-block">
 							Accesos Rápidos
 						</h4>
 						<ul className="space-y-3 text-sm">
@@ -59,14 +60,7 @@ const Footer = () => {
 									Inicio
 								</a>
 							</li>
-							<li>
-								<a
-									href="#packs"
-									className="text-gray-400 hover:text-neverland-green transition-colors"
-								>
-									Packs de Cumpleaños
-								</a>
-							</li>
+
 							<li>
 								<a
 									href="#menus"
@@ -95,7 +89,7 @@ const Footer = () => {
 					</div>
 
 					{/* Column 3: Map */}
-					<div className="h-64 md:h-full min-h-[250px] rounded-xl overflow-hidden shadow-lg border border-gray-800">
+					<div className="h-64 md:h-full min-h-[250px] rounded-3xl overflow-hidden shadow-lg border border-gray-800">
 						<iframe
 							src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3183.084705307524!2d-3.673891823528825!3d37.15286595191319!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd71fcb4aeb61501%3A0x629c424564c48974!2sCalle%20Ramal%20del%20R%C3%ADo%2C%2019%2C%2018101%20C%C3%BAllar%20Vega%2C%20Granada!5e0!3m2!1ses!2ses!4v1706173000000!5m2!1ses!2ses"
 							width="100%"
@@ -109,9 +103,17 @@ const Footer = () => {
 				</div>
 
 				<div className="border-t border-gray-800 pt-8 mt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-					<span className="text-gray-500 text-xs">
-						© 2026 Neverland Cullar Vega. Todos los derechos reservados.
-					</span>
+					<div className="flex flex-col items-center md:items-start gap-2">
+						<span className="text-gray-500 text-xs">
+							© 2026 Neverland Cullar Vega. Todos los derechos reservados.
+						</span>
+						<Link
+							to="/admin/login"
+							className="text-gray-600 text-[10px] hover:text-gray-400 transition-colors"
+						>
+							Acceso Admin
+						</Link>
+					</div>
 					<div className="flex gap-4">
 						<a
 							href="#"

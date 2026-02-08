@@ -1,7 +1,7 @@
 import React from 'react';
 import { Smile, Coffee, Baby } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useScrollReveal } from '../hooks/useScrollReveal';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
 
 const ServiceCard = ({ icon: Icon, title, description, color, delay }) => {
 	const { ref, controls, variants } = useScrollReveal(0.1);
@@ -22,12 +22,16 @@ const ServiceCard = ({ icon: Icon, title, description, color, delay }) => {
 			className="flex flex-col items-center text-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
 		>
 			<div
-				className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 text-white ${color} shadow-md`}
+				className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 text-white ${color} shadow-lg`}
 			>
 				<Icon size={32} />
 			</div>
-			<h3 className="text-xl font-bold text-text-black mb-2">{title}</h3>
-			<p className="text-gray-600 text-sm">{description}</p>
+			<h3 className="text-xl font-display font-bold text-text-black mb-2">
+				{title}
+			</h3>
+			<p className="text-text-muted text-sm font-sans leading-relaxed">
+				{description}
+			</p>
 		</motion.div>
 	);
 };
@@ -45,29 +49,22 @@ const ServicesSection = () => {
 					variants={variants}
 					className="text-center mb-12"
 				>
-					<h2 className="text-3xl sm:text-4xl font-bold text-neverland-green mb-4">
+					<h2 className="text-3xl sm:text-4xl font-display font-bold text-neverland-green mb-4">
 						Todo lo que necesitas
 					</h2>
-					<p className="text-gray-600 max-w-2xl mx-auto">
+					<p className="text-text-muted max-w-2xl mx-auto font-sans text-lg">
 						Más allá de los cumpleaños, Neverland es un espacio pensado para el
 						disfrute de toda la familia.
 					</p>
 				</motion.div>
 
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
 					<ServiceCard
 						icon={Smile}
 						title="Parque de Bolas"
 						description="Estructura de juegos de 3 niveles con toboganes, piscina de bolas y obstáculos para niños de 3 a 10 años."
 						color="bg-energy-orange"
 						delay={0.1}
-					/>
-					<ServiceCard
-						icon={Baby}
-						title="Zona Baby"
-						description="Área acolchada y segura exclusiva para los más pequeñines (0-3 años), lejos del ajetreo de los mayores."
-						color="bg-rec-blue"
-						delay={0.2}
 					/>
 					<ServiceCard
 						icon={Coffee}

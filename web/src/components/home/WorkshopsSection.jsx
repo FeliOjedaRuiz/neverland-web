@@ -1,10 +1,10 @@
 import React from 'react';
 import { Palette, Sparkles, Beaker } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useScrollReveal } from '../hooks/useScrollReveal';
-import facePaintingImg from '../assets/images/face_painting.png';
-import slimeImg from '../assets/images/slime.png';
-import magicImg from '../assets/images/magic.png';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
+import facePaintingImg from '../../assets/images/face_painting.png';
+import slimeImg from '../../assets/images/slime.png';
+import magicImg from '../../assets/images/magic.png';
 
 const WorkshopCard = ({ title, image, icon: Icon, description, delay }) => {
 	const { ref, controls, variants } = useScrollReveal(0.2);
@@ -22,7 +22,7 @@ const WorkshopCard = ({ title, image, icon: Icon, description, delay }) => {
 					transition: { duration: 0.6, delay: delay },
 				},
 			}}
-			className="group relative overflow-hidden rounded-2xl shadow-lg h-72 sm:h-96 cursor-pointer"
+			className="group relative overflow-hidden rounded-3xl shadow-lg h-72 sm:h-96 cursor-pointer"
 		>
 			<div className="absolute inset-0 transition-transform duration-700 group-hover:scale-110">
 				<img src={image} alt={title} className="w-full h-full object-cover" />
@@ -33,14 +33,14 @@ const WorkshopCard = ({ title, image, icon: Icon, description, delay }) => {
 				<div className="transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
 					<div className="flex items-center gap-2 mb-2 text-energy-orange">
 						<Icon size={20} className="drop-shadow-md" />
-						<span className="text-sm font-bold uppercase tracking-wider drop-shadow-md">
+						<span className="text-sm font-display font-bold uppercase tracking-wider drop-shadow-md">
 							Taller
 						</span>
 					</div>
-					<h3 className="text-3xl font-bold text-white mb-2 drop-shadow-md">
+					<h3 className="text-3xl font-display font-bold text-white mb-2 drop-shadow-md">
 						{title}
 					</h3>
-					<p className="text-gray-200 text-sm opacity-90 transition-opacity duration-300">
+					<p className="text-gray-200 text-sm font-sans opacity-90 transition-opacity duration-300 leading-relaxed">
 						{description}
 					</p>
 				</div>
@@ -62,16 +62,16 @@ const WorkshopsSection = () => {
 					variants={variants}
 					className="text-center mb-16"
 				>
-					<div className="inline-flex items-center justify-center p-2 bg-white rounded-full mb-4 shadow-sm px-4">
+					<div className="inline-flex items-center justify-center p-2 bg-white rounded-full mb-4 shadow-md px-4 border border-neverland-green/10">
 						<Sparkles className="text-sun-yellow mr-2" size={20} />
-						<span className="text-sm font-bold text-text-black uppercase tracking-wider">
+						<span className="text-sm font-bold text-text-black uppercase tracking-wider font-sans">
 							Actividades Especiales
 						</span>
 					</div>
-					<h2 className="text-3xl sm:text-5xl font-black text-neverland-green mb-6">
+					<h2 className="text-3xl sm:text-5xl font-display font-black text-neverland-green mb-6">
 						Talleres Creativos
 					</h2>
-					<p className="text-gray-600 max-w-2xl mx-auto text-lg">
+					<p className="text-text-muted max-w-2xl mx-auto text-lg font-sans">
 						Añade un toque mágico a tu fiesta con nuestros talleres temáticos
 						guiados por monitores expertos.
 					</p>

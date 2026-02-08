@@ -12,7 +12,7 @@ const FAQItem = ({ question, answer }) => {
 				className="w-full py-6 flex items-center justify-between text-left focus:outline-none group"
 			>
 				<span
-					className={`text-lg font-bold transition-colors ${isOpen ? 'text-neverland-green' : 'text-text-black group-hover:text-neverland-green'}`}
+					className={`text-lg font-display font-bold transition-colors ${isOpen ? 'text-neverland-green' : 'text-text-black group-hover:text-neverland-green'}`}
 				>
 					{question}
 				</span>
@@ -31,7 +31,9 @@ const FAQItem = ({ question, answer }) => {
 						transition={{ duration: 0.3, ease: 'easeInOut' }}
 						className="overflow-hidden"
 					>
-						<p className="pb-6 text-gray-600 leading-relaxed">{answer}</p>
+						<p className="pb-6 text-text-muted font-sans leading-relaxed">
+							{answer}
+						</p>
 					</motion.div>
 				)}
 			</AnimatePresence>
@@ -72,21 +74,21 @@ const FAQSection = () => {
 		<section id="faq" className="py-20 bg-white">
 			<div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 				<div className="text-center mb-12">
-					<div className="inline-flex items-center justify-center p-2 bg-cream-bg rounded-full mb-4 px-4">
+					<div className="inline-flex items-center justify-center p-2 bg-cream-bg rounded-full mb-4 px-4 shadow-sm border border-gray-100">
 						<HelpCircle className="text-rec-blue mr-2" size={20} />
-						<span className="text-sm font-bold text-text-black uppercase tracking-wider">
+						<span className="text-sm font-display font-bold text-text-black uppercase tracking-wider">
 							Preguntas Frecuentes
 						</span>
 					</div>
-					<h2 className="text-3xl sm:text-4xl font-bold text-neverland-green mb-4">
+					<h2 className="text-3xl sm:text-4xl font-display font-bold text-neverland-green mb-4">
 						Todo lo que necesitas saber
 					</h2>
-					<p className="text-gray-600">
+					<p className="text-text-muted font-sans text-lg">
 						Resolvemos tus dudas para que solo te preocupes de disfrutar.
 					</p>
 				</div>
 
-				<div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sm:p-10">
+				<div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-6 sm:p-10">
 					{faqs.map((faq, idx) => (
 						<FAQItem key={idx} {...faq} />
 					))}

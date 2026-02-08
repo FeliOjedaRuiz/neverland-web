@@ -6,7 +6,8 @@ import {
 	ArrowRight,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useScrollReveal } from '../hooks/useScrollReveal';
+import { Link } from 'react-router-dom';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
 
 const Step = ({ number, title, description, icon: Icon, isLast, delay }) => {
 	const { ref, controls, variants } = useScrollReveal(0.2);
@@ -28,14 +29,14 @@ const Step = ({ number, title, description, icon: Icon, isLast, delay }) => {
 		>
 			<div className="w-20 h-20 rounded-full bg-white border-4 border-energy-orange flex items-center justify-center text-energy-orange mb-6 shadow-md relative z-10">
 				<Icon size={36} />
-				<div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-neverland-green text-white flex items-center justify-center font-bold border-2 border-white">
+				<div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-neverland-green text-white flex items-center justify-center font-display font-bold border-2 border-white">
 					{number}
 				</div>
 			</div>
-			<h3 className="text-xl font-bold text-text-black mb-2 text-center">
+			<h3 className="text-xl font-display font-bold text-text-black mb-2 text-center">
 				{title}
 			</h3>
-			<p className="text-gray-600 text-center max-w-xs text-sm">
+			<p className="text-text-muted font-sans text-center max-w-xs text-sm leading-relaxed">
 				{description}
 			</p>
 
@@ -63,10 +64,10 @@ const WorkflowSection = () => {
 					variants={variants}
 					className="text-center mb-16"
 				>
-					<h2 className="text-3xl sm:text-4xl font-bold text-neverland-green mb-4">
+					<h2 className="text-3xl sm:text-4xl font-display font-bold text-neverland-green mb-4">
 						¿Cómo funciona?
 					</h2>
-					<p className="text-gray-600">
+					<p className="text-text-muted font-sans text-lg">
 						Reserva tu fiesta en 3 sencillos pasos
 					</p>
 				</motion.div>
@@ -97,15 +98,12 @@ const WorkflowSection = () => {
 				</div>
 
 				<div className="mt-16 text-center">
-					<motion.a
-						href="#como-funciona"
-						initial={{ opacity: 0, y: 20 }}
-						whileInView={{ opacity: 1, y: 0 }}
-						transition={{ delay: 0.7 }}
-						className="inline-block bg-energy-orange text-white px-8 py-4 rounded-full text-lg font-bold shadow-lg hover:bg-opacity-90 transition-transform hover:scale-105 animate-pulse"
+					<Link
+						to="/booking"
+						className="inline-block bg-energy-orange text-white px-8 py-4 rounded-full text-lg font-display font-bold shadow-lg hover:bg-[#E06D2E] transition-all hover:scale-105 active:scale-95"
 					>
 						Comenzar Reserva
-					</motion.a>
+					</Link>
 				</div>
 			</div>
 		</section>

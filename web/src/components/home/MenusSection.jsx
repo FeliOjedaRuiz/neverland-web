@@ -1,7 +1,7 @@
 import { Pizza, Drumstick, Sandwich, Cookie } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useScrollReveal } from '../hooks/useScrollReveal';
-import hotDogIcon from '../assets/hot-dog.svg';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
+import hotDogIcon from '../../assets/hot-dog.svg';
 
 const MenuCard = ({ number, title, items, icon: Icon, delay }) => {
 	const { ref, controls, variants } = useScrollReveal(0.1);
@@ -20,9 +20,9 @@ const MenuCard = ({ number, title, items, icon: Icon, delay }) => {
 					transition: { duration: 0.4, delay: delay },
 				},
 			}}
-			className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-shadow border border-gray-100 flex flex-col items-center text-center group"
+			className="bg-white p-6 rounded-3xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col items-center text-center group transform hover:-translate-y-1"
 		>
-			<div className="w-14 h-14 rounded-full bg-cream-bg flex items-center justify-center mb-4 group-hover:bg-neverland-green group-hover:text-white transition-colors">
+			<div className="w-14 h-14 rounded-full bg-cream-bg flex items-center justify-center mb-4 group-hover:bg-neverland-green group-hover:text-white transition-colors shadow-sm">
 				{isCustomIcon ? (
 					<img
 						src={Icon}
@@ -33,11 +33,13 @@ const MenuCard = ({ number, title, items, icon: Icon, delay }) => {
 					<Icon size={28} />
 				)}
 			</div>
-			<h3 className="text-xl font-bold text-text-black mb-1">Menú {number}</h3>
-			<h4 className="text-sm font-semibold text-energy-orange mb-4 uppercase tracking-wide">
+			<h3 className="text-xl font-display font-bold text-text-black mb-1">
+				Menú {number}
+			</h3>
+			<h4 className="text-sm font-display font-semibold text-energy-orange mb-4 uppercase tracking-wide">
 				{title}
 			</h4>
-			<ul className="text-gray-600 space-y-2 text-sm">
+			<ul className="text-text-muted space-y-2 text-sm font-sans">
 				{items.map((item, idx) => (
 					<li
 						key={idx}
@@ -106,10 +108,10 @@ const MenusSection = () => {
 					variants={variants}
 					className="text-center mb-12"
 				>
-					<h2 className="text-3xl sm:text-4xl font-bold text-neverland-green mb-4">
+					<h2 className="text-3xl sm:text-4xl font-display font-bold text-neverland-green mb-4">
 						¡Hora de Merendar!
 					</h2>
-					<p className="text-gray-600 max-w-2xl mx-auto">
+					<p className="text-text-muted max-w-2xl mx-auto font-sans text-lg">
 						Tenemos opciones deliciosas para todos los gustos. Adaptamos
 						cualquier menú para alergias e intolerancias.
 					</p>

@@ -2,63 +2,21 @@
 
 @theme {
 	--color-neverland-green: #24635a;
-	--color-energy-orange: #e9714e;
-	--color-sun-yellow: #f5c242;
-	--color-rec-blue: #42aaa3;
-	--color-silhouette-green: #7ba857;
-	--color-cream-bg: #ffeedc;
+	--color-energy-orange: #f07d3e;
+	--color-sun-yellow: #f9c835;
+	--color-rec-blue: #4b8cc8;
+	--color-silhouette-green: #2d5a4c;
+	--color-cream-bg: #fdebd0;
+	--color-surface: #fff9f0;
 	--color-text-black: #1a1a1a;
-	
-	--font-sans: "VAG Rounded", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-}
+	--color-text-muted: #2d5a4c;
 
-/* @tailwind directives are replaced by @import "tailwindcss" in v4 */
-/* Custom utilities can go here */
-
-@font-face {
-  font-family: 'VAG Rounded';
-  src: url('/fonts/VAGRoundedBold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'VAG Rounded';
-  src: url('/fonts/VAG_Rounded_Next_W05_SemiBold.ttf') format('truetype');
-  font-weight: 600;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'VAG Rounded';
-  src: url('/fonts/VAG_Rounded_Next_W05_Black.ttf') format('truetype');
-  font-weight: 900;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'VAG Rounded';
-  src: url('/fonts/VAG_Rounded_Next_W05_ExtraBlack.ttf') format('truetype');
-  font-weight: 950;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'VAG Rounded';
-  src: url('/fonts/VAG_Rounded_Next_W05_Bold_It.ttf') format('truetype');
-  font-weight: 700;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'VAG Rounded';
-  src: url('/fonts/VAG_Rounded_Next_W07_Light_It.ttf') format('truetype');
-  font-weight: 300;
-  font-style: italic;
+	--font-sans: 'Nunito', ui-sans-serif, system-ui, sans-serif;
+	--font-display: 'Fredoka', ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
-	@apply bg-cream-bg text-text-black antialiased;
+	@apply bg-cream-bg text-text-black antialiased font-sans;
 }
 
 section[id] {

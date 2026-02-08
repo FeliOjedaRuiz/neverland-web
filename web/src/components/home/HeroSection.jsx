@@ -1,5 +1,6 @@
 import React from 'react';
 import { CalendarDays } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade, Pagination } from 'swiper/modules';
 import 'swiper/css';
@@ -7,13 +8,13 @@ import 'swiper/css/effect-fade';
 import 'swiper/css/pagination';
 
 // Import local images (vite handles these imports by returning the path)
-import img1 from '../assets/images/bolas 1.png';
-import img2 from '../assets/images/Slime 1.jpg';
-import img3 from '../assets/images/Captura de pantalla 2026-01-24 232919.png';
-import img4 from '../assets/images/Captura de pantalla 2026-01-24 232942.png';
+import img1 from '../../assets/images/bolas 1.png';
+import img2 from '../../assets/images/Slime 1.jpg';
+import img3 from '../../assets/images/Captura de pantalla 2026-01-24 232919.png';
+import img4 from '../../assets/images/Captura de pantalla 2026-01-24 232942.png';
 
 import { motion } from 'framer-motion';
-import logo from '../assets/logo.svg';
+import logo from '../../assets/logo.svg';
 
 const HeroSection = () => {
 	const images = [img1, img2, img3, img4];
@@ -43,7 +44,7 @@ const HeroSection = () => {
 									alt={`Neverland Slide ${index + 1}`}
 									className="w-full h-full object-cover object-center"
 								/>
-								<div className="absolute inset-0 bg-black/10"></div>
+								<div className="absolute inset-0 bg-black/20"></div>
 							</div>
 						</SwiperSlide>
 					))}
@@ -76,23 +77,23 @@ const HeroSection = () => {
 					}}
 				/>
 
-				<p className="mt-4 text-2xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white max-w-xl mx-auto mb-10 drop-shadow-lg">
+				<p className="mt-4 text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-display font-semibold text-white max-w-2xl mx-auto mb-10 drop-shadow-lg tracking-wide">
 					Donde los sueños se hacen realidad y la diversión nunca termina.
 				</p>
 
 				<div className="flex flex-col sm:flex-row justify-center gap-6 animate-fade-in-up delay-200">
-					<a
-						href="#como-funciona"
-						className="flex items-center justify-center gap-3 bg-energy-orange text-white px-8 py-3 rounded-full text-xl font-bold shadow-xl hover:bg-opacity-90 transition-all hover:scale-110 hover:-translate-y-1"
+					<Link
+						to="/booking"
+						className="flex items-center justify-center gap-3 bg-energy-orange text-white px-8 py-4 rounded-full text-xl font-display font-bold shadow-xl hover:bg-[#E06D2E] transition-all hover:scale-110 hover:-translate-y-1 active:scale-95"
 					>
 						<CalendarDays size={28} />
 						RESERVAR AHORA
-					</a>
+					</Link>
 					<a
-						href="#packs"
-						className="px-10 py-3 rounded-full text-xl font-bold text-neverland-green bg-white/80 backdrop-blur-sm border-2 border-neverland-green hover:bg-neverland-green hover:text-white transition-all hover:scale-105 shadow-md"
+						href="#servicios"
+						className="px-10 py-4 rounded-full text-xl font-display font-bold text-neverland-green bg-white border-2 border-white hover:bg-gray-50 transition-all hover:scale-105 shadow-lg active:scale-95"
 					>
-						Ver Packs
+						Ver Servicios
 					</a>
 				</div>
 			</div>
