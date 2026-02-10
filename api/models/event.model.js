@@ -75,4 +75,10 @@ const eventSchema = new mongoose.Schema({
 
 const Event = mongoose.model('Event', eventSchema);
 
+// Prevent double bookings for the same time and shift, unless cancelled
+eventSchema.index({ fecha: 1, turno: 1 }, {
+  unique: true,
+  partialFilterExpression: { estado: { $ne: 'cancelada' } }
+});
+
 module.exports = Event;

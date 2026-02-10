@@ -29,39 +29,12 @@ import BookingSuccess from '../components/booking/BookingSuccess';
 
 // --- Constants & Data ---
 
-const ADULT_MENU_OPTIONS = [
-	{
-		id: 'salaillas',
-		name: 'Salaillas con Jamón',
-		price: 15,
-		unit: '10 Unidades',
-	},
-	{
-		id: 'tortilla',
-		name: 'Tortilla de Patatas',
-		price: 12,
-		unit: '1 Unidad',
-	},
-	{
-		id: 'saladitos',
-		name: 'Saladitos Variados',
-		price: 16,
-		unit: '45 Unidades',
-	},
-	{
-		id: 'pasteles',
-		name: 'Pasteles Surtidos',
-		price: 16,
-		unit: '25 Unidades',
-	},
-	{ id: 'bocadillos', name: 'Bocadillos', price: 14, unit: '12 Unidades' },
-];
-
+// Constants (Static data for UI structure, Prices/Options loaded from API)
 const CHILDREN_MENUS = [
 	{
 		id: 1,
 		name: 'Menú Clásico',
-		price: 9,
+		price: 9, // Default/Fallback
 		main: '2 ½ Sándwiches (Dulces/Salados)',
 		desc: 'Ideal para amantes de lo tradicional.',
 	},
@@ -88,58 +61,11 @@ const CHILDREN_MENUS = [
 	},
 ];
 
-const WORKSHOPS = [
-	{
-		id: 'pintacaras',
-		name: 'Pintacaras',
-		priceBase: 25,
-		pricePlus: 30,
-		desc: 'Maquillaje de fantasía para todos.',
-	},
-	{
-		id: 'slime',
-		name: 'Taller de Slime',
-		priceBase: 25,
-		pricePlus: 30,
-		desc: '¡Creación de slime pegajoso y divertido!',
-	},
-	{
-		id: 'magia',
-		name: 'Show de Magia',
-		priceBase: 25,
-		pricePlus: 30,
-		desc: 'Trucos increíbles para sorprender.',
-	},
-];
-
-const CHARACTERS = [
-	'Mickey',
-	'Minnie',
-	'Goofy',
-	'Donald',
-	'Daysi',
-	'Sonic',
-	'Stich',
-	'Marshall',
-	'Sky',
-	'Mario',
-	'Luigi',
-	'Bella',
-	'Bestia',
-	'Cenicienta',
-	'Príncipe',
-	'Aladín',
-	'Jasmín',
-	'Blancanieves',
-	'Elsa',
-	'Anna',
-	'Olaf',
-	'K-Pop',
-	'Vaina',
-];
-
 const DEFAULT_CONFIG = {
 	preciosNiños: { 1: 9, 2: 9, 3: 10, 4: 12, plusFinDeSemana: 1.5 },
+	preciosAdultos: [],
+	workshops: [],
+	characters: [],
 	preciosExtras: {
 		tallerBase: 25,
 		tallerPlus: 30,
@@ -164,6 +90,7 @@ const BookingPage = () => {
 	const [currentMonth, setCurrentMonth] = useState(new Date());
 	const [monthlyOccupied, setMonthlyOccupied] = useState([]);
 	const [view, setView] = useState('calendar'); // 'calendar' | 'dayDetails'
+	const [availabilityError, setAvailabilityError] = useState(false);
 
 	const [formData, setFormData] = useState({
 		fecha: '',
@@ -202,11 +129,15 @@ const BookingPage = () => {
 	}, []);
 
 	useEffect(() => {
+		setAvailabilityError(false);
 		const year = currentMonth.getFullYear();
 		const month = currentMonth.getMonth() + 1;
 		getMonthlyAvailability(year, month)
 			.then((res) => setMonthlyOccupied(res.data?.occupied || []))
-			.catch(console.error);
+			.catch((err) => {
+				console.error(err);
+				setAvailabilityError(true);
+			});
 	}, [currentMonth]);
 
 	const nextStep = () => setStep((s) => s + 1);
@@ -256,8 +187,8 @@ const BookingPage = () => {
 
 		// Adults Food
 		Object.entries(formData.adultos.comida).forEach(([id, qty]) => {
-			const item = ADULT_MENU_OPTIONS.find((opt) => opt.id === id);
-			if (item) total += item.price * qty;
+			const item = prices.preciosAdultos.find((opt) => opt.id === id);
+			if (item) total += item.precio * qty;
 		});
 
 		// Extras: Taller
@@ -398,6 +329,7 @@ const BookingPage = () => {
 										view={view}
 										setView={setView}
 										monthlyOccupied={monthlyOccupied}
+										availabilityError={availabilityError}
 									/>
 								)}
 								{step === 2 && (
@@ -417,21 +349,21 @@ const BookingPage = () => {
 									<Step4Adults
 										formData={formData}
 										setFormData={setFormData}
-										ADULT_MENU_OPTIONS={ADULT_MENU_OPTIONS}
+										ADULT_MENU_OPTIONS={prices.preciosAdultos}
 									/>
 								)}
 								{step === 5 && (
 									<Step5Workshops
 										formData={formData}
 										setFormData={setFormData}
-										WORKSHOPS={WORKSHOPS}
+										WORKSHOPS={prices.workshops}
 									/>
 								)}
 								{step === 6 && (
 									<Step6Characters
 										formData={formData}
 										setFormData={setFormData}
-										CHARACTERS={CHARACTERS}
+										CHARACTERS={prices.characters}
 										charSearch={charSearch}
 										setCharSearch={setCharSearch}
 									/>
@@ -450,8 +382,8 @@ const BookingPage = () => {
 										calculateTotal={calculateTotal}
 										getExtendedTime={getExtendedTime}
 										CHILDREN_MENUS={CHILDREN_MENUS}
-										WORKSHOPS={WORKSHOPS}
-										ADULT_MENU_OPTIONS={ADULT_MENU_OPTIONS}
+										WORKSHOPS={prices.workshops}
+										ADULT_MENU_OPTIONS={prices.preciosAdultos}
 									/>
 								)}
 								{step === 9 && <BookingSuccess formData={formData} />}

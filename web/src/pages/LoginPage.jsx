@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Lock, Mail, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { login } from '../services/api';
 
 const LoginPage = () => {
 	const [email, setEmail] = useState('');
@@ -16,30 +16,23 @@ const LoginPage = () => {
 		setError('');
 
 		try {
-			// For now, let's simulate or use the real endpoint if ready
-			// const response = await axios.post('/api/v1/login', { email, password });
-			// localStorage.setItem('token', response.data.token);
-
-			console.log('Logging in with:', email, password);
-
-			// Simulate successful login for now
-			setTimeout(() => {
-				setLoading(false);
-				navigate('/admin/dashboard');
-			}, 1500);
-		} catch {
-			setError('Credenciales incorrectas. Por favor, inténtalo de nuevo.');
+			const res = await login(email, password);
+			localStorage.setItem('token', res.data.token);
+			localStorage.setItem('user', JSON.stringify(res.data));
+			navigate('/admin/dashboard');
+		} catch (err) {
+			console.error(err);
+			setError(
+				err.response?.data?.message ||
+					'Credenciales incorrectas. Por favor, inténtalo de nuevo.',
+			);
 			setLoading(false);
 		}
 	};
 
 	return (
 		<div className="min-h-screen bg-cream-bg flex items-center justify-center p-4">
-			<motion.div
-				initial={{ opacity: 0, y: 20 }}
-				animate={{ opacity: 1, y: 0 }}
-				className="max-w-md w-full bg-surface rounded-3xl shadow-soft p-8 sm:p-12 border border-white/50"
-			>
+			<div className="max-w-md w-full bg-surface rounded-3xl shadow-soft p-8 sm:p-12 border border-white/50">
 				<div className="text-center mb-10">
 					<div className="w-20 h-20 bg-neverland-green/10 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-sm">
 						<Lock className="text-neverland-green" size={32} />
@@ -120,7 +113,7 @@ const LoginPage = () => {
 						&larr; Volver a la web principal
 					</button>
 				</div>
-			</motion.div>
+			</div>
 		</div>
 	);
 };

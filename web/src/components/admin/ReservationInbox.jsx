@@ -1,30 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import {
-	PlusCircle,
 	Check,
 	X,
 	Loader2,
 	Phone,
 	Calendar as CalendarIcon,
+	User,
 } from 'lucide-react';
 import {
 	getReservations,
 	updateReservation,
 	deleteReservation,
 } from '../../services/api';
+import ReservationDetailModal from './ReservationDetailModal';
+import { Eye } from 'lucide-react';
 
 const ReservationInbox = () => {
 	const [reservations, setReservations] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [filter, setFilter] = useState('pendiente'); // pendiente, confirmado
+	const [selectedReservation, setSelectedReservation] = useState(null);
 
 	const fetchReservations = async () => {
 		setLoading(true);
 		try {
 			const res = await getReservations();
-			setReservations(res.data);
+			// Ensure we always have an array
+			setReservations(Array.isArray(res.data) ? res.data : []);
 		} catch (err) {
 			console.error('Error fetching reservations:', err);
+			setReservations([]);
 		} finally {
 			setLoading(false);
 		}
@@ -56,7 +61,9 @@ const ReservationInbox = () => {
 		}
 	};
 
-	const filteredReservations = reservations.filter((r) => r.estado === filter);
+	const filteredReservations = reservations.filter(
+		(r) => r.estado === filter && r.tipo === 'reserva',
+	);
 
 	const formatDate = (dateString) => {
 		const options = {
@@ -85,10 +92,6 @@ const ReservationInbox = () => {
 						Confirmadas
 					</button>
 				</div>
-				<button className="flex items-center gap-2 px-4 py-2 bg-energy-orange text-white rounded-lg text-sm font-bold shadow-md hover:bg-opacity-90 transition-all">
-					<PlusCircle size={16} />
-					Bloquear Día
-				</button>
 			</div>
 
 			<div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm min-h-[400px]">
@@ -134,10 +137,10 @@ const ReservationInbox = () => {
 												{item.cliente?.nombreNiño}
 											</div>
 											<div className="text-xs text-gray-500 flex items-center gap-1">
-												<Users size={12} /> {item.cliente?.nombrePadre}
+												<User size={12} /> {item.cliente?.nombrePadre}
 											</div>
 											<a
-												href={`https://wa.me/${item.cliente?.telefono?.replace(/\s/g, '')}`}
+												href={`https://wa.me/${String(item.cliente?.telefono || '').replace(/\s/g, '')}`}
 												target="_blank"
 												rel="noreferrer"
 												className="text-xs text-neverland-green hover:underline flex items-center gap-1 mt-1"
@@ -156,6 +159,13 @@ const ReservationInbox = () => {
 										</td>
 										<td className="px-6 py-4 text-right whitespace-nowrap">
 											<div className="flex justify-end gap-2">
+												<button
+													onClick={() => setSelectedReservation(item)}
+													className="p-2 text-neverland-green bg-gray-50 rounded-lg hover:bg-neverland-green hover:text-white shadow-sm transition-all"
+													title="Ver detalles completos"
+												>
+													<Eye size={18} />
+												</button>
 												{item.estado === 'pendiente' && (
 													<button
 														onClick={() =>
@@ -183,6 +193,11 @@ const ReservationInbox = () => {
 					</div>
 				)}
 			</div>
+
+			<ReservationDetailModal
+				reservation={selectedReservation}
+				onClose={() => setSelectedReservation(null)}
+			/>
 		</div>
 	);
 };

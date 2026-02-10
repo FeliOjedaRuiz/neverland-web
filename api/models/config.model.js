@@ -10,11 +10,22 @@ const configSchema = new mongoose.Schema({
   },
   preciosAdultos: [
     {
+      id: String,
       nombre: String,
       precio: Number,
-      unidades: Number // Ej: "10 unidades por ración"
+      unidades: String // Ej: "10 unidades por ración"
     }
   ],
+  workshops: [
+    {
+      id: String,
+      name: String,
+      priceBase: Number,
+      pricePlus: Number,
+      desc: String
+    }
+  ],
+  characters: [String], // Simple list of names
   preciosExtras: {
     tallerBase: { type: Number, default: 25 }, // Hasta 25 niños
     tallerPlus: { type: Number, default: 30 }, // 26 o más

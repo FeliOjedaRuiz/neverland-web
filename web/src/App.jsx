@@ -14,6 +14,7 @@ import HomePage from './pages/HomePage';
 import BookingPage from './pages/BookingPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
+import RequireAuth from './components/admin/RequireAuth';
 
 function Layout() {
 	const location = useLocation();
@@ -40,7 +41,14 @@ function Layout() {
 					<Route path="/" element={<HomePage />} />
 					<Route path="/booking" element={<BookingPage />} />
 					<Route path="/admin/login" element={<LoginPage />} />
-					<Route path="/admin/dashboard" element={<AdminDashboard />} />
+					<Route
+						path="/admin/dashboard"
+						element={
+							<RequireAuth>
+								<AdminDashboard />
+							</RequireAuth>
+						}
+					/>
 				</Routes>
 			</main>
 

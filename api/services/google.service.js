@@ -53,7 +53,7 @@ module.exports.createCalendarEvent = async (booking) => {
   }
 
   try {
-    const { fecha, turno, cliente, _id } = booking;
+    const { fecha, turno, cliente, _id, tipo, notasAdmin } = booking;
 
     // validate shift
     const shiftTimes = SHIFTS[turno];
@@ -70,9 +70,11 @@ module.exports.createCalendarEvent = async (booking) => {
     const startTime = `${dateStr}T${shiftTimes.start}:00`;
     const endTime = `${dateStr}T${shiftTimes.end}:00`;
 
-    const event = {
-      summary: `Reserva Neverland: ${cliente.nombreNiño} (${turno})`,
-      description: `
+    const eventResource = {
+      summary: tipo === 'bloqueo'
+        ? `BLOQUEO: ${notasAdmin || 'Sin asunto'}`
+        : `Reserva Neverland: ${cliente.nombreNiño} (${turno})`,
+      description: tipo === 'bloqueo' ? `Bloqueo manual: ${notasAdmin || 'Sin descripción'}` : `
 **Cliente**: ${cliente.nombrePadre}
 **Teléfono**: ${cliente.telefono}
 **Niño/a**: ${cliente.nombreNiño} (${cliente.edadNiño} años)
@@ -87,19 +89,65 @@ module.exports.createCalendarEvent = async (booking) => {
         dateTime: endTime,
         timeZone: 'Europe/Madrid',
       },
+      extendedProperties: {
+        private: {
+          turno: turno,
+          bookingId: String(_id),
+          tipo: tipo,
+          source: 'neverland'
+        }
+      }
     };
 
-    const response = await calendar.events.insert({
-      calendarId: calendarId,
-      resource: event,
-    });
+    let response;
+    if (booking.googleEventId) {
+      response = await calendar.events.update({
+        calendarId: calendarId,
+        eventId: booking.googleEventId,
+        resource: eventResource,
+      });
+      console.log(`Calendar event updated: ${response.data.htmlLink}`);
+    } else {
+      response = await calendar.events.insert({
+        calendarId: calendarId,
+        resource: eventResource,
+      });
+      console.log(`Calendar event created: ${response.data.htmlLink}`);
+    }
 
-    console.log(`Calendar event created: ${response.data.htmlLink}`);
     return response.data;
 
   } catch (error) {
     console.error('Error creating calendar event:', error);
     // Do not throw, so we don't block the booking response if calendar fails
     return null;
+  }
+};
+
+/**
+ * Lists calendar events within a time range.
+ * @param {Date} timeMin - Start time
+ * @param {Date} timeMax - End time
+ * @returns {Promise<Array>} List of events or throws error
+ */
+module.exports.listEvents = async (timeMin, timeMax) => {
+  if (!calendar) {
+    console.warn('Google Calendar not initialized. Cannot list events.');
+    throw new Error('Google Calendar Service Unavailable');
+  }
+
+  try {
+    const response = await calendar.events.list({
+      calendarId: calendarId,
+      timeMin: timeMin.toISOString(),
+      timeMax: timeMax.toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+    });
+
+    return response.data.items;
+  } catch (error) {
+    console.error('Error listing calendar events:', error);
+    throw error; // Re-throw to be handled by controller
   }
 };

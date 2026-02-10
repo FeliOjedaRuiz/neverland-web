@@ -9,6 +9,7 @@ const Step1Date = ({
 	view,
 	setView,
 	monthlyOccupied,
+	availabilityError,
 }) => {
 	const changeMonth = (delta) => {
 		const newDate = new Date(currentMonth);
@@ -21,6 +22,29 @@ const Step1Date = ({
 			.filter((o) => o.date === dateStr)
 			.map((o) => o.shift);
 	};
+
+	if (availabilityError) {
+		return (
+			<div className="flex flex-col h-full items-center justify-center text-center p-6">
+				<div className="text-red-500 mb-4">
+					<CheckCircle size={48} className="rotate-45" />
+				</div>
+				<h3 className="text-lg font-bold text-gray-700 mb-2">
+					Servicio de Reservas No Disponible
+				</h3>
+				<p className="text-sm text-gray-500 max-w-xs mx-auto">
+					No pudimos sincronizar con el calendario. Por favor, inténtalo de
+					nuevo más tarde o contáctanos directamente.
+				</p>
+				<button
+					onClick={() => window.location.reload()}
+					className="mt-6 px-6 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-bold transition-colors"
+				>
+					Reintentar
+				</button>
+			</div>
+		);
+	}
 
 	return (
 		<div className="flex flex-col h-full">

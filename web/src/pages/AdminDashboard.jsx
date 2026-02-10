@@ -6,13 +6,78 @@ import {
 	Settings,
 	LogOut,
 	Search,
+	Menu,
+	X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReservationInbox from '../components/admin/ReservationInbox';
 import ConfigurationPanel from '../components/admin/ConfigurationPanel';
+import CalendarView from '../components/admin/CalendarView';
+
+const SidebarContent = ({
+	activeTab,
+	setActiveTab,
+	setIsMobileMenuOpen,
+	sidebarItems,
+	navigate,
+	handleLogout,
+}) => (
+	<>
+		<div className="p-6">
+			<h2 className="text-xl font-display font-black text-neverland-green flex items-center gap-2">
+				<BarChart size={24} />
+				NEVERLAND{' '}
+				<span className="text-text-muted font-light font-sans text-xs">
+					ADMIN
+				</span>
+			</h2>
+		</div>
+
+		<nav className="flex-1 px-4 space-y-2 mt-4">
+			{sidebarItems.map((item) => (
+				<button
+					key={item.id}
+					onClick={() => {
+						setActiveTab(item.id);
+						setIsMobileMenuOpen(false);
+					}}
+					className={`w-full flex items-center gap-3 px-4 py-3 rounded-full font-medium transition-all font-display ${
+						activeTab === item.id
+							? 'bg-neverland-green text-white shadow-md'
+							: 'text-gray-600 hover:bg-gray-50'
+					}`}
+				>
+					<item.icon size={20} />
+					{item.label}
+				</button>
+			))}
+		</nav>
+
+		<div className="p-4 border-t border-gray-100 space-y-1">
+			<button
+				onClick={() => navigate('/')}
+				className="w-full flex items-center gap-3 px-4 py-3 rounded-full font-medium text-gray-400 hover:text-neverland-green hover:bg-gray-50 transition-all group font-display"
+			>
+				<LogOut
+					size={20}
+					className="rotate-180 group-hover:-translate-x-1 transition-transform"
+				/>
+				Volver a Inicio
+			</button>
+			<button
+				onClick={handleLogout}
+				className="w-full flex items-center gap-3 px-4 py-3 rounded-full font-medium text-red-600 hover:bg-red-50 transition-all font-display"
+			>
+				<LogOut size={20} />
+				Cerrar Sesión
+			</button>
+		</div>
+	</>
+);
 
 const AdminDashboard = () => {
 	const [activeTab, setActiveTab] = useState('reservas');
+	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const navigate = useNavigate();
 
 	const sidebarItems = [
@@ -26,65 +91,60 @@ const AdminDashboard = () => {
 		navigate('/admin/login');
 	};
 
+	const commonProps = {
+		activeTab,
+		setActiveTab,
+		setIsMobileMenuOpen,
+		sidebarItems,
+		navigate,
+		handleLogout,
+	};
+
 	return (
 		<div className="flex h-screen bg-cream-bg overflow-hidden font-sans">
-			{/* Sidebar */}
+			{/* Sidebar Desktop */}
 			<aside className="w-64 bg-white border-r border-gray-100 hidden md:flex flex-col">
-				<div className="p-6">
-					<h2 className="text-xl font-display font-black text-neverland-green flex items-center gap-2">
-						<BarChart size={24} />
-						NEVERLAND{' '}
-						<span className="text-text-muted font-light font-sans text-xs">
-							ADMIN
-						</span>
-					</h2>
-				</div>
-
-				<nav className="flex-1 px-4 space-y-2 mt-4">
-					{sidebarItems.map((item) => (
-						<button
-							key={item.id}
-							onClick={() => setActiveTab(item.id)}
-							className={`w-full flex items-center gap-3 px-4 py-3 rounded-full font-medium transition-all font-display ${
-								activeTab === item.id
-									? 'bg-neverland-green text-white shadow-md'
-									: 'text-gray-600 hover:bg-gray-50'
-							}`}
-						>
-							<item.icon size={20} />
-							{item.label}
-						</button>
-					))}
-				</nav>
-
-				<div className="p-4 border-t border-gray-100 space-y-1">
-					<button
-						onClick={() => navigate('/')}
-						className="w-full flex items-center gap-3 px-4 py-3 rounded-full font-medium text-gray-400 hover:text-neverland-green hover:bg-gray-50 transition-all group font-display"
-					>
-						<LogOut
-							size={20}
-							className="rotate-180 group-hover:-translate-x-1 transition-transform"
-						/>
-						Volver a Inicio
-					</button>
-					<button
-						onClick={handleLogout}
-						className="w-full flex items-center gap-3 px-4 py-3 rounded-full font-medium text-red-600 hover:bg-red-50 transition-all font-display"
-					>
-						<LogOut size={20} />
-						Cerrar Sesión
-					</button>
-				</div>
+				<SidebarContent {...commonProps} />
 			</aside>
+
+			{/* Sidebar Mobile Overlay */}
+			{isMobileMenuOpen && (
+				<div
+					className="fixed inset-0 bg-black/50 z-50 md:hidden backdrop-blur-sm"
+					onClick={() => setIsMobileMenuOpen(false)}
+				>
+					<aside
+						className="w-64 h-full bg-white flex flex-col shadow-2xl animate-in slide-in-from-left duration-300"
+						onClick={(e) => e.stopPropagation()}
+					>
+						<div className="flex justify-end p-4">
+							<button
+								onClick={() => setIsMobileMenuOpen(false)}
+								className="p-2 text-gray-400 hover:text-neverland-green"
+							>
+								<X size={24} />
+							</button>
+						</div>
+						<SidebarContent {...commonProps} />
+					</aside>
+				</div>
+			)}
 
 			{/* Main Content */}
 			<main className="flex-1 flex flex-col overflow-hidden">
 				{/* Header Content */}
 				<header className="bg-white border-b border-gray-100 p-6 flex justify-between items-center shadow-soft relative z-10">
-					<h3 className="text-xl font-display font-bold text-text-black capitalize">
-						{activeTab.replace('-', ' ')}
-					</h3>
+					<div className="flex items-center gap-4">
+						<button
+							onClick={() => setIsMobileMenuOpen(true)}
+							className="p-2 text-gray-600 hover:text-neverland-green md:hidden"
+						>
+							<Menu size={24} />
+						</button>
+						<h3 className="text-xl font-display font-bold text-text-black capitalize">
+							{activeTab ? activeTab.replace('-', ' ') : ''}
+						</h3>
+					</div>
 					<div className="flex items-center gap-4">
 						<div className="relative hidden sm:block">
 							<Search
@@ -108,19 +168,57 @@ const AdminDashboard = () => {
 
 				{/* Scrollable Content Area */}
 				<div className="flex-1 overflow-y-auto p-6">
-					{activeTab === 'reservas' && <ReservationInbox />}
-					{activeTab === 'config' && <ConfigurationPanel />}
-
+					{activeTab === 'reservas' && (
+						<ErrorBoundary>
+							<ReservationInbox />
+						</ErrorBoundary>
+					)}
+					{activeTab === 'config' && (
+						<ErrorBoundary>
+							<ConfigurationPanel />
+						</ErrorBoundary>
+					)}
 					{activeTab === 'calendario' && (
-						<div className="flex flex-col items-center justify-center h-full text-gray-400">
-							<CalendarIcon size={48} className="mb-4 opacity-20" />
-							<p className="italic">Calendario interactivo en desarrollo...</p>
-						</div>
+						<ErrorBoundary>
+							<CalendarView />
+						</ErrorBoundary>
 					)}
 				</div>
 			</main>
 		</div>
 	);
 };
+
+// Simple local error boundary
+class ErrorBoundary extends React.Component {
+	constructor(props) {
+		super(props);
+		this.state = { hasError: false, error: null };
+	}
+	static getDerivedStateFromError(error) {
+		return { hasError: true, error };
+	}
+	render() {
+		if (this.state.hasError) {
+			return (
+				<div className="p-10 bg-red-50 text-red-600 rounded-3xl border border-red-100">
+					<h2 className="text-lg font-bold mb-2">
+						Algo salió mal cargando esta sección
+					</h2>
+					<pre className="text-xs overflow-auto p-4 bg-white rounded-xl border border-red-100">
+						{this.state.error?.toString()}
+					</pre>
+					<button
+						onClick={() => window.location.reload()}
+						className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold"
+					>
+						Reintentar
+					</button>
+				</div>
+			);
+		}
+		return this.props.children;
+	}
+}
 
 export default AdminDashboard;

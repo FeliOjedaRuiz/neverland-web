@@ -15,6 +15,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Handle unauthorized responses
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      if (!window.location.pathname.includes('/admin/login')) {
+        window.location.href = '/admin/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Events / Bookings
 export const createBooking = (data) => api.post('/events', data);
 export const getAvailability = (fecha) => api.get('/events/availability', { params: { fecha } });
