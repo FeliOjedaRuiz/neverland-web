@@ -12,7 +12,10 @@ import {
 import { useNavigate } from 'react-router-dom';
 import ReservationInbox from '../components/admin/ReservationInbox';
 import ConfigurationPanel from '../components/admin/ConfigurationPanel';
+
 import CalendarView from '../components/admin/CalendarView';
+import DayDetailView from '../components/admin/DayDetailView';
+import ReservationDetailView from '../components/admin/ReservationDetailView';
 
 const SidebarContent = ({
 	activeTab,
@@ -77,8 +80,52 @@ const SidebarContent = ({
 
 const AdminDashboard = () => {
 	const [activeTab, setActiveTab] = useState('reservas');
+	const [selectedDate, setSelectedDate] = useState(null);
+	const [selectedReservation, setSelectedReservation] = useState(null);
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const navigate = useNavigate();
+
+	// Reset details when changing tab
+	React.useEffect(() => {
+		setSelectedDate(null);
+		setSelectedReservation(null);
+	}, [activeTab]);
+
+	// Handle browser back button
+	React.useEffect(() => {
+		const handlePopState = () => {
+			if (selectedReservation) {
+				setSelectedReservation(null);
+			} else if (selectedDate) {
+				setSelectedDate(null);
+			}
+		};
+
+		window.addEventListener('popstate', handlePopState);
+		return () => window.removeEventListener('popstate', handlePopState);
+	}, [selectedDate, selectedReservation]);
+
+	const handleDateSelect = (date) => {
+		setSelectedDate(date);
+		window.history.pushState(
+			{ view: 'dayDetail' },
+			'',
+			window.location.pathname,
+		);
+	};
+
+	const handleReservationSelect = (res) => {
+		setSelectedReservation(res);
+		window.history.pushState(
+			{ view: 'resDetail' },
+			'',
+			window.location.pathname,
+		);
+	};
+
+	const handleBack = () => {
+		window.history.back();
+	};
 
 	const sidebarItems = [
 		{ id: 'reservas', label: 'Bandeja de Entrada', icon: Inbox },
@@ -133,7 +180,7 @@ const AdminDashboard = () => {
 			{/* Main Content */}
 			<main className="flex-1 flex flex-col overflow-hidden">
 				{/* Header Content */}
-				<header className="bg-white border-b border-gray-100 p-6 flex justify-between items-center shadow-soft relative z-10">
+				<header className="bg-white border-b border-gray-100 p-4 flex justify-between items-center shadow-soft relative z-10">
 					<div className="flex items-center gap-4">
 						<button
 							onClick={() => setIsMobileMenuOpen(true)}
@@ -142,7 +189,11 @@ const AdminDashboard = () => {
 							<Menu size={24} />
 						</button>
 						<h3 className="text-xl font-display font-bold text-text-black capitalize">
-							{activeTab ? activeTab.replace('-', ' ') : ''}
+							{selectedReservation
+								? 'Detalle de Reserva'
+								: activeTab
+									? activeTab.replace('-', ' ')
+									: ''}
 						</h3>
 					</div>
 					<div className="flex items-center gap-4">
@@ -167,22 +218,45 @@ const AdminDashboard = () => {
 				</header>
 
 				{/* Scrollable Content Area */}
-				<div className="flex-1 overflow-y-auto p-6">
-					{activeTab === 'reservas' && (
+				<div
+					className={`flex-1 overflow-y-auto ${
+						(activeTab === 'calendario' &&
+							!selectedDate &&
+							!selectedReservation) ||
+						selectedDate ||
+						selectedReservation
+							? 'p-0'
+							: 'p-6'
+					}`}
+				>
+					{selectedReservation ? (
 						<ErrorBoundary>
-							<ReservationInbox />
+							<ReservationDetailView
+								reservation={selectedReservation}
+								onBack={handleBack}
+							/>
 						</ErrorBoundary>
-					)}
-					{activeTab === 'config' && (
+					) : activeTab === 'reservas' ? (
+						<ErrorBoundary>
+							<ReservationInbox onViewReservation={handleReservationSelect} />
+						</ErrorBoundary>
+					) : activeTab === 'config' ? (
 						<ErrorBoundary>
 							<ConfigurationPanel />
 						</ErrorBoundary>
-					)}
-					{activeTab === 'calendario' && (
+					) : activeTab === 'calendario' ? (
 						<ErrorBoundary>
-							<CalendarView />
+							{selectedDate ? (
+								<DayDetailView
+									date={selectedDate}
+									onBack={handleBack}
+									onViewReservation={handleReservationSelect}
+								/>
+							) : (
+								<CalendarView onDayClick={handleDateSelect} />
+							)}
 						</ErrorBoundary>
-					)}
+					) : null}
 				</div>
 			</main>
 		</div>

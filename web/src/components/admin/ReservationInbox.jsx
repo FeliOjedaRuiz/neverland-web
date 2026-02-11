@@ -6,20 +6,18 @@ import {
 	Phone,
 	Calendar as CalendarIcon,
 	User,
+	Eye,
 } from 'lucide-react';
 import {
 	getReservations,
 	updateReservation,
 	deleteReservation,
 } from '../../services/api';
-import ReservationDetailModal from './ReservationDetailModal';
-import { Eye } from 'lucide-react';
 
-const ReservationInbox = () => {
+const ReservationInbox = ({ onViewReservation }) => {
 	const [reservations, setReservations] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [filter, setFilter] = useState('pendiente'); // pendiente, confirmado
-	const [selectedReservation, setSelectedReservation] = useState(null);
 
 	const fetchReservations = async () => {
 		setLoading(true);
@@ -160,7 +158,7 @@ const ReservationInbox = () => {
 										<td className="px-6 py-4 text-right whitespace-nowrap">
 											<div className="flex justify-end gap-2">
 												<button
-													onClick={() => setSelectedReservation(item)}
+													onClick={() => onViewReservation(item)}
 													className="p-2 text-neverland-green bg-gray-50 rounded-lg hover:bg-neverland-green hover:text-white shadow-sm transition-all"
 													title="Ver detalles completos"
 												>
@@ -193,11 +191,6 @@ const ReservationInbox = () => {
 					</div>
 				)}
 			</div>
-
-			<ReservationDetailModal
-				reservation={selectedReservation}
-				onClose={() => setSelectedReservation(null)}
-			/>
 		</div>
 	);
 };

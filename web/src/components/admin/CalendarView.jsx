@@ -3,46 +3,19 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Calendar as CalendarIcon,
-	Clock,
-	User,
-	Phone,
-	Eye,
-	X,
-	PlusCircle,
-	Lock,
 } from 'lucide-react';
-import { getReservations, deleteReservation } from '../../services/api';
-import ReservationDetailModal from './ReservationDetailModal';
-import BlockDateModal from './BlockDateModal';
+import { getReservations } from '../../services/api';
 
-const CalendarView = () => {
+const CalendarView = ({ onDayClick }) => {
 	const [currentDate, setCurrentDate] = useState(new Date());
 	const [reservations, setReservations] = useState([]);
 	const [loading, setLoading] = useState(true);
-	const [selectedDateEvents, setSelectedDateEvents] = useState(null);
-	const [showDetailModal, setShowDetailModal] = useState(null);
-	const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
 
 	const fetchEvents = async () => {
 		setLoading(true);
 		try {
 			const res = await getReservations();
 			setReservations(res.data);
-
-			// Refresh selected date if open
-			if (selectedDateEvents) {
-				const day = selectedDateEvents.day;
-				const dayEvents = res.data.filter((r) => {
-					const eventDate = new Date(r.fecha);
-					return (
-						eventDate.getFullYear() === year &&
-						eventDate.getMonth() === month &&
-						eventDate.getDate() === day &&
-						r.estado !== 'cancelada'
-					);
-				});
-				setSelectedDateEvents({ day, events: dayEvents });
-			}
 		} catch (err) {
 			console.error('Error fetching reservations for calendar:', err);
 		} finally {
@@ -52,61 +25,48 @@ const CalendarView = () => {
 
 	useEffect(() => {
 		fetchEvents();
-	}, [currentDate.getFullYear(), currentDate.getMonth()]); // Fetch when month changes
+	}, [currentDate.getFullYear(), currentDate.getMonth()]);
 
-	const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-	const firstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
-
-	const prevMonth = () => {
-		setCurrentDate(
-			new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1),
-		);
-		setSelectedDateEvents(null);
-	};
-
-	const nextMonth = () => {
-		setCurrentDate(
-			new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
-		);
-		setSelectedDateEvents(null);
-	};
-
+	const monthName = currentDate.toLocaleString('es-ES', { month: 'long' });
 	const year = currentDate.getFullYear();
 	const month = currentDate.getMonth();
-	const monthName = currentDate.toLocaleString('es-ES', { month: 'long' });
 
-	const monthDays = daysInMonth(year, month);
-	let firstDay = firstDayOfMonth(year, month);
-	// Adjust for Monday start (0 is Sunday, so if firstDay is 0 change it to 6, otherwise firstDay-1)
-	firstDay = firstDay === 0 ? 6 : firstDay - 1;
+	const changeMonth = (delta) => {
+		const newDate = new Date(currentDate);
+		newDate.setMonth(newDate.getMonth() + delta);
+		setCurrentDate(newDate);
+	};
 
-	const calendarDays = [];
-	for (let i = 0; i < firstDay; i++) {
-		calendarDays.push(null);
-	}
-	for (let i = 1; i <= monthDays; i++) {
-		calendarDays.push(i);
-	}
-
-	const getEventsForDay = (day) => {
-		if (!day) return [];
+	const getEventsForDate = (dateObj) => {
+		if (!dateObj) return [];
 		return reservations.filter((r) => {
 			const eventDate = new Date(r.fecha);
 			return (
-				eventDate.getFullYear() === year &&
-				eventDate.getMonth() === month &&
-				eventDate.getDate() === day &&
-				r.estado !== 'cancelada'
+				eventDate.getFullYear() === dateObj.getFullYear() &&
+				eventDate.getMonth() === dateObj.getMonth() &&
+				eventDate.getDate() === dateObj.getDate()
 			);
 		});
 	};
 
-	const getTurnoColor = (turno) => {
-		if (turno === 'T1') return 'bg-neverland-green';
-		if (turno === 'T2') return 'bg-energy-orange';
-		if (turno === 'T3') return 'bg-blue-400';
-		return 'bg-gray-400';
+	const getStatusColor = (estado, tipo) => {
+		// Priority: Blocked > Cancelled > Confirmed > Requested > Available
+		if (tipo === 'bloqueo') return 'bg-gray-300 border-gray-400';
+		if (estado === 'cancelada') return 'bg-red-500 border-red-600';
+		if (estado === 'confirmado' || estado === 'confirmada')
+			return 'bg-neverland-green border-green-700';
+		if (estado === 'pendiente' || estado === 'solicitado')
+			return 'bg-yellow-400 border-yellow-500';
+		return 'bg-white border-black hover:bg-gray-50'; // Available
 	};
+
+	const handleDayClick = (dateObj) => {
+		if (onDayClick && dateObj) {
+			onDayClick(dateObj);
+		}
+	};
+
+	const activeShifts = ['T1', 'T2', 'T3'];
 
 	if (loading) {
 		return (
@@ -118,254 +78,146 @@ const CalendarView = () => {
 	}
 
 	return (
-		<div className="flex flex-col lg:flex-row gap-6 pb-10">
-			{/* Calendar Grid */}
-			<div className="flex-1 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col h-fit">
-				{/* Calendar Header */}
-				<div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
-					<h4 className="text-xl font-display font-black text-text-black capitalize flex items-center gap-3">
-						<CalendarIcon size={24} className="text-neverland-green" />
+		<div className="flex flex-col h-full bg-white">
+			{/* Calendar Header */}
+			<div className="flex flex-col sm:flex-row justify-between items-center px-4 py-3 border-b border-gray-100 shrink-0">
+				{/* Month Navigation and Title */}
+				<div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
+					<button
+						onClick={() => changeMonth(-1)}
+						className="p-1.5 hover:bg-gray-50 rounded-lg border border-gray-200 transition-all text-gray-500 hover:text-neverland-green"
+					>
+						<ChevronLeft size={20} />
+					</button>
+
+					<h4 className="text-xl font-display font-black text-text-black capitalize flex items-center gap-2 text-center">
+						<CalendarIcon
+							size={24}
+							className="text-neverland-green hidden sm:block"
+						/>
 						{monthName}{' '}
 						<span className="text-gray-300 font-sans font-light">{year}</span>
 					</h4>
-					<div className="flex items-center gap-3">
-						<button
-							onClick={() => setIsBlockModalOpen(true)}
-							className="flex items-center gap-2 px-4 py-2 bg-energy-orange text-white rounded-xl text-xs font-bold shadow-md hover:bg-opacity-90 transition-all hover:scale-105 active:scale-95 mr-2"
-						>
-							<Lock size={14} />
-							Bloquear Turno
-						</button>
-						<div className="flex gap-2">
-							<button
-								onClick={prevMonth}
-								className="p-2 hover:bg-gray-50 rounded-xl border border-gray-100 transition-all text-gray-500"
-							>
-								<ChevronLeft size={20} />
-							</button>
-							<button
-								onClick={nextMonth}
-								className="p-2 hover:bg-gray-50 rounded-xl border border-gray-100 transition-all text-gray-500"
-							>
-								<ChevronRight size={20} />
-							</button>
+
+					<button
+						onClick={() => changeMonth(1)}
+						className="p-1.5 hover:bg-gray-50 rounded-lg border border-gray-200 transition-all text-gray-500 hover:text-neverland-green"
+					>
+						<ChevronRight size={20} />
+					</button>
+				</div>
+
+				{/* Legend */}
+				<div className="w-full sm:w-auto mt-2 sm:mt-0">
+					<div className="grid grid-cols-5 gap-1 sm:gap-2">
+						<div className="flex items-center justify-center px-1 py-1 rounded border border-black bg-white text-[9px] font-bold text-black uppercase tracking-tighter text-center">
+							Libre
+						</div>
+						<div className="flex items-center justify-center px-1 py-1 rounded border border-yellow-500 bg-yellow-400 text-[9px] font-bold text-yellow-900 uppercase tracking-tighter text-center">
+							Solicitado
+						</div>
+						<div className="flex items-center justify-center px-1 py-1 rounded border border-green-700 bg-neverland-green text-[9px] font-bold text-white uppercase tracking-tighter text-center">
+							Confirmado
+						</div>
+						<div className="flex items-center justify-center px-1 py-1 rounded border border-red-600 bg-red-500 text-[9px] font-bold text-white uppercase tracking-tighter text-center">
+							Cancelado
+						</div>
+						<div className="flex items-center justify-center px-1 py-1 rounded border border-gray-400 bg-gray-300 text-[9px] font-bold text-gray-700 uppercase tracking-tighter text-center">
+							Bloqueado
 						</div>
 					</div>
 				</div>
+			</div>
 
-				{/* Weekdays Labels */}
-				<div className="grid grid-cols-7 gap-2 mb-2">
-					{['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((d) => (
+			{/* Weekdays Labels */}
+			<div className="grid grid-cols-7 border-b border-gray-100 shrink-0 bg-gray-50/50">
+				{['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => (
+					<div
+						key={d}
+						className="text-center text-xs font-black text-gray-400 py-2"
+					>
+						{d}
+					</div>
+				))}
+			</div>
+
+			{/* Calendar Days - Fixed 42 Grid with Gaps */}
+			<div className="grid grid-cols-7 grid-rows-6 gap-2 p-4 bg-gray-50/30 flex-grow auto-rows-fr overflow-hidden">
+				{Array.from({ length: 42 }).map((_, i) => {
+					const firstDay = new Date(year, month, 1);
+					const startDay = (firstDay.getDay() + 6) % 7;
+					const date = new Date(year, month, 1 - startDay + i);
+					const isCur = date.getMonth() === month;
+
+					// Styling for current vs other month
+					const cellBg = isCur ? 'bg-white' : 'bg-gray-100/50';
+					const textOpacity = isCur ? 'text-black' : 'text-gray-300';
+					const hoverEffect = isCur
+						? 'hover:shadow-md hover:border-neverland-green/50 cursor-pointer'
+						: 'cursor-default';
+					const activeOpacity = isCur ? 'opacity-100' : 'opacity-40 grayscale';
+
+					const dayEvents = getEventsForDate(date);
+					const isToday =
+						date.getDate() === new Date().getDate() &&
+						date.getMonth() === new Date().getMonth() &&
+						date.getFullYear() === new Date().getFullYear();
+
+					return (
 						<div
-							key={d}
-							className="text-center text-[10px] font-black text-gray-400 uppercase tracking-widest pb-2"
+							key={i}
+							onClick={() => isCur && handleDayClick(date)}
+							className={`rounded-xl border border-gray-100 p-1 lg:p-2 transition-all relative group flex flex-col justify-between ${cellBg} ${hoverEffect}`}
 						>
-							{d}
-						</div>
-					))}
-				</div>
+							{/* Day Number */}
+							<div className="flex justify-center mb-1">
+								<span
+									className={`text-xs lg:text-sm font-black w-6 h-6 flex items-center justify-center rounded-full ${
+										isToday ? 'bg-neverland-green text-white' : textOpacity
+									}`}
+								>
+									{date.getDate()}
+								</span>
+							</div>
 
-				{/* Calendar Days */}
-				<div className="grid grid-cols-7 gap-2">
-					{calendarDays.map((day, idx) => {
-						const dayEvents = getEventsForDay(day);
-						const isToday =
-							day === new Date().getDate() &&
-							month === new Date().getMonth() &&
-							year === new Date().getFullYear();
-						const isSelected = selectedDateEvents?.day === day;
-
-						return (
+							{/* Shifts Grid - Horizontal Bars */}
 							<div
-								key={idx}
-								onClick={() =>
-									day && setSelectedDateEvents({ day, events: dayEvents })
-								}
-								className={`min-h-[80px] lg:min-h-[100px] p-2 rounded-2xl border transition-all cursor-pointer relative group flex flex-col ${
-									!day
-										? 'bg-transparent border-transparent'
-										: isSelected
-											? 'bg-neverland-green/5 border-neverland-green shadow-inner'
-											: 'bg-white border-gray-100 hover:border-neverland-green/50 hover:shadow-soft'
-								}`}
+								className={`flex flex-col gap-1 w-full flex-grow justify-center pb-1 ${activeOpacity}`}
 							>
-								{day && (
-									<>
-										<span
-											className={`text-sm font-black mb-1 ${
-												isToday
-													? 'bg-neverland-green text-white w-6 h-6 flex items-center justify-center rounded-full'
-													: isSelected
-														? 'text-neverland-green'
-														: 'text-gray-400 group-hover:text-text-black'
-											}`}
-										>
-											{day}
-										</span>
-										<div className="flex flex-col gap-1 overflow-hidden">
-											{dayEvents.slice(0, 3).map((e, eIdx) => (
-												<div
-													key={eIdx}
-													className={`h-1.5 w-full rounded-full ${getTurnoColor(e.turno)} opacity-70`}
-													title={`${e.cliente?.nombreNiño} - ${e.turno}`}
-												/>
-											))}
-											{dayEvents.length > 3 && (
-												<span className="text-[9px] font-black text-gray-300 text-center">
-													+{dayEvents.length - 3} más
-												</span>
-											)}
-										</div>
-									</>
-								)}
-							</div>
-						);
-					})}
-				</div>
-			</div>
+								{activeShifts.map((turno) => {
+									// Find ACTIVE reservation (not cancelled) first
+									let event = dayEvents.find(
+										(e) => e.turno === turno && e.estado !== 'cancelada',
+									);
 
-			{/* Side Panel: Selected Day Details */}
-			<div className="w-full lg:w-96 bg-cream-bg/30 lg:bg-transparent flex flex-col">
-				{!selectedDateEvents ? (
-					<div className="flex-1 bg-white p-8 rounded-3xl border border-dashed border-gray-200 flex flex-col items-center justify-center text-center opacity-60">
-						<div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-							<CalendarIcon size={32} className="text-gray-300" />
-						</div>
-						<p className="text-sm font-medium text-gray-400">
-							Selecciona un día para ver las reservas detalladas
-						</p>
-					</div>
-				) : (
-					<div className="flex-1 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col">
-						<div className="mb-6 flex justify-between items-start">
-							<div>
-								<h5 className="text-lg font-display font-black text-text-black">
-									Eventos del {selectedDateEvents.day} de {monthName}
-								</h5>
-								<p className="text-xs text-gray-400 font-medium">
-									Hay {selectedDateEvents.events.length} reservas programadas
-								</p>
+									// If no active reservation, check for CANCELLED one
+									if (!event) {
+										event = dayEvents.find(
+											(e) => e.turno === turno && e.estado === 'cancelada',
+										);
+									}
+
+									const finalColor = event
+										? getStatusColor(event.estado, event.tipo)
+										: 'bg-white border-black';
+
+									return (
+										<div
+											key={turno}
+											className={`h-2 lg:h-3 w-full border ${finalColor} rounded-sm transition-opacity`}
+											title={
+												event
+													? `${event.estado} - ${event.cliente?.nombreNiño || 'N/A'}`
+													: 'Disponible'
+											}
+										/>
+									);
+								})}
 							</div>
 						</div>
-
-						{selectedDateEvents.events.length === 0 ? (
-							<div className="flex-1 flex flex-col items-center justify-center text-center py-10 opacity-40">
-								<p className="text-sm italic">Sin reservas para este día</p>
-							</div>
-						) : (
-							<div className="flex-1 overflow-y-auto space-y-4 pr-2 no-scrollbar">
-								{selectedDateEvents.events.map((event) => (
-									<div
-										key={event.id}
-										className={`group p-4 rounded-2xl border transition-all hover:shadow-soft ${
-											event.tipo === 'bloqueo'
-												? 'bg-gray-50/50 border-gray-200 border-dashed hover:bg-white'
-												: 'bg-gray-50 border-gray-100 hover:border-neverland-green/30 hover:bg-white'
-										}`}
-									>
-										<div className="flex justify-between items-start mb-3">
-											<div className="flex items-center gap-2">
-												<div
-													className={`w-3 h-3 rounded-full ${event.tipo === 'bloqueo' ? 'bg-gray-300' : getTurnoColor(event.turno)} shadow-sm`}
-												/>
-												<span className="text-xs font-black text-text-black uppercase tracking-tight">
-													{event.turno}
-												</span>
-											</div>
-											<div className="flex gap-2">
-												<span
-													className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
-														event.tipo === 'bloqueo'
-															? 'bg-gray-200 text-gray-500'
-															: event.estado === 'confirmado'
-																? 'bg-green-100 text-green-600'
-																: 'bg-yellow-100 text-yellow-600'
-													}`}
-												>
-													{event.tipo === 'bloqueo' ? 'Bloqueo' : event.estado}
-												</span>
-												<button
-													onClick={async () => {
-														if (
-															window.confirm(
-																'¿Estás seguro de eliminar este evento?',
-															)
-														) {
-															await deleteReservation(event.id);
-															await fetchEvents();
-														}
-													}}
-													className="text-gray-300 hover:text-red-500 transition-colors"
-													title="Eliminar"
-												>
-													<X size={14} />
-												</button>
-											</div>
-										</div>
-
-										<div className="space-y-2">
-											<h6 className="font-display font-black text-text-black flex items-center gap-1">
-												{event.tipo === 'bloqueo'
-													? event.notasAdmin || 'Bloqueo Manual'
-													: event.cliente?.nombreNiño}
-												{event.tipo !== 'bloqueo' && (
-													<span className="text-xs text-gray-400 font-sans">
-														({event.cliente?.edadNiño} años)
-													</span>
-												)}
-											</h6>
-
-											{event.tipo !== 'bloqueo' ? (
-												<div className="grid grid-cols-2 gap-2">
-													<div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
-														<User size={12} className="text-gray-300" />
-														{event.cliente?.nombrePadre}
-													</div>
-													<div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium overflow-hidden whitespace-nowrap overflow-ellipsis">
-														<Phone size={12} className="text-gray-300" />
-														{event.cliente?.telefono}
-													</div>
-												</div>
-											) : (
-												<p className="text-[10px] text-gray-400 italic">
-													Este turno está bloqueado para el público.
-												</p>
-											)}
-										</div>
-
-										{event.tipo !== 'bloqueo' && (
-											<div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-all">
-												<p className="text-sm font-black text-neverland-green">
-													{event.precioTotal}€
-												</p>
-												<button
-													onClick={() => setShowDetailModal(event)}
-													className="flex items-center gap-1.5 text-[10px] font-black uppercase text-neverland-green hover:underline"
-												>
-													<Eye size={12} /> Ver Ficha
-												</button>
-											</div>
-										)}
-									</div>
-								))}
-							</div>
-						)}
-					</div>
-				)}
+					);
+				})}
 			</div>
-
-			{showDetailModal && (
-				<ReservationDetailModal
-					reservation={showDetailModal}
-					onClose={() => setShowDetailModal(null)}
-				/>
-			)}
-
-			<BlockDateModal
-				isOpen={isBlockModalOpen}
-				onClose={() => setIsBlockModalOpen(false)}
-				onBlockCreated={fetchEvents}
-			/>
 		</div>
 	);
 };

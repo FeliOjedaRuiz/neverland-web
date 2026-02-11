@@ -2,8 +2,22 @@ import React, { useState } from 'react';
 import { X, Calendar, Clock, Lock, Loader2 } from 'lucide-react';
 import { createBooking } from '../../services/api';
 
-const BlockDateModal = ({ isOpen, onClose, onBlockCreated }) => {
-	const [fecha, setFecha] = useState('');
+const BlockDateModal = ({
+	isOpen,
+	onClose,
+	onBlockCreated,
+	preselectedDate,
+}) => {
+	const [fecha, setFecha] = useState(preselectedDate || '');
+
+	// Update fecha if preselectedDate changes when modal opens
+	React.useEffect(() => {
+		if (isOpen && preselectedDate) {
+			setFecha(preselectedDate);
+		} else if (isOpen && !preselectedDate) {
+			setFecha('');
+		}
+	}, [isOpen, preselectedDate]);
 	const [selectedTurns, setSelectedTurns] = useState(['T1']);
 	const [notasAdmin, setNotasAdmin] = useState('');
 	const [loading, setLoading] = useState(false);
