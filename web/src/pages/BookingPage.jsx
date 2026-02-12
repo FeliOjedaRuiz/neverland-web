@@ -140,6 +140,12 @@ const BookingPage = () => {
 			});
 	}, [currentMonth]);
 
+	// Calculate current children menus with database prices
+	const childrenMenusWithPrices = CHILDREN_MENUS.map((menu) => ({
+		...menu,
+		price: prices.preciosNiños[menu.id] || menu.price,
+	}));
+
 	const nextStep = () => setStep((s) => s + 1);
 	const prevStep = () => setStep((s) => s - 1);
 
@@ -261,10 +267,13 @@ const BookingPage = () => {
 					niños: formData.niños,
 					adultos: {
 						cantidad: formData.adultos.cantidad,
-						comida: Object.entries(formData.adultos.comida).map(([k, v]) => ({
-							item: k,
-							cantidad: v,
-						})),
+						comida: Object.entries(formData.adultos.comida).map(([id, qty]) => {
+							const item = prices.preciosAdultos.find((opt) => opt.id === id);
+							return {
+								item: item ? item.nombre : id,
+								cantidad: qty,
+							};
+						}),
 					},
 					extras: formData.extras,
 				},
@@ -342,7 +351,7 @@ const BookingPage = () => {
 									<Step3Kids
 										formData={formData}
 										setFormData={setFormData}
-										CHILDREN_MENUS={CHILDREN_MENUS}
+										CHILDREN_MENUS={childrenMenusWithPrices}
 									/>
 								)}
 								{step === 4 && (
@@ -381,7 +390,7 @@ const BookingPage = () => {
 										prices={prices}
 										calculateTotal={calculateTotal}
 										getExtendedTime={getExtendedTime}
-										CHILDREN_MENUS={CHILDREN_MENUS}
+										CHILDREN_MENUS={childrenMenusWithPrices}
 										WORKSHOPS={prices.workshops}
 										ADULT_MENU_OPTIONS={prices.preciosAdultos}
 									/>

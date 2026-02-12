@@ -4,78 +4,85 @@ const googleService = require('../services/google.service');
 
 const Config = require('../models/config.model');
 
+// Helper to calculate price based on config and event data
+const calculateEventPrice = async (eventData, config) => {
+  const { tipo, fecha, turno, detalles, horario } = eventData;
+  if (tipo === 'bloqueo') return 0;
+
+  if (!config) {
+    config = await Config.findOne();
+  }
+  if (!config) {
+    config = {
+      preciosNiños: { 1: 9, 2: 9, 3: 10, 4: 12, plusFinDeSemana: 1.5 },
+      preciosAdultos: [],
+      preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, pinata: 15, extension30: 30, extension60: 50 }
+    };
+  }
+
+  let total = 0;
+
+  // Children
+  const childPrice = config.preciosNiños[detalles.niños.menuId] || 0;
+  let subTotalNiños = childPrice * detalles.niños.cantidad;
+
+  // Weekend Plus
+  const dateObj = new Date(fecha);
+  const day = dateObj.getDay();
+  if (day === 0 || day === 5 || day === 6) { // Fri, Sat, Sun
+    subTotalNiños += (config.preciosNiños.plusFinDeSemana || 1.5) * detalles.niños.cantidad;
+  }
+  total += subTotalNiños;
+
+  // Adults
+  if (config.preciosAdultos?.length > 0 && detalles.adultos && Array.isArray(detalles.adultos)) {
+    detalles.adultos.forEach(item => {
+      // Find by name if it's the update format, or by id if it's the create format?
+      // Actually, in config.preciosAdultos we have objects.
+      const adultOption = config.preciosAdultos.find(opt => opt.nombre === item.item || opt.id === item.item);
+      if (adultOption) {
+        total += adultOption.precio * item.cantidad;
+      }
+    });
+  }
+
+  // Extras: Workshop
+  if (detalles.extras.taller !== 'ninguno') {
+    const tallerPrice = detalles.niños.cantidad > 25
+      ? config.preciosExtras.tallerPlus
+      : config.preciosExtras.tallerBase;
+    total += tallerPrice;
+  }
+
+  // Extras: Character
+  if (detalles.extras.personaje !== 'ninguno') {
+    total += config.preciosExtras.personaje;
+  }
+
+  // Extras: Pinata
+  if (detalles.extras.pinata) {
+    total += config.preciosExtras.pinata;
+  }
+
+  // Extras: Extension
+  if (horario?.extensionMinutos === 30) total += config.preciosExtras.extension30;
+  if (horario?.extensionMinutos === 60) total += config.preciosExtras.extension60;
+
+  return total;
+};
+
 module.exports.create = (req, res, next) => {
   const { tipo, fecha, turno, detalles, horario } = req.body;
 
   // Basic availability check
   Event.findOne({ fecha, turno, estado: { $ne: 'cancelada' } })
     .then(async (existingEvent) => {
-      if (existingEvent && tipo === 'reserva') {
+      if (existingEvent) {
         throw createError(409, 'Este turno ya está ocupado');
       }
 
       // --- SECURE PRICE CALCULATION ---
-      // 1. Fetch Config
-      let config = await Config.findOne();
-      if (!config) {
-        // Fallback default if completely missing (rare)
-        config = {
-          preciosNiños: { 1: 9, 2: 9, 3: 10, 4: 12, plusFinDeSemana: 1.5 },
-          preciosAdultos: [],
-          preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, pinata: 15, extension30: 30, extension60: 50 }
-        };
-      }
-
-      // 2. Calculate Total
-      let calculatedTotal = 0;
-
-      // Children
-      const childPrice = config.preciosNiños[detalles.niños.menuId] || 0;
-      let subTotalNiños = childPrice * detalles.niños.cantidad;
-
-      // Weekend Plus
-      const dateObj = new Date(fecha);
-      const day = dateObj.getDay();
-      if (day === 0 || day === 5 || day === 6) { // Fri, Sat, Sun
-        subTotalNiños += (config.preciosNiños.plusFinDeSemana || 1.5) * detalles.niños.cantidad;
-      }
-      calculatedTotal += subTotalNiños;
-
-      // Adults
-      if (config.preciosAdultos && config.preciosAdultos.length > 0 && detalles.adultos && Array.isArray(detalles.adultos)) {
-        detalles.adultos.forEach(item => {
-          const adultOption = config.preciosAdultos.find(opt => opt.id === item.item); // item.item stores the ID
-          if (adultOption) {
-            calculatedTotal += adultOption.precio * item.cantidad;
-          }
-        });
-      }
-
-      // Extras: Workshop
-      if (detalles.extras.taller !== 'ninguno') {
-        // Check if specific workshop has price overrides (future proof), otherwise use global config
-        const tallerPrice = detalles.niños.cantidad > 25
-          ? config.preciosExtras.tallerPlus
-          : config.preciosExtras.tallerBase;
-        calculatedTotal += tallerPrice;
-      }
-
-      // Extras: Character
-      if (detalles.extras.personaje !== 'ninguno') {
-        calculatedTotal += config.preciosExtras.personaje;
-      }
-
-      // Extras: Pinata
-      if (detalles.extras.pinata) {
-        calculatedTotal += config.preciosExtras.pinata;
-      }
-
-      // Extras: Extension
-      if (horario && horario.extensionMinutos === 30) calculatedTotal += config.preciosExtras.extension30;
-      if (horario && horario.extensionMinutos === 60) calculatedTotal += config.preciosExtras.extension60;
-
-      // Manual blocks should always have 0 price
-      if (tipo === 'bloqueo') calculatedTotal = 0;
+      const calculatedTotal = await calculateEventPrice(req.body);
 
       // 3. Override price in body
       const eventData = { ...req.body, precioTotal: calculatedTotal };
@@ -118,10 +125,30 @@ module.exports.detail = (req, res, next) => {
 };
 
 module.exports.update = (req, res, next) => {
-  Event.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
-    .then(async (event) => {
-      if (!event) return next(createError(404, 'Evento no encontrado'));
+  // If we change details, date or turn, we might need to recalculate price
+  // To handle partial updates correctly, we first find the current event
+  Event.findById(req.params.id)
+    .then(async (currentEvent) => {
+      if (!currentEvent) throw createError(404, 'Evento no encontrado');
 
+      // Prepare merged data for price calculation
+      const mergedData = {
+        ...currentEvent.toObject(),
+        ...req.body,
+        detalles: {
+          ...currentEvent.detalles,
+          ...(req.body.detalles || {})
+        }
+      };
+
+      // Recalculate price if relevant fields sent
+      if (req.body.detalles || req.body.fecha || req.body.turno || req.body.horario) {
+        req.body.precioTotal = await calculateEventPrice(mergedData);
+      }
+
+      return Event.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    })
+    .then(async (event) => {
       // Update/Sync with Google Calendar
       try {
         const gEvent = await googleService.createCalendarEvent(event);

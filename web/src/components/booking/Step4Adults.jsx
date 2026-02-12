@@ -65,11 +65,11 @@ const Step4Adults = ({ formData, setFormData, ADULT_MENU_OPTIONS }) => {
 						>
 							<div className="flex justify-between items-start mb-2">
 								<div>
-									<p className="font-bold text-gray-800">{item.name}</p>
-									<p className="text-xs text-gray-500">{item.unit}</p>
+									<p className="font-bold text-gray-800">{item.nombre}</p>
+									<p className="text-xs text-gray-500">{item.unidades}</p>
 								</div>
 								<span className="font-black text-lg text-gray-800">
-									{item.price}€
+									{item.precio}€
 								</span>
 							</div>
 							<div className="flex justify-end mt-2">

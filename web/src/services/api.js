@@ -37,6 +37,7 @@ export const getMonthlyAvailability = (year, month) => api.get('/events/availabi
 export const getReservations = () => api.get('/events');
 export const updateReservation = (id, data) => api.patch(`/events/${id}`, data);
 export const deleteReservation = (id) => api.delete(`/events/${id}`);
+export const checkAvailability = (params) => api.get('/events/availability', { params });
 
 // Config
 export const getConfig = () => api.get('/config');

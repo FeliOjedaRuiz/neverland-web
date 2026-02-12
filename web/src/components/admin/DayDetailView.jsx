@@ -145,6 +145,10 @@ const DayDetailView = ({ date, onBack, onViewReservation }) => {
 		(s) => getTurnStatus(s.id).status === 'available',
 	);
 
+	const hasAnyReservation = dayEvents.some(
+		(e) => e.tipo === 'reserva' && e.estado !== 'cancelada',
+	);
+
 	return (
 		<div className="flex flex-col h-full bg-white animate-in slide-in-from-right duration-300">
 			{/* Header Compacto */}
@@ -167,7 +171,7 @@ const DayDetailView = ({ date, onBack, onViewReservation }) => {
 					</div>
 				</div>
 
-				{hasAnyAvailable && (
+				{hasAnyAvailable && !hasAnyReservation && (
 					<button
 						onClick={handleBlockDay}
 						disabled={blockingTurn === 'ALL'}

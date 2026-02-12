@@ -53,10 +53,10 @@ const Step8Summary = ({
 						return (
 							<div key={id} className="flex justify-between">
 								<span>
-									{qty} x {item?.name}
+									{qty} x {item?.nombre}
 								</span>
 								<span className="font-bold">
-									{(qty * item?.price).toFixed(2)}€
+									{(qty * item?.precio).toFixed(2)}€
 								</span>
 							</div>
 						);

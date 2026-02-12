@@ -220,9 +220,8 @@ const AdminDashboard = () => {
 				{/* Scrollable Content Area */}
 				<div
 					className={`flex-1 overflow-y-auto ${
-						(activeTab === 'calendario' &&
-							!selectedDate &&
-							!selectedReservation) ||
+						activeTab === 'calendario' ||
+						activeTab === 'reservas' ||
 						selectedDate ||
 						selectedReservation
 							? 'p-0'
