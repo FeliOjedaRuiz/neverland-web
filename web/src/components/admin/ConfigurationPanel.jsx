@@ -1,51 +1,163 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Loader2, X } from 'lucide-react';
+import {
+	Save,
+	Plus,
+	Trash2,
+	Loader2,
+	X,
+	Settings2,
+	Sparkles,
+	Utensils,
+	Star,
+	Clock,
+	ChevronDown,
+} from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { getConfig, updateConfig } from '../../services/api';
+
+const AccordionSection = ({
+	title,
+	subtitle,
+	icon: Icon,
+	color,
+	isOpen,
+	onToggle,
+	children,
+	action,
+}) => {
+	return (
+		<div
+			className={`bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm transition-all duration-300 border-l-[6px] ${color}`}
+		>
+			<div
+				className="flex items-center justify-between p-5 cursor-pointer hover:bg-gray-50/50 transition-colors"
+				onClick={onToggle}
+			>
+				<div className="flex items-center gap-4">
+					<div className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm text-gray-500">
+						<Icon size={20} />
+					</div>
+					<div>
+						<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">
+							{subtitle}
+						</h4>
+						<h3 className="text-lg font-display font-black text-text-black leading-tight">
+							{title}
+						</h3>
+					</div>
+				</div>
+				<div className="flex items-center gap-3">
+					{action && (
+						<div
+							onClick={(e) => e.stopPropagation()}
+							className={`transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+						>
+							{action}
+						</div>
+					)}
+					<div
+						className={`p-2 transition-transform duration-300 ${isOpen ? 'rotate-180 text-neverland-green' : 'text-gray-300'}`}
+					>
+						<ChevronDown size={20} />
+					</div>
+				</div>
+			</div>
+			{isOpen && (
+				<div className="p-5 pt-0 animate-in slide-in-from-top-2 duration-300">
+					<div className="pt-4 border-t border-gray-50">{children}</div>
+				</div>
+			)}
+		</div>
+	);
+};
 
 const ConfigurationPanel = () => {
 	const [config, setConfig] = useState(null);
+	const [originalConfig, setOriginalConfig] = useState(null);
 	const [loading, setLoading] = useState(true);
-	const [saving, setSaving] = useState(false);
+	const [openSections, setOpenSections] = useState({
+		kids: false,
+		adults: false,
+		workshops: false,
+		characters: false,
+		others: false,
+	});
+	const [newCharacterName, setNewCharacterName] = useState('');
 
-	useEffect(() => {
-		const fetchData = async () => {
-			setLoading(true);
-			try {
-				const res = await getConfig();
-				setConfig(res.data);
-			} catch (err) {
-				console.error('Error fetching data:', err);
-			} finally {
-				setLoading(false);
-			}
-		};
-		fetchData();
-	}, []);
+	const toggleSection = (section, forceOpen = false) => {
+		setOpenSections((prev) => ({
+			...prev,
+			[section]: forceOpen ? true : !prev[section],
+		}));
+	};
 
-	const handleSaveConfig = async () => {
-		setSaving(true);
+	const fetchData = async () => {
+		setLoading(true);
 		try {
-			await updateConfig(config);
-			alert('Configuración guardada correctamente');
+			const res = await getConfig();
+			const data = res.data;
+			// Ensure IDs for lists to track changes
+			if (data.preciosAdultos) {
+				data.preciosAdultos = data.preciosAdultos.map((item) => ({
+					...item,
+					id: item.id || item._id || Date.now().toString() + Math.random(),
+				}));
+			}
+			if (data.workshops) {
+				data.workshops = data.workshops.map((item) => ({
+					...item,
+					id: item.id || item._id || Date.now().toString() + Math.random(),
+				}));
+			}
+			setConfig(data);
+			setOriginalConfig(JSON.parse(JSON.stringify(data)));
 		} catch (err) {
-			console.error('Error saving config:', err);
-			alert('Error al guardar la configuración');
+			console.error('Error fetching data:', err);
 		} finally {
-			setSaving(false);
+			setLoading(false);
 		}
 	};
 
-	const addItem = (field, defaultObj) => {
-		setConfig({
-			...config,
-			[field]: [...(config[field] || []), defaultObj],
-		});
+	useEffect(() => {
+		fetchData();
+	}, []);
+
+	const handleSave = async (newConfig = config) => {
+		try {
+			await updateConfig(newConfig || config);
+			toast.success('Guardado correctamente');
+			setOriginalConfig(JSON.parse(JSON.stringify(newConfig || config)));
+		} catch (err) {
+			console.error('Error saving config:', err);
+			toast.error('Error al guardar');
+		}
+	};
+
+	const addItem = (field, defaultObj, sectionName) => {
+		if (!openSections[sectionName]) {
+			toggleSection(sectionName, true);
+		}
+
+		// Add new item with a guaranteed UNIQUE ID
+		const newItem = {
+			...defaultObj,
+			id: Date.now().toString(),
+			isNew: true, // Marker for autofocu
+		};
+
+		const newList = [newItem, ...(config[field] || [])];
+		const newConfig = { ...config, [field]: newList };
+		setConfig(newConfig);
 	};
 
 	const removeItem = (field, index) => {
-		const newList = [...config[field]];
-		newList.splice(index, 1);
-		setConfig({ ...config, [field]: newList });
+		if (window.confirm('¿Seguro que quieres eliminar este elemento?')) {
+			const newList = [...config[field]];
+			newList.splice(index, 1);
+			const newConfig = { ...config, [field]: newList };
+			setConfig(newConfig);
+			handleSave(newConfig);
+		}
 	};
 
 	const updateListItem = (field, index, key, value) => {
@@ -54,233 +166,328 @@ const ConfigurationPanel = () => {
 		setConfig({ ...config, [field]: newList });
 	};
 
+	const handleAddCharacter = async () => {
+		if (!newCharacterName.trim()) return;
+		const newList = [newCharacterName.trim(), ...config.characters];
+		const newConfig = { ...config, characters: newList };
+		setConfig(newConfig);
+		setNewCharacterName('');
+		await handleSave(newConfig);
+	};
+
+	// --- Change Detection Logic ---
+	const hasChanges = (section, itemOrId) => {
+		if (!originalConfig || !config) return false;
+
+		if (section === 'kids') {
+			return (
+				JSON.stringify(config.preciosNiños) !==
+				JSON.stringify(originalConfig.preciosNiños)
+			);
+		}
+		if (section === 'others') {
+			return (
+				JSON.stringify(config.preciosExtras) !==
+				JSON.stringify(originalConfig.preciosExtras)
+			);
+		}
+		if (section === 'others') {
+			return (
+				JSON.stringify(config.preciosExtras) !==
+				JSON.stringify(originalConfig.preciosExtras)
+			);
+		}
+		if (section === 'characters') {
+			return (
+				JSON.stringify(config.characters) !==
+				JSON.stringify(originalConfig.characters)
+			);
+		}
+		return false;
+	};
+
+	const isItemChanged = (listName, item) => {
+		if (!originalConfig) return false;
+		const originalList = originalConfig[listName] || [];
+		const originalItem = originalList.find((i) => i.id === item.id);
+
+		if (!originalItem) return true; // New item
+
+		const { isNew: _, ...itemClean } = item;
+		const { isNew: __, ...orgClean } = originalItem;
+
+		return JSON.stringify(itemClean) !== JSON.stringify(orgClean);
+	};
+
 	if (loading) {
 		return (
-			<div className="flex flex-col items-center justify-center h-96 text-gray-400 gap-4">
-				<Loader2 className="animate-spin text-neverland-green" size={48} />
-				<p className="font-medium">Cargando configuración...</p>
+			<div className="flex flex-col items-center justify-center h-full py-20 text-gray-300 gap-4">
+				<Loader2 className="animate-spin text-neverland-green/40" size={48} />
+				<p className="font-display font-black uppercase tracking-widest text-[10px]">
+					Sincronizando configuración...
+				</p>
 			</div>
 		);
 	}
 
-	return (
-		<div className="space-y-10 pb-20">
-			{/* Top Bar with Global Save */}
-			<div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-gray-100 shadow-sm sticky top-0 z-20">
-				<div>
-					<h3 className="text-xl font-display font-black text-neverland-green">
-						Configuración del Sitio
-					</h3>
-					<p className="text-xs text-gray-400 font-medium">
-						Gestiona precios, menús y opciones de reserva
-					</p>
-				</div>
-				<button
-					onClick={handleSaveConfig}
-					disabled={saving}
-					className="flex items-center gap-2 px-8 py-3 bg-neverland-green text-white rounded-2xl font-bold shadow-lg hover:bg-[#1f554d] disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
-				>
-					{saving ? (
-						<Loader2 className="animate-spin" size={20} />
-					) : (
-						<Save size={20} />
-					)}
-					{saving ? 'Guardando...' : 'Guardar Cambios Globales'}
-				</button>
-			</div>
+	const extraLabels = {
+		tallerBase: 'Taller Económico',
+		tallerPlus: 'Taller Premium',
+		personaje: 'Personaje Animado',
+		pinata: 'Piñata Neverland',
+		extension30: 'Extra 30 Min',
+		extension60: 'Extra 60 Min',
+	};
 
-			{config && (
-				<>
-					{/* Prices for Kids */}
-					<section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-						<h4 className="text-lg font-bold text-text-black mb-6 flex items-center gap-2">
-							<span className="w-2 h-8 bg-neverland-green rounded-full"></span>
-							Precios Menú Infantil & Fin de Semana
-						</h4>
-						<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-							{[1, 2, 3, 4].map((id) => (
-								<div key={id} className="space-y-2">
-									<label className="text-xs font-black text-gray-400 uppercase">
-										Menú {id}
+	return (
+		<div className="flex flex-col h-full bg-white animate-in fade-in duration-300 relative">
+			{/* Scrollable Form Content */}
+			<div className="flex-1 overflow-y-auto pb-32">
+				{config && (
+					<div className="p-6 space-y-4 max-w-5xl mx-auto">
+						{/* Prices for Kids */}
+						<AccordionSection
+							title="Menús Infantiles"
+							subtitle="Precios Base & Fin de Semana"
+							icon={Sparkles}
+							color="border-l-neverland-green"
+							isOpen={openSections.kids}
+							onToggle={() => toggleSection('kids')}
+							action={
+								<button
+									onClick={(e) => {
+										e.stopPropagation();
+										handleSave();
+									}}
+									className={`p-2 rounded-xl transition-all ${
+										hasChanges('kids')
+											? 'text-neverland-green bg-neverland-green/10 hover:bg-neverland-green/20'
+											: 'text-gray-300 hover:text-gray-400'
+									}`}
+									title="Guardar Cambios"
+								>
+									<Save size={20} />
+								</button>
+							}
+						>
+							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 py-2">
+								{[1, 2, 3, 4].map((id) => (
+									<div
+										key={id}
+										className="space-y-1.5 p-4 bg-gray-50/50 rounded-2xl border border-gray-50 flex flex-col justify-center"
+									>
+										<label className="text-[9px] font-black text-gray-400 uppercase tracking-tighter ml-1">
+											Menu {id}
+										</label>
+										<div className="relative">
+											<input
+												type="number"
+												value={config.preciosNiños[id]}
+												onChange={(e) =>
+													setConfig({
+														...config,
+														preciosNiños: {
+															...config.preciosNiños,
+															[id]: parseFloat(e.target.value),
+														},
+													})
+												}
+												className="w-full bg-transparent p-0 text-xl font-display font-black text-text-black outline-none border-none ring-0"
+											/>
+											<span className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-300 font-bold text-sm">
+												€
+											</span>
+										</div>
+									</div>
+								))}
+								<div className="space-y-1.5 p-4 bg-energy-orange/5 rounded-2xl border border-energy-orange/10 flex flex-col justify-center">
+									<label className="text-[9px] font-black text-energy-orange uppercase tracking-tighter ml-1 opacity-60">
+										Plus Vie-Dom
 									</label>
 									<div className="relative">
 										<input
 											type="number"
-											value={config.preciosNiños[id]}
+											value={config.preciosNiños.plusFinDeSemana}
 											onChange={(e) =>
 												setConfig({
 													...config,
 													preciosNiños: {
 														...config.preciosNiños,
-														[id]: parseFloat(e.target.value),
+														plusFinDeSemana: parseFloat(e.target.value),
 													},
 												})
 											}
-											className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl font-bold focus:ring-2 focus:ring-neverland-green outline-none"
+											className="w-full bg-transparent p-0 text-xl font-display font-black text-energy-orange outline-none border-none ring-0"
 										/>
-										<span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">
+										<span className="absolute right-0 top-1/2 -translate-y-1/2 text-energy-orange/40 font-bold text-sm">
 											€
 										</span>
 									</div>
 								</div>
-							))}
-							<div className="space-y-2">
-								<label className="text-xs font-black text-gray-400 uppercase">
-									Plus Fin de Semana
-								</label>
-								<div className="relative">
-									<input
-										type="number"
-										value={config.preciosNiños.plusFinDeSemana}
-										onChange={(e) =>
-											setConfig({
-												...config,
-												preciosNiños: {
-													...config.preciosNiños,
-													plusFinDeSemana: parseFloat(e.target.value),
-												},
-											})
-										}
-										className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl font-bold focus:ring-2 focus:ring-neverland-green outline-none"
-									/>
-									<span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">
-										€
-									</span>
-								</div>
 							</div>
-						</div>
-					</section>
+						</AccordionSection>
 
-					{/* Adult Menus */}
-					<section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-						<div className="flex justify-between items-center mb-6">
-							<h4 className="text-lg font-bold text-text-black flex items-center gap-2">
-								<span className="w-2 h-8 bg-energy-orange rounded-full"></span>
-								Opciones Menú Adultos
-							</h4>
-							<button
-								onClick={() =>
-									addItem('preciosAdultos', {
-										id: Date.now().toString(),
-										nombre: '',
-										precio: 0,
-										unidades: '',
-									})
-								}
-								className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-200 transition-all"
-							>
-								<Plus size={14} />
-								Añadir Opción
-							</button>
-						</div>
-						<div className="space-y-4">
-							{(config.preciosAdultos || []).map((menu, idx) => (
-								<div
-									key={idx}
-									className="flex flex-wrap md:flex-nowrap gap-4 items-end p-4 bg-gray-50 rounded-2xl border border-gray-100"
+						{/* Adult Menus */}
+						<AccordionSection
+							title="Menú de Adultos"
+							subtitle="Catering & Raciones"
+							icon={Utensils}
+							color="border-l-energy-orange"
+							isOpen={openSections.adults}
+							onToggle={() => toggleSection('adults')}
+							action={
+								<button
+									onClick={() =>
+										addItem(
+											'preciosAdultos',
+											{
+												nombre: '',
+												precio: 0,
+												unidades: '',
+											},
+											'adults',
+										)
+									}
+									className="p-1.5 bg-neverland-green/10 text-neverland-green rounded-lg hover:bg-neverland-green hover:text-white transition-all shadow-sm shadow-neverland-green/5"
 								>
-									<div className="flex-1 min-w-[200px] space-y-1">
-										<label className="text-[10px] font-black text-gray-400 uppercase">
-											Nombre del Plato
-										</label>
-										<input
-											type="text"
-											value={menu.nombre}
-											onChange={(e) =>
-												updateListItem(
-													'preciosAdultos',
-													idx,
-													'nombre',
-													e.target.value,
-												)
-											}
-											className="w-full p-2 bg-white border border-gray-100 rounded-lg text-sm font-bold outline-none"
-										/>
-									</div>
-									<div className="w-24 space-y-1">
-										<label className="text-[10px] font-black text-gray-400 uppercase">
-											Precio
-										</label>
-										<input
-											type="number"
-											value={menu.precio}
-											onChange={(e) =>
-												updateListItem(
-													'preciosAdultos',
-													idx,
-													'precio',
-													parseFloat(e.target.value),
-												)
-											}
-											className="w-full p-2 bg-white border border-gray-100 rounded-lg text-sm font-bold outline-none"
-										/>
-									</div>
-									<div className="w-32 space-y-1">
-										<label className="text-[10px] font-black text-gray-400 uppercase">
-											Ración/Unidades
-										</label>
-										<input
-											type="text"
-											value={menu.unidades}
-											onChange={(e) =>
-												updateListItem(
-													'preciosAdultos',
-													idx,
-													'unidades',
-													e.target.value,
-												)
-											}
-											className="w-full p-2 bg-white border border-gray-100 rounded-lg text-sm font-bold outline-none"
-										/>
-									</div>
-									<button
-										onClick={() => removeItem('preciosAdultos', idx)}
-										className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition-all mb-0.5"
+									<Plus size={16} />
+								</button>
+							}
+						>
+							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-2">
+								{(config.preciosAdultos || []).map((menu, idx) => (
+									<div
+										key={menu.id || idx}
+										className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative group hover:border-neverland-green/20 transition-colors"
 									>
-										<Trash2 size={18} />
-									</button>
-								</div>
-							))}
-						</div>
-					</section>
+										<div className="flex justify-between mb-4">
+											<div className="flex-1 mr-8">
+												<input
+													type="text"
+													value={menu.nombre}
+													placeholder="Nombre del plato..."
+													autoFocus={menu.isNew}
+													onChange={(e) =>
+														updateListItem(
+															'preciosAdultos',
+															idx,
+															'nombre',
+															e.target.value,
+														)
+													}
+													className="w-full p-0 bg-transparent border-none font-display font-black text-lg text-text-black outline-none placeholder:text-gray-200"
+												/>
+											</div>
+											<div className="absolute top-4 right-4 flex gap-1 transform transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+												<button
+													onClick={() => handleSave()}
+													className={`p-2 transition-all ${
+														isItemChanged('preciosAdultos', menu)
+															? 'text-neverland-green scale-110'
+															: 'text-gray-300 hover:text-neverland-green'
+													}`}
+													title="Guardar"
+												>
+													<Save size={18} />
+												</button>
+												<button
+													onClick={() => removeItem('preciosAdultos', idx)}
+													className="p-2 text-gray-300 hover:text-red-500 transition-all"
+													title="Eliminar"
+												>
+													<Trash2 size={18} />
+												</button>
+											</div>
+										</div>
+										<div className="flex items-center gap-4">
+											<div className="flex-1 bg-gray-50 rounded-xl p-2 px-3 border border-gray-50">
+												<label className="text-[8px] font-black text-gray-400 uppercase block leading-none mb-1">
+													Unidades
+												</label>
+												<input
+													type="text"
+													value={menu.unidades}
+													placeholder="Ej: 12 uds"
+													onChange={(e) =>
+														updateListItem(
+															'preciosAdultos',
+															idx,
+															'unidades',
+															e.target.value,
+														)
+													}
+													className="w-full bg-transparent p-0 text-xs font-bold text-gray-600 outline-none border-none"
+												/>
+											</div>
+											<div className="w-20 bg-neverland-green/5 rounded-xl p-2 px-3 border border-neverland-green/10">
+												<label className="text-[8px] font-black text-neverland-green uppercase block leading-none mb-1">
+													Precio
+												</label>
+												<div className="flex items-center">
+													<input
+														type="number"
+														value={menu.precio}
+														onChange={(e) =>
+															updateListItem(
+																'preciosAdultos',
+																idx,
+																'precio',
+																parseFloat(e.target.value),
+															)
+														}
+														className="w-full bg-transparent p-0 text-sm font-black text-neverland-green outline-none border-none"
+													/>
+													<span className="text-[10px] font-black text-neverland-green opacity-40 ml-1">
+														€
+													</span>
+												</div>
+											</div>
+										</div>
+									</div>
+								))}
+							</div>
+						</AccordionSection>
 
-					{/* Workshops Management */}
-					<section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-						<div className="flex justify-between items-center mb-6">
-							<h4 className="text-lg font-bold text-text-black flex items-center gap-2">
-								<span className="w-2 h-8 bg-blue-400 rounded-full"></span>
-								Gestión de Talleres
-							</h4>
-							<button
-								onClick={() =>
-									addItem('workshops', {
-										id: Date.now().toString(),
-										name: '',
-										priceBase: 0,
-										pricePlus: 0,
-										desc: '',
-									})
-								}
-								className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-200 transition-all"
-							>
-								<Plus size={14} />
-								Nuevo Taller
-							</button>
-						</div>
-						<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-							{(config.workshops || []).map((ws, idx) => (
-								<div
-									key={idx}
-									className="p-6 bg-gray-50 rounded-2xl border border-gray-100 space-y-4 relative"
+						{/* Workshops */}
+						<AccordionSection
+							title="Talleres & Actividades"
+							subtitle="Extras por niño"
+							icon={Star}
+							color="border-l-blue-400"
+							isOpen={openSections.workshops}
+							onToggle={() => toggleSection('workshops')}
+							action={
+								<button
+									onClick={() =>
+										addItem(
+											'workshops',
+											{
+												name: '',
+												priceBase: 0,
+												pricePlus: 0,
+												desc: '',
+											},
+											'workshops',
+										)
+									}
+									className="p-1.5 bg-blue-400/10 text-blue-500 rounded-lg hover:bg-blue-400 hover:text-white transition-all shadow-sm shadow-blue-400/5"
 								>
-									<div className="grid grid-cols-2 gap-4">
-										<div className="col-span-2 space-y-1">
-											<label className="text-[10px] font-black text-gray-400 uppercase">
-												Nombre del Taller
-											</label>
+									<Plus size={16} />
+								</button>
+							}
+						>
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-2">
+								{(config.workshops || []).map((ws, idx) => (
+									<div
+										key={ws.id || idx}
+										className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative group hover:border-blue-200 transition-colors"
+									>
+										<div className="flex-1 mb-4 flex justify-between">
 											<input
 												type="text"
 												value={ws.name}
+												placeholder="Nombre del taller..."
+												autoFocus={ws.isNew}
 												onChange={(e) =>
 													updateListItem(
 														'workshops',
@@ -289,139 +496,236 @@ const ConfigurationPanel = () => {
 														e.target.value,
 													)
 												}
-												className="w-full p-2 bg-white border border-gray-100 rounded-lg text-sm font-bold outline-none"
+												className="w-full p-0 bg-transparent border-none font-display font-black text-lg text-text-black outline-none placeholder:text-gray-200"
 											/>
+											<div className="flex gap-1 -mt-1 shrink-0 ml-2 transform transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+												<button
+													onClick={() => handleSave()}
+													className={`p-2 transition-all ${
+														isItemChanged('workshops', ws)
+															? 'text-blue-500 scale-110'
+															: 'text-gray-300 hover:text-blue-500'
+													}`}
+												>
+													<Save size={18} />
+												</button>
+												<button
+													onClick={() => removeItem('workshops', idx)}
+													className="p-2 text-gray-300 hover:text-red-500 transition-all"
+												>
+													<Trash2 size={18} />
+												</button>
+											</div>
 										</div>
-										<div className="space-y-1">
-											<label className="text-[10px] font-black text-gray-400 uppercase">
-												Precio Base (≤25 niños)
-											</label>
-											<input
-												type="number"
-												value={ws.priceBase}
-												onChange={(e) =>
-													updateListItem(
-														'workshops',
-														idx,
-														'priceBase',
-														parseFloat(e.target.value),
-													)
-												}
-												className="w-full p-2 bg-white border border-gray-100 rounded-lg text-sm font-bold outline-none"
+
+										<div className="mb-4 relative group/desc">
+											<textarea
+												value={ws.desc || ''}
+												onChange={(e) => {
+													if (e.target.value.length <= 150) {
+														const newList = [...config.workshops];
+														newList[idx] = {
+															...newList[idx],
+															desc: e.target.value,
+														};
+														setConfig({ ...config, workshops: newList });
+													}
+												}}
+												placeholder="Breve descripción de la actividad..."
+												className="w-full bg-gray-50/50 p-3 rounded-2xl text-xs font-medium text-gray-600 border border-gray-100 focus:bg-white focus:border-blue-200 focus:shadow-sm outline-none resize-none transition-all placeholder:text-gray-300 min-h-[60px]"
 											/>
+											<div
+												className={`absolute bottom-2 right-2 text-[9px] font-black tracking-wider transition-colors pointer-events-none ${
+													(ws.desc?.length || 0) >= 140
+														? 'text-red-400'
+														: 'text-gray-300'
+												}`}
+											>
+												{ws.desc?.length || 0}/150
+											</div>
 										</div>
-										<div className="space-y-1">
-											<label className="text-[10px] font-black text-gray-400 uppercase">
-												Precio Plus ({'>'}25 niños)
-											</label>
-											<input
-												type="number"
-												value={ws.pricePlus}
-												onChange={(e) =>
-													updateListItem(
-														'workshops',
-														idx,
-														'pricePlus',
-														parseFloat(e.target.value),
-													)
-												}
-												className="w-full p-2 bg-white border border-gray-100 rounded-lg text-sm font-bold outline-none"
-											/>
+
+										<div className="grid grid-cols-2 gap-3">
+											<div className="bg-gray-50 rounded-xl p-2 px-3">
+												<label className="text-[8px] font-black text-gray-400 uppercase block leading-none mb-1">
+													Base (≤25)
+												</label>
+												<div className="flex items-center">
+													<input
+														type="number"
+														value={ws.priceBase}
+														onChange={(e) =>
+															updateListItem(
+																'workshops',
+																idx,
+																'priceBase',
+																parseFloat(e.target.value),
+															)
+														}
+														className="w-full bg-transparent p-0 font-bold text-gray-600 outline-none border-none"
+													/>
+													<span className="text-[10px] font-bold text-gray-300">
+														€
+													</span>
+												</div>
+											</div>
+											<div className="bg-blue-50/50 rounded-xl p-2 px-3 border border-blue-50">
+												<label className="text-[8px] font-black text-blue-400 uppercase block leading-none mb-1">
+													Plus (&gt;25)
+												</label>
+												<div className="flex items-center">
+													<input
+														type="number"
+														value={ws.pricePlus}
+														onChange={(e) =>
+															updateListItem(
+																'workshops',
+																idx,
+																'pricePlus',
+																parseFloat(e.target.value),
+															)
+														}
+														className="w-full bg-transparent p-0 font-bold text-blue-500 outline-none border-none"
+													/>
+													<span className="text-[10px] font-bold text-blue-200">
+														€
+													</span>
+												</div>
+											</div>
 										</div>
 									</div>
+								))}
+							</div>
+						</AccordionSection>
+
+						{/* Characters */}
+						<AccordionSection
+							title="Personajes Neverland"
+							subtitle="Catálogo de Animación"
+							icon={Clock}
+							color="border-l-purple-500"
+							isOpen={openSections.characters}
+							onToggle={() => toggleSection('characters')}
+						>
+							<div className="flex flex-col gap-4 py-2">
+								<div className="flex gap-2">
+									<input
+										type="text"
+										value={newCharacterName}
+										onChange={(e) => setNewCharacterName(e.target.value)}
+										onKeyDown={(e) => e.key === 'Enter' && handleAddCharacter()}
+										placeholder="Añadir nuevo personaje..."
+										className="flex-1 bg-gray-50/50 p-3 rounded-2xl text-sm font-display font-bold text-text-black border border-gray-100 focus:bg-white focus:border-purple-200 focus:shadow-sm outline-none transition-all placeholder:text-gray-300"
+									/>
 									<button
-										onClick={() => removeItem('workshops', idx)}
-										className="absolute top-2 right-2 p-2 text-red-400 hover:bg-red-50 rounded-lg transition-all"
+										onClick={handleAddCharacter}
+										disabled={!newCharacterName.trim()}
+										className="p-3 bg-purple-500/10 text-purple-500 rounded-2xl hover:bg-purple-500 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-purple-500/5"
 									>
-										<Trash2 size={16} />
+										<Plus size={20} />
 									</button>
 								</div>
-							))}
-						</div>
-					</section>
 
-					{/* Characters section */}
-					<section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-						<div className="flex justify-between items-center mb-6">
-							<h4 className="text-lg font-bold text-text-black flex items-center gap-2">
-								<span className="w-2 h-8 bg-purple-400 rounded-full"></span>
-								Personajes Disponibles
-							</h4>
-							<button
-								onClick={() => {
-									const name = window.prompt('Nombre del nuevo personaje:');
-									if (name) {
-										setConfig({
-											...config,
-											characters: [...config.characters, name],
-										});
-									}
-								}}
-								className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-200 transition-all"
-							>
-								<Plus size={14} />
-								Añadir Personaje
-							</button>
-						</div>
-						<div className="flex flex-wrap gap-2">
-							{(config.characters || []).map((char, idx) => (
-								<div
-									key={idx}
-									className="group flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-full text-sm font-bold text-gray-700 hover:border-purple-200 hover:bg-purple-50 transition-all"
+								<div className="bg-gray-50 p-6 rounded-[32px] flex flex-wrap gap-2">
+									{(config.characters || []).map((char, idx) => (
+										<div
+											key={idx}
+											className="group flex items-center gap-2 px-4 py-2 bg-white border border-gray-100 rounded-2xl text-[11px] font-black text-gray-700 hover:border-purple-200 hover:bg-purple-50 transition-all cursor-default shadow-sm shadow-black/5 animate-in zoom-in-95 duration-200"
+										>
+											{char}
+											<button
+												onClick={async () => {
+													if (
+														window.confirm(
+															`¿Seguro quieres eliminar a ${char}?`,
+														)
+													) {
+														const newList = [...config.characters];
+														newList.splice(idx, 1);
+														const newConfig = {
+															...config,
+															characters: newList,
+														};
+														setConfig(newConfig);
+														await handleSave(newConfig);
+													}
+												}}
+												className="text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full p-0.5 transition-all ml-1"
+											>
+												<X size={14} />
+											</button>
+										</div>
+									))}
+
+									{(config.characters || []).length === 0 && (
+										<div className="w-full text-center py-4 text-gray-300 text-xs italic">
+											No hay personajes añadidos
+										</div>
+									)}
+								</div>
+							</div>
+						</AccordionSection>
+
+						{/* Others Prices */}
+						<AccordionSection
+							title="Precios & Otros Extras"
+							subtitle="Ajustes Generales"
+							icon={Settings2}
+							color="border-l-gray-400"
+							isOpen={openSections.others}
+							onToggle={() => toggleSection('others')}
+							action={
+								<button
+									onClick={(e) => {
+										e.stopPropagation();
+										handleSave();
+									}}
+									className={`p-2 rounded-xl transition-all ${
+										hasChanges('others')
+											? 'text-neverland-green bg-neverland-green/10 hover:bg-neverland-green/20'
+											: 'text-gray-300 hover:text-gray-400'
+									}`}
+									title="Guardar Cambios"
 								>
-									{char}
-									<button
-										onClick={() => {
-											const newList = [...config.characters];
-											newList.splice(idx, 1);
-											setConfig({ ...config, characters: newList });
-										}}
-										className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+									<Save size={20} />
+								</button>
+							}
+						>
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-2">
+								{Object.entries(config.preciosExtras).map(([key, value]) => (
+									<div
+										key={key}
+										className="flex flex-col gap-1 p-4 bg-gray-50/50 rounded-2xl border border-gray-50"
 									>
-										<X size={14} />
-									</button>
-								</div>
-							))}
-						</div>
-					</section>
-
-					{/* Extras Prices section */}
-					<section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-						<h4 className="text-lg font-bold text-text-black mb-6 flex items-center gap-2">
-							<span className="w-2 h-8 bg-neverland-green rounded-full"></span>
-							Otros Precios de Extras
-						</h4>
-						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-							{Object.entries(config.preciosExtras).map(([key, value]) => (
-								<div key={key} className="flex flex-col gap-2">
-									<label className="text-[10px] font-black text-gray-400 uppercase">
-										{key.replace(/([A-Z])/g, ' $1')}
-									</label>
-									<div className="relative">
-										<input
-											type="number"
-											value={value}
-											onChange={(e) =>
-												setConfig({
-													...config,
-													preciosExtras: {
-														...config.preciosExtras,
-														[key]: parseFloat(e.target.value),
-													},
-												})
-											}
-											className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl font-bold focus:ring-2 focus:ring-neverland-green outline-none"
-										/>
-										<span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">
-											€
-										</span>
+										<label className="text-[9px] font-black text-gray-400 uppercase tracking-tighter ml-0.5">
+											{extraLabels[key] || key.replace(/([A-Z])/g, ' $1')}
+										</label>
+										<div className="relative flex items-center">
+											<input
+												type="number"
+												value={value}
+												onChange={(e) =>
+													setConfig({
+														...config,
+														preciosExtras: {
+															...config.preciosExtras,
+															[key]: parseFloat(e.target.value),
+														},
+													})
+												}
+												className="w-full bg-transparent p-0 text-lg font-display font-black text-text-black outline-none border-none ring-0"
+											/>
+											<span className="text-gray-300 font-bold ml-1 text-sm">
+												€
+											</span>
+										</div>
 									</div>
-								</div>
-							))}
-						</div>
-					</section>
-				</>
-			)}
+								))}
+							</div>
+						</AccordionSection>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 };

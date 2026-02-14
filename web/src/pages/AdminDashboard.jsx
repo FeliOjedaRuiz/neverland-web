@@ -148,7 +148,7 @@ const AdminDashboard = () => {
 	};
 
 	return (
-		<div className="flex h-screen bg-cream-bg overflow-hidden font-sans">
+		<div className="flex h-screen bg-white overflow-hidden font-sans">
 			{/* Sidebar Desktop */}
 			<aside className="w-64 bg-white border-r border-gray-100 hidden md:flex flex-col">
 				<SidebarContent {...commonProps} />
@@ -157,11 +157,11 @@ const AdminDashboard = () => {
 			{/* Sidebar Mobile Overlay */}
 			{isMobileMenuOpen && (
 				<div
-					className="fixed inset-0 bg-black/50 z-50 md:hidden backdrop-blur-sm"
+					className="fixed inset-0 bg-black/20 z-50 md:hidden backdrop-blur-md flex justify-end animate-in fade-in duration-300"
 					onClick={() => setIsMobileMenuOpen(false)}
 				>
 					<aside
-						className="w-64 h-full bg-white flex flex-col shadow-2xl animate-in slide-in-from-left duration-300"
+						className="w-[280px] h-full bg-white flex flex-col shadow-2xl shadow-black/10 animate-in slide-in-from-right duration-300 ease-out rounded-l-[32px]"
 						onClick={(e) => e.stopPropagation()}
 					>
 						<div className="flex justify-end p-4">
@@ -181,53 +181,42 @@ const AdminDashboard = () => {
 			<main className="flex-1 flex flex-col overflow-hidden">
 				{/* Header Content */}
 				<header className="bg-white border-b border-gray-100 p-4 flex justify-between items-center shadow-soft relative z-10">
-					<div className="flex items-center gap-4">
-						<button
-							onClick={() => setIsMobileMenuOpen(true)}
-							className="p-2 text-gray-600 hover:text-neverland-green md:hidden"
-						>
-							<Menu size={24} />
-						</button>
-						<h3 className="text-xl font-display font-bold text-text-black capitalize">
-							{selectedReservation
-								? 'Detalle de Reserva'
-								: activeTab
-									? activeTab.replace('-', ' ')
-									: ''}
-						</h3>
-					</div>
-					<div className="flex items-center gap-4">
-						<div className="relative hidden sm:block">
-							<Search
-								className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-								size={16}
-							/>
-							<input
-								type="text"
-								placeholder="Buscar..."
-								className="pl-10 pr-4 py-2 bg-cream-bg/50 border-none rounded-full text-sm focus:ring-2 focus:ring-neverland-green/50 outline-none w-64 font-sans text-text-black"
-							/>
+					{activeTab && (
+						<div className="flex items-center gap-3">
+							<div className="p-2.5 bg-neverland-green/5 text-neverland-green rounded-2xl">
+								{React.createElement(
+									sidebarItems.find((i) => i.id === activeTab)?.icon || Inbox,
+									{ size: 24 },
+								)}
+							</div>
+							<div>
+								<h3 className="text-xl font-display font-black text-text-black leading-tight">
+									{selectedReservation
+										? 'Detalle de Reserva'
+										: sidebarItems.find((i) => i.id === activeTab)?.label}
+								</h3>
+								<p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
+									{selectedReservation
+										? 'Información Completa'
+										: activeTab === 'reservas'
+											? 'Gestión de Reservas'
+											: activeTab === 'calendario'
+												? 'Vista Mensual y Agenda'
+												: 'Precios, Menús y Catálogo'}
+								</p>
+							</div>
 						</div>
-						<button className="p-2 bg-neverland-green text-white rounded-full sm:hidden">
-							<Search size={20} />
-						</button>
-						<div className="w-10 h-10 rounded-full bg-neverland-green/20 text-neverland-green flex items-center justify-center font-display font-bold">
-							AD
-						</div>
-					</div>
+					)}
+					<button
+						onClick={() => setIsMobileMenuOpen(true)}
+						className="p-2 text-gray-600 hover:text-neverland-green md:hidden"
+					>
+						<Menu size={24} />
+					</button>
 				</header>
 
 				{/* Scrollable Content Area */}
-				<div
-					className={`flex-1 overflow-y-auto ${
-						activeTab === 'calendario' ||
-						activeTab === 'reservas' ||
-						selectedDate ||
-						selectedReservation
-							? 'p-0'
-							: 'p-6'
-					}`}
-				>
+				<div className="flex-1 overflow-y-auto p-0">
 					{selectedReservation ? (
 						<ErrorBoundary>
 							<ReservationDetailView

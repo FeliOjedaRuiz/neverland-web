@@ -59,13 +59,13 @@ const ReservationInbox = ({ onViewReservation }) => {
 			{/* List Area */}
 			<div className="flex-1 overflow-y-auto min-h-0 bg-white">
 				{loading ? (
-					<div className="flex flex-col items-center justify-center h-full text-gray-300 gap-4 py-20">
+					<div className="flex flex-col items-center justify-center h-full py-20 text-gray-300 gap-4">
 						<Loader2
 							className="animate-spin text-neverland-green/40"
-							size={40}
+							size={48}
 						/>
-						<p className="font-display font-black uppercase tracking-widest text-[9px]">
-							Sincronizando...
+						<p className="font-display font-black uppercase tracking-widest text-[10px]">
+							Sincronizando reservas...
 						</p>
 					</div>
 				) : filteredReservations.length === 0 ? (

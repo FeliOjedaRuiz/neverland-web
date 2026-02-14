@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
 	ChevronLeft,
 	ChevronRight,
+	LayoutGrid,
 	Calendar as CalendarIcon,
+	Loader2,
 } from 'lucide-react';
 import { getReservations } from '../../services/api';
 
@@ -70,9 +72,11 @@ const CalendarView = ({ onDayClick }) => {
 
 	if (loading) {
 		return (
-			<div className="flex flex-col items-center justify-center h-full text-gray-400 gap-4">
-				<div className="w-12 h-12 border-4 border-neverland-green/20 border-t-neverland-green rounded-full animate-spin" />
-				<p className="font-medium">Cargando eventos...</p>
+			<div className="flex flex-col items-center justify-center h-full py-20 text-gray-300 gap-4">
+				<Loader2 className="animate-spin text-neverland-green/40" size={48} />
+				<p className="font-display font-black uppercase tracking-widest text-[10px]">
+					Sincronizando calendario...
+				</p>
 			</div>
 		);
 	}
