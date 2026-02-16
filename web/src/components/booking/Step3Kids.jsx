@@ -3,7 +3,7 @@ import { CheckCircle } from 'lucide-react';
 
 const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 	return (
-		<div className="flex flex-col h-full">
+		<div>
 			<h2 className="text-xl font-display font-bold text-text-black text-center mb-4">
 				Los Protagonistas
 			</h2>
@@ -49,10 +49,16 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 				</div>
 			</div>
 
-			<p className="text-sm font-bold text-gray-400 mb-2 px-2">
-				Elige el Menú Infantil:
+			<p className="text-sm font-bold text-gray-400 mb-2 px-2 flex justify-between items-center">
+				<span>Elige el Menú Infantil:</span>
+				{formData.fecha &&
+					[0, 5, 6].includes(new Date(formData.fecha).getDay()) && (
+						<span className="text-[10px] text-neverland-green bg-green-50 px-2 py-1 rounded-lg animate-pulse">
+							+1.50€ Vie a Dom
+						</span>
+					)}
 			</p>
-			<div className="space-y-3 overflow-y-auto pb-4">
+			<div className="space-y-3">
 				{CHILDREN_MENUS.map((menu) => (
 					<div
 						key={menu.id}
@@ -79,16 +85,27 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 									{menu.price}€
 								</span>
 							</div>
-							<div className="text-sm text-gray-600 mb-3 space-y-1">
-								<p>
-									<strong className="text-neverland-green">Principal:</strong>{' '}
-									{menu.main}
+							<div className="text-sm text-gray-600 mb-1 space-y-2">
+								<p className="flex items-baseline gap-2 leading-tight">
+									<strong className="text-neverland-green font-black uppercase text-[9px] tracking-widest shrink-0">
+										Principal
+									</strong>
+									<span className="font-bold text-gray-800">{menu.main}</span>
 								</p>
-								<p className="text-xs italic opacity-70">"{menu.desc}"</p>
-							</div>
-							<div className="bg-white/60 p-2 rounded-xl text-xs text-gray-500 flex gap-2 items-center">
-								<span className="shrink-0 font-bold">Incluye:</span> Bebida,
-								Tarta y Chuches.
+								<div className="flex flex-wrap gap-1.5 pt-1">
+									{menu.desc
+										?.split('\n')
+										.filter((i) => i.trim())
+										.map((item, i) => (
+											<span
+												key={i}
+												className="bg-gray-100/60 text-[10px] px-2.5 py-1 rounded-full text-gray-500 font-bold flex items-center gap-1.5 border border-gray-100/50"
+											>
+												<div className="w-1 h-1 rounded-full bg-neverland-green/40" />
+												{item.replace(/^-/, '').trim()}
+											</span>
+										))}
+								</div>
 							</div>
 						</div>
 						{formData.niños.menuId === menu.id && (

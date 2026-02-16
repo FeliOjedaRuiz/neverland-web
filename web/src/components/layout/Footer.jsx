@@ -71,10 +71,10 @@ const Footer = () => {
 							</li>
 							<li>
 								<a
-									href="#talleres"
+									href="#actividades"
 									className="text-gray-400 hover:text-neverland-green transition-colors"
 								>
-									Talleres y Actividades
+									Actividades Creativas
 								</a>
 							</li>
 							<li>

@@ -1,13 +1,16 @@
 const mongoose = require('mongoose');
 
 const configSchema = new mongoose.Schema({
-  preciosNiños: {
-    1: { type: Number, default: 9 },
-    2: { type: Number, default: 9 },
-    3: { type: Number, default: 10 },
-    4: { type: Number, default: 12 },
-    plusFinDeSemana: { type: Number, default: 1.5 }
-  },
+  menusNiños: [
+    {
+      id: mongoose.Schema.Types.Mixed, // Can be Number (1, 2, 3...) or String (MongoDB ID)
+      nombre: String,
+      precio: Number,
+      principal: String,
+      resto: String // Multiline text for other items
+    }
+  ],
+  plusFinDeSemana: { type: Number, default: 1.5 },
   preciosAdultos: [
     {
       id: String,
@@ -27,8 +30,8 @@ const configSchema = new mongoose.Schema({
   ],
   characters: [String], // Simple list of names
   preciosExtras: {
-    tallerBase: { type: Number, default: 25 }, // Hasta 25 niños
-    tallerPlus: { type: Number, default: 30 }, // 26 o más
+    tallerBase: { type: Number, default: 25 }, // Hasta 15 niños
+    tallerPlus: { type: Number, default: 30 }, // 16 o más
     personaje: { type: Number, default: 40 },
     pinata: { type: Number, default: 15 },
     extension30: { type: Number, default: 30 },

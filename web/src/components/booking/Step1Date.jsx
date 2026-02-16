@@ -10,6 +10,7 @@ const Step1Date = ({
 	setView,
 	monthlyOccupied,
 	availabilityError,
+	availabilityLoading,
 }) => {
 	const changeMonth = (delta) => {
 		const newDate = new Date(currentMonth);
@@ -25,7 +26,7 @@ const Step1Date = ({
 
 	if (availabilityError) {
 		return (
-			<div className="flex flex-col h-full items-center justify-center text-center p-6">
+			<div className="flex flex-col items-center justify-center text-center p-6">
 				<div className="text-red-500 mb-4">
 					<CheckCircle size={48} className="rotate-45" />
 				</div>
@@ -47,12 +48,12 @@ const Step1Date = ({
 	}
 
 	return (
-		<div className="flex flex-col h-full">
+		<div>
 			<h2 className="text-xl font-display font-bold text-text-black text-center mb-3">
 				{view === 'calendar' ? 'Elige la Fecha' : 'Elige el Turno'}
 			</h2>
 			{view === 'calendar' && (
-				<div className="flex flex-col h-full">
+				<div>
 					<div className="flex justify-between items-center mb-2 px-2 shrink-0">
 						<button
 							onClick={() => changeMonth(-1)}
@@ -83,7 +84,19 @@ const Step1Date = ({
 							</span>
 						))}
 					</div>
-					<div className="grid grid-cols-7 gap-1 auto-rows-[1fr] grow content-stretch">
+					<div className="grid grid-cols-7 gap-1 auto-rows-[1fr] grow content-stretch relative">
+						{/* Loading Overlay */}
+						{availabilityLoading && (
+							<div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-2xl">
+								<div className="flex flex-col items-center gap-2">
+									<div className="w-8 h-8 border-4 border-neverland-green/20 border-t-neverland-green rounded-full animate-spin"></div>
+									<span className="text-[10px] font-black text-neverland-green uppercase tracking-widest">
+										Cargando...
+									</span>
+								</div>
+							</div>
+						)}
+
 						{Array.from({ length: 42 }).map((_, i) => {
 							const year = currentMonth.getFullYear();
 							const month = currentMonth.getMonth();

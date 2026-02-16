@@ -15,6 +15,7 @@ import BookingPage from './pages/BookingPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import RequireAuth from './components/admin/RequireAuth';
+import { Toaster } from 'react-hot-toast';
 
 function Layout() {
 	const location = useLocation();
@@ -35,6 +36,7 @@ function Layout() {
 
 	return (
 		<div className="min-h-screen font-sans bg-cream-bg flex flex-col overflow-x-hidden">
+			<Toaster position="top-center" reverseOrder={false} />
 			{!isAdminPath && <Navbar />}
 			<main className="grow">
 				<Routes>

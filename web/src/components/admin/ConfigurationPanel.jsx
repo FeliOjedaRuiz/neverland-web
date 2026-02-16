@@ -181,8 +181,9 @@ const ConfigurationPanel = () => {
 
 		if (section === 'kids') {
 			return (
-				JSON.stringify(config.preciosNiños) !==
-				JSON.stringify(originalConfig.preciosNiños)
+				JSON.stringify(config.menusNiños) !==
+					JSON.stringify(originalConfig.menusNiños) ||
+				config.plusFinDeSemana !== originalConfig.plusFinDeSemana
 			);
 		}
 		if (section === 'others') {
@@ -231,8 +232,8 @@ const ConfigurationPanel = () => {
 	}
 
 	const extraLabels = {
-		tallerBase: 'Taller Económico',
-		tallerPlus: 'Taller Premium',
+		tallerBase: 'Actividad Económica (≤15)',
+		tallerPlus: 'Actividad Premium (>15)',
 		personaje: 'Personaje Animado',
 		pinata: 'Piñata Neverland',
 		extension30: 'Extra 30 Min',
@@ -270,58 +271,134 @@ const ConfigurationPanel = () => {
 								</button>
 							}
 						>
-							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 py-2">
-								{[1, 2, 3, 4].map((id) => (
+							<div className="grid grid-cols-1 lg:grid-cols-2 gap-4 py-2">
+								{(config.menusNiños || []).map((menu, idx) => (
 									<div
-										key={id}
-										className="space-y-1.5 p-4 bg-gray-50/50 rounded-2xl border border-gray-50 flex flex-col justify-center"
+										key={menu.id || idx}
+										className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 relative group"
 									>
-										<label className="text-[9px] font-black text-gray-400 uppercase tracking-tighter ml-1">
-											Menu {id}
-										</label>
-										<div className="relative">
-											<input
-												type="number"
-												value={config.preciosNiños[id]}
-												onChange={(e) =>
-													setConfig({
-														...config,
-														preciosNiños: {
-															...config.preciosNiños,
-															[id]: parseFloat(e.target.value),
-														},
-													})
-												}
-												className="w-full bg-transparent p-0 text-xl font-display font-black text-text-black outline-none border-none ring-0"
-											/>
-											<span className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-300 font-bold text-sm">
-												€
-											</span>
+										{/* Header Line: Name & Price */}
+										<div className="flex items-center justify-between gap-3 mb-3 px-1">
+											<div className="flex-1 flex items-center gap-2">
+												<div className="w-8 h-8 rounded-lg bg-neverland-green/10 flex items-center justify-center shrink-0">
+													<span className="text-xs font-black text-neverland-green">
+														{idx + 1}
+													</span>
+												</div>
+												<input
+													type="text"
+													value={menu.nombre}
+													placeholder="Nombre..."
+													onChange={(e) => {
+														const newList = [...config.menusNiños];
+														newList[idx] = {
+															...newList[idx],
+															nombre: e.target.value,
+														};
+														setConfig({ ...config, menusNiños: newList });
+													}}
+													className="bg-transparent border-none font-display font-black text-base text-text-black outline-none placeholder:text-gray-200 w-full"
+												/>
+											</div>
+											<div className="flex items-center bg-gray-50 rounded-lg px-2.5 py-1.5 border border-gray-100 shrink-0">
+												<input
+													type="number"
+													value={menu.precio}
+													onChange={(e) => {
+														const newList = [...config.menusNiños];
+														newList[idx] = {
+															...newList[idx],
+															precio: parseFloat(e.target.value),
+														};
+														setConfig({ ...config, menusNiños: newList });
+													}}
+													className="w-10 bg-transparent p-0 text-sm font-black text-neverland-green outline-none border-none text-right"
+												/>
+												<span className="text-[10px] font-black text-neverland-green opacity-40 ml-1">
+													€
+												</span>
+											</div>
+										</div>
+
+										{/* Content Inputs */}
+										<div className="space-y-2">
+											<div className="bg-gray-50/30 rounded-xl p-2.5 border border-gray-50/50">
+												<div className="flex items-center gap-1.5 mb-0.5">
+													<label className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">
+														Plato Principal
+													</label>
+												</div>
+												<input
+													type="text"
+													value={menu.principal}
+													placeholder="Hot Dog, Hamburguesa..."
+													onChange={(e) => {
+														const newList = [...config.menusNiños];
+														newList[idx] = {
+															...newList[idx],
+															principal: e.target.value,
+														};
+														setConfig({ ...config, menusNiños: newList });
+													}}
+													className="w-full bg-transparent p-0 text-sm font-bold text-gray-600 outline-none border-none pl-1"
+												/>
+											</div>
+
+											<div className="bg-gray-50/30 rounded-xl p-2.5 border border-gray-50/50">
+												<div className="flex items-center gap-1.5 mb-1">
+													<label className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">
+														Detalles del Menú
+													</label>
+												</div>
+												<textarea
+													value={menu.resto}
+													rows={2}
+													placeholder="- Bebida\n- Postre..."
+													onChange={(e) => {
+														const newList = [...config.menusNiños];
+														newList[idx] = {
+															...newList[idx],
+															resto: e.target.value,
+														};
+														setConfig({ ...config, menusNiños: newList });
+													}}
+													className="w-full bg-transparent p-0 text-xs font-medium text-gray-500 outline-none border-none resize-none leading-normal pl-1 scrollbar-hide"
+												/>
+											</div>
 										</div>
 									</div>
 								))}
-								<div className="space-y-1.5 p-4 bg-energy-orange/5 rounded-2xl border border-energy-orange/10 flex flex-col justify-center">
-									<label className="text-[9px] font-black text-energy-orange uppercase tracking-tighter ml-1 opacity-60">
-										Plus Vie-Dom
-									</label>
-									<div className="relative">
-										<input
-											type="number"
-											value={config.preciosNiños.plusFinDeSemana}
-											onChange={(e) =>
-												setConfig({
-													...config,
-													preciosNiños: {
-														...config.preciosNiños,
+
+								{/* Weekend Plus Card - Refined */}
+								<div className="p-4 bg-energy-orange/5 rounded-2xl border border-energy-orange/10 flex flex-col justify-center items-center relative overflow-hidden group min-h-[140px]">
+									<div className="absolute -top-10 -right-10 w-32 h-32 bg-energy-orange/5 rounded-full blur-3xl group-hover:bg-energy-orange/10 transition-all" />
+									<div className="relative text-center">
+										<p className="text-[10px] font-black text-energy-orange uppercase tracking-[0.2em] mb-1 opacity-70">
+											Plus Findes / Festivos
+										</p>
+										<div className="flex items-center justify-center group">
+											<span className="text-xl font-black text-energy-orange/30 mr-1 mt-1">
+												+
+											</span>
+											<input
+												type="number"
+												step="0.1"
+												value={config.plusFinDeSemana}
+												onChange={(e) =>
+													setConfig({
+														...config,
 														plusFinDeSemana: parseFloat(e.target.value),
-													},
-												})
-											}
-											className="w-full bg-transparent p-0 text-xl font-display font-black text-energy-orange outline-none border-none ring-0"
-										/>
-										<span className="absolute right-0 top-1/2 -translate-y-1/2 text-energy-orange/40 font-bold text-sm">
-											€
-										</span>
+													})
+												}
+												className="w-16 bg-transparent p-0 text-3xl font-display font-black text-energy-orange outline-none border-none ring-0 text-center"
+											/>
+											<span className="text-xl font-black text-energy-orange/30 ml-1 mt-1">
+												€
+											</span>
+										</div>
+										<p className="text-[10px] font-bold text-energy-orange/40 mt-1 italic max-w-[160px] mx-auto leading-tight">
+											Extra por niño en Vie, Sáb, Dom y Festivos
+										</p>
 									</div>
 								</div>
 							</div>
@@ -450,7 +527,7 @@ const ConfigurationPanel = () => {
 
 						{/* Workshops */}
 						<AccordionSection
-							title="Talleres & Actividades"
+							title="Actividades"
 							subtitle="Extras por niño"
 							icon={Star}
 							color="border-l-blue-400"
@@ -486,7 +563,7 @@ const ConfigurationPanel = () => {
 											<input
 												type="text"
 												value={ws.name}
-												placeholder="Nombre del taller..."
+												placeholder="Nombre de la actividad..."
 												autoFocus={ws.isNew}
 												onChange={(e) =>
 													updateListItem(
@@ -548,7 +625,7 @@ const ConfigurationPanel = () => {
 										<div className="grid grid-cols-2 gap-3">
 											<div className="bg-gray-50 rounded-xl p-2 px-3">
 												<label className="text-[8px] font-black text-gray-400 uppercase block leading-none mb-1">
-													Base (≤25)
+													Base (≤15)
 												</label>
 												<div className="flex items-center">
 													<input
@@ -571,7 +648,7 @@ const ConfigurationPanel = () => {
 											</div>
 											<div className="bg-blue-50/50 rounded-xl p-2 px-3 border border-blue-50">
 												<label className="text-[8px] font-black text-blue-400 uppercase block leading-none mb-1">
-													Plus (&gt;25)
+													Plus (&gt;15)
 												</label>
 												<div className="flex items-center">
 													<input
@@ -692,35 +769,39 @@ const ConfigurationPanel = () => {
 							}
 						>
 							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-2">
-								{Object.entries(config.preciosExtras).map(([key, value]) => (
-									<div
-										key={key}
-										className="flex flex-col gap-1 p-4 bg-gray-50/50 rounded-2xl border border-gray-50"
-									>
-										<label className="text-[9px] font-black text-gray-400 uppercase tracking-tighter ml-0.5">
-											{extraLabels[key] || key.replace(/([A-Z])/g, ' $1')}
-										</label>
-										<div className="relative flex items-center">
-											<input
-												type="number"
-												value={value}
-												onChange={(e) =>
-													setConfig({
-														...config,
-														preciosExtras: {
-															...config.preciosExtras,
-															[key]: parseFloat(e.target.value),
-														},
-													})
-												}
-												className="w-full bg-transparent p-0 text-lg font-display font-black text-text-black outline-none border-none ring-0"
-											/>
-											<span className="text-gray-300 font-bold ml-1 text-sm">
-												€
-											</span>
+								{Object.entries(config.preciosExtras)
+									.filter(
+										([key]) => key !== 'tallerBase' && key !== 'tallerPlus',
+									)
+									.map(([key, value]) => (
+										<div
+											key={key}
+											className="flex flex-col gap-1 p-4 bg-gray-50/50 rounded-2xl border border-gray-50"
+										>
+											<label className="text-[9px] font-black text-gray-400 uppercase tracking-tighter ml-0.5">
+												{extraLabels[key] || key.replace(/([A-Z])/g, ' $1')}
+											</label>
+											<div className="relative flex items-center">
+												<input
+													type="number"
+													value={value}
+													onChange={(e) =>
+														setConfig({
+															...config,
+															preciosExtras: {
+																...config.preciosExtras,
+																[key]: parseFloat(e.target.value),
+															},
+														})
+													}
+													className="w-full bg-transparent p-0 text-lg font-display font-black text-text-black outline-none border-none ring-0"
+												/>
+												<span className="text-gray-300 font-bold ml-1 text-sm">
+													€
+												</span>
+											</div>
 										</div>
-									</div>
-								))}
+									))}
 							</div>
 						</AccordionSection>
 					</div>

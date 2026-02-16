@@ -10,7 +10,7 @@ const secure = require('../middlewares/secure.mid');
 const usersMid = require('../middlewares/users.mid');
 
 // USERS
-router.post('/users', users.create);
+router.post('/users', secure.isAdmin, users.create);
 router.post('/login', users.login);
 router.post(
 	'/sendRestoreEmail/:email',
@@ -36,7 +36,7 @@ router.get('/events/availability', events.checkAvailability);
 router.post('/events', events.create); // Clients can create reservations
 router.get('/events', secure.isAdmin, events.list);
 router.get('/events/:id', events.detail); // Client needs detail for summary/edit
-router.patch('/events/:id', events.update); // Client can edit (needs middleware check for 24h)
+router.patch('/events/:id', secure.isAdmin, events.update); // Only admin can edit for now
 router.delete('/events/:id', secure.isAdmin, events.delete);
 
 // CONFIG

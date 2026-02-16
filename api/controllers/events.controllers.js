@@ -14,7 +14,13 @@ const calculateEventPrice = async (eventData, config) => {
   }
   if (!config) {
     config = {
-      preciosNiños: { 1: 9, 2: 9, 3: 10, 4: 12, plusFinDeSemana: 1.5 },
+      menusNiños: [
+        { id: 1, precio: 9 },
+        { id: 2, precio: 9 },
+        { id: 3, precio: 10 },
+        { id: 4, precio: 12 }
+      ],
+      plusFinDeSemana: 1.5,
       preciosAdultos: [],
       preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, pinata: 15, extension30: 30, extension60: 50 }
     };
@@ -23,22 +29,22 @@ const calculateEventPrice = async (eventData, config) => {
   let total = 0;
 
   // Children
-  const childPrice = config.preciosNiños[detalles.niños.menuId] || 0;
+  const menu = config.menusNiños.find(m => String(m.id) === String(detalles.niños.menuId));
+  const childPrice = menu ? menu.precio : 0;
   let subTotalNiños = childPrice * detalles.niños.cantidad;
 
   // Weekend Plus
   const dateObj = new Date(fecha);
   const day = dateObj.getDay();
   if (day === 0 || day === 5 || day === 6) { // Fri, Sat, Sun
-    subTotalNiños += (config.preciosNiños.plusFinDeSemana || 1.5) * detalles.niños.cantidad;
+    total += (config.plusFinDeSemana || 1.5) * detalles.niños.cantidad;
   }
   total += subTotalNiños;
 
-  // Adults
-  if (config.preciosAdultos?.length > 0 && detalles.adultos && Array.isArray(detalles.adultos)) {
-    detalles.adultos.forEach(item => {
-      // Find by name if it's the update format, or by id if it's the create format?
-      // Actually, in config.preciosAdultos we have objects.
+  // Adults Food
+  const adultosComida = detalles.adultos?.comida || (Array.isArray(detalles.adultos) ? detalles.adultos : []);
+  if (config.preciosAdultos?.length > 0 && adultosComida.length > 0) {
+    adultosComida.forEach(item => {
       const adultOption = config.preciosAdultos.find(opt => opt.nombre === item.item || opt.id === item.item);
       if (adultOption) {
         total += adultOption.precio * item.cantidad;
@@ -46,12 +52,23 @@ const calculateEventPrice = async (eventData, config) => {
     });
   }
 
-  // Extras: Workshop
+  // Extras: Activity
   if (detalles.extras.taller !== 'ninguno') {
-    const tallerPrice = detalles.niños.cantidad > 25
-      ? config.preciosExtras.tallerPlus
-      : config.preciosExtras.tallerBase;
-    total += tallerPrice;
+    const workshop = config.workshops.find(
+      (w) => w.name === detalles.extras.taller,
+    );
+    if (workshop) {
+      const tallerPrice =
+        detalles.niños.cantidad >= 15 ? workshop.pricePlus : workshop.priceBase;
+      total += tallerPrice;
+    } else {
+      // Fallback to general prices if workshop not found
+      const tallerPrice =
+        detalles.niños.cantidad >= 15
+          ? config.preciosExtras.tallerPlus
+          : config.preciosExtras.tallerBase;
+      total += tallerPrice;
+    }
   }
 
   // Extras: Character
@@ -72,7 +89,42 @@ const calculateEventPrice = async (eventData, config) => {
 };
 
 module.exports.create = (req, res, next) => {
-  const { tipo, fecha, turno, detalles, horario } = req.body;
+  const { tipo, fecha, turno, detalles, horario, cliente } = req.body;
+
+  // --- VALIDATION LAYER ---
+  if (!fecha || !turno) throw createError(400, 'Fecha y turno requeridos');
+  if (!cliente?.nombreNiño || !cliente?.nombrePadre || !cliente?.telefono || !cliente?.email) {
+    throw createError(400, 'Datos del cliente incompletos (Nombre, Móvil, Email son obligatorios)');
+  }
+
+  // Validate Email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(cliente.email)) {
+    throw createError(400, 'Email inválido');
+  }
+  // Validate Phone format (Strict 9 digits local + prefix)
+  // +34 600111222 = 11 digits
+  const phoneDigits = (cliente.telefono.match(/\d/g) || []).length;
+  // Being generous: some countries have shorter phones, but target is Spain (9) + Prefix (1-3)
+  // Let's require at least 10 digits total to be safe (e.g. US 10 digits + 1 prefix = 11, Spain 9 + 2 = 11)
+  // If user only enters local 9 digits without prefix space, frontend might send "+34 600..."
+  if (phoneDigits < 9) {
+    throw createError(400, 'Teléfono inválido (mínimo 9 dígitos)');
+  }
+
+  if (cliente?.edadNiño > 99) {
+    throw createError(400, 'La edad debe tener máximo 2 cifras');
+  }
+
+  if (detalles?.adultos?.cantidad !== undefined && detalles.adultos.cantidad < 0) {
+    throw createError(400, 'Cantidad de adultos inválida');
+  }
+  // Optional strict enforcement: if (detalles.adultos.cantidad === 0) throw ...
+  // For now, allow 0 if that's a valid use case (e.g. only kids party?), but UI enforces > 0. Let's align with UI request.
+  if (detalles?.adultos?.cantidad <= 0) {
+    throw createError(400, 'Se requiere al menos un adulto responsable');
+  }
+  if (detalles?.niños?.cantidad < 0) throw createError(400, 'Cantidad de niños inválida');
 
   // Basic availability check
   Event.findOne({ fecha, turno, estado: { $ne: 'cancelada' } })
@@ -187,9 +239,17 @@ module.exports.checkAvailability = async (req, res, next) => {
       endDate = new Date(fecha);
       endDate.setHours(23, 59, 59, 999);
     } else if (year && month) {
-      // Monthly Check
-      startDate = new Date(year, month - 1, 1);
-      endDate = new Date(year, month, 0, 23, 59, 59);
+      // Monthly Check - Fetch exactly the 42 days (6 weeks) shown in the frontend grid
+      const firstDayOfMonth = new Date(year, month - 1, 1);
+      // find the Monday of the same week as the 1st
+      const startDayOffset = (firstDayOfMonth.getDay() + 6) % 7;
+
+      startDate = new Date(year, month - 1, 1 - startDayOffset);
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 41);
+      endDate.setHours(23, 59, 59, 999);
     } else {
       return next(createError(400, 'Fecha o Año/Mes requeridos'));
     }

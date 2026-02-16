@@ -41,10 +41,10 @@ const Navbar = () => {
 							Menús
 						</Link>
 						<Link
-							to={getLink('#talleres')}
+							to={getLink('#actividades')}
 							className="text-text-black hover:text-neverland-green transition-colors font-display font-medium"
 						>
-							Talleres
+							Actividades
 						</Link>
 						<Link
 							to={getLink('#faq')}
@@ -98,11 +98,11 @@ const Navbar = () => {
 							Menús
 						</Link>
 						<Link
-							to={getLink('#talleres')}
+							to={getLink('#actividades')}
 							onClick={() => setIsOpen(false)}
 							className="block px-3 py-2 text-text-black hover:text-neverland-green font-medium"
 						>
-							Talleres
+							Actividades
 						</Link>
 						<Link
 							to={getLink('#faq')}

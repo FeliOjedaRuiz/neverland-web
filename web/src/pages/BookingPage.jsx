@@ -30,39 +30,17 @@ import BookingSuccess from '../components/booking/BookingSuccess';
 // --- Constants & Data ---
 
 // Constants (Static data for UI structure, Prices/Options loaded from API)
+// Initial static placeholder (will be overwritten by API)
 const CHILDREN_MENUS = [
-	{
-		id: 1,
-		name: 'Menú Clásico',
-		price: 9, // Default/Fallback
-		main: '2 ½ Sándwiches (Dulces/Salados)',
-		desc: 'Ideal para amantes de lo tradicional.',
-	},
-	{
-		id: 2,
-		name: 'Menú Hot Dog',
-		price: 9,
-		main: 'Perrito Caliente',
-		desc: 'Un favorito que nunca falla.',
-	},
-	{
-		id: 3,
-		name: 'Menú Pizza',
-		price: 10,
-		main: 'Porción de Pizza (Jamón y Queso)',
-		desc: 'La opción más popular.',
-	},
-	{
-		id: 4,
-		name: 'Menú Premium',
-		price: 12,
-		main: 'Hamburguesa con Queso',
-		desc: 'Para los más exigentes.',
-	},
+	{ id: 1, name: 'Menú 1', price: 9, main: '', desc: '' },
+	{ id: 2, name: 'Menú 2', price: 9, main: '', desc: '' },
+	{ id: 3, name: 'Menú 3', price: 10, main: '', desc: '' },
+	{ id: 4, name: 'Menú 4', price: 12, main: '', desc: '' },
 ];
 
 const DEFAULT_CONFIG = {
-	preciosNiños: { 1: 9, 2: 9, 3: 10, 4: 12, plusFinDeSemana: 1.5 },
+	menusNiños: [],
+	plusFinDeSemana: 1.5,
 	preciosAdultos: [],
 	workshops: [],
 	characters: [],
@@ -85,12 +63,14 @@ const BookingPage = () => {
 	const [step, setStep] = useState(1);
 	const [prices, setPrices] = useState(DEFAULT_CONFIG);
 	const [loading, setLoading] = useState(false);
+	const [createdEventId, setCreatedEventId] = useState(null);
 
 	// Calendar State
 	const [currentMonth, setCurrentMonth] = useState(new Date());
 	const [monthlyOccupied, setMonthlyOccupied] = useState([]);
 	const [view, setView] = useState('calendar'); // 'calendar' | 'dayDetails'
 	const [availabilityError, setAvailabilityError] = useState(false);
+	const [availabilityLoading, setAvailabilityLoading] = useState(false);
 
 	const [formData, setFormData] = useState({
 		fecha: '',
@@ -100,6 +80,7 @@ const BookingPage = () => {
 			edadNiño: '',
 			nombrePadre: '',
 			telefono: '',
+			email: '',
 		},
 		niños: {
 			cantidad: 12, // Min 12
@@ -114,6 +95,7 @@ const BookingPage = () => {
 			personaje: 'ninguno',
 			pinata: false,
 			extension: 0, // 0, 30, 60
+			extensionType: 'default', // For Turn 2: 'before', 'after', 'both'
 		},
 	});
 
@@ -130,20 +112,30 @@ const BookingPage = () => {
 
 	useEffect(() => {
 		setAvailabilityError(false);
+		setAvailabilityLoading(true);
 		const year = currentMonth.getFullYear();
 		const month = currentMonth.getMonth() + 1;
 		getMonthlyAvailability(year, month)
-			.then((res) => setMonthlyOccupied(res.data?.occupied || []))
+			.then((res) => {
+				setMonthlyOccupied(res.data?.occupied || []);
+				setAvailabilityLoading(false);
+			})
 			.catch((err) => {
 				console.error(err);
 				setAvailabilityError(true);
+				setAvailabilityLoading(false);
 			});
 	}, [currentMonth]);
 
-	// Calculate current children menus with database prices
-	const childrenMenusWithPrices = CHILDREN_MENUS.map((menu) => ({
-		...menu,
-		price: prices.preciosNiños[menu.id] || menu.price,
+	// Calculate current children menus with database data
+	const childrenMenusWithPrices = (
+		prices.menusNiños?.length > 0 ? prices.menusNiños : CHILDREN_MENUS
+	).map((menu) => ({
+		id: menu.id || menu._id, // Keep the original ID as provided by DB or default
+		name: menu.nombre || menu.name,
+		price: menu.precio || menu.price,
+		main: menu.principal || menu.main,
+		desc: menu.resto || menu.desc,
 	}));
 
 	const nextStep = () => setStep((s) => s + 1);
@@ -160,20 +152,45 @@ const BookingPage = () => {
 	// Validations
 	const validateStep = () => {
 		if (step === 1) return formData.fecha && formData.turno;
-		if (step === 2)
+		if (step === 2) {
+			const { nombreNiño, edadNiño, nombrePadre, telefono, email } =
+				formData.cliente;
+
+			// Strict phone validation: Must have exactly 9 digits after prefix
+			let isPhoneValid = false;
+			if (telefono) {
+				const parts = telefono.split(' ');
+				if (parts.length >= 2) {
+					const numberPart = parts.slice(1).join('');
+					isPhoneValid = numberPart.replace(/\D/g, '').length === 9;
+				} else {
+					isPhoneValid = telefono.replace(/\D/g, '').length >= 11;
+				}
+			}
+
+			// Email validation
+			const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
 			return (
-				formData.cliente.nombreNiño &&
-				formData.cliente.edadNiño &&
-				formData.cliente.nombrePadre &&
-				formData.cliente.telefono
+				nombreNiño &&
+				edadNiño &&
+				parseInt(edadNiño) > 0 &&
+				nombrePadre &&
+				isPhoneValid &&
+				isEmailValid
 			);
+		}
+		if (step === 4) return formData.adultos.cantidad > 0;
 		return true;
 	};
 
 	// Calculations
 	const calculateTotal = () => {
 		let total = 0;
-		const childPrice = prices.preciosNiños[formData.niños.menuId] || 0;
+		const menu = childrenMenusWithPrices.find(
+			(m) => String(m.id) === String(formData.niños.menuId),
+		);
+		const childPrice = menu ? menu.price : 0;
 		let subTotalNiños = childPrice * formData.niños.cantidad;
 
 		// Weekend Plus
@@ -184,8 +201,7 @@ const BookingPage = () => {
 				if (day === 0 || day === 5 || day === 6) {
 					// Fri, Sat, Sun
 					subTotalNiños +=
-						(prices.preciosNiños.plusFinDeSemana || 1.5) *
-						formData.niños.cantidad;
+						(prices.plusFinDeSemana || 1.5) * formData.niños.cantidad;
 				}
 			}
 		}
@@ -199,11 +215,22 @@ const BookingPage = () => {
 
 		// Extras: Taller
 		if (formData.extras.taller !== 'ninguno') {
-			const tallerPrice =
-				formData.niños.cantidad > 25
-					? prices.preciosExtras.tallerPlus || 30
-					: prices.preciosExtras.tallerBase || 25;
-			total += tallerPrice;
+			const workshop = prices.workshops?.find(
+				(w) => w.name === formData.extras.taller,
+			);
+			if (workshop) {
+				const tallerPrice =
+					formData.niños.cantidad >= 15
+						? workshop.pricePlus
+						: workshop.priceBase;
+				total += tallerPrice;
+			} else {
+				const tallerPrice =
+					formData.niños.cantidad >= 15
+						? prices.preciosExtras.tallerPlus || 30
+						: prices.preciosExtras.tallerBase || 25;
+				total += tallerPrice;
+			}
 		}
 
 		// Extras: Personaje
@@ -235,22 +262,32 @@ const BookingPage = () => {
 	const getExtendedTime = () => {
 		const base = formData.turno;
 		const ext = formData.extras.extension;
+		const type = formData.extras.extensionType;
+
 		if (ext === 0) return getTurnoLabel(base);
 
-		// Logic based on rules
 		if (base === 'T1') {
 			if (ext === 30) return '16:30 - 19:00';
 			if (ext === 60) return '16:00 - 19:00';
 		}
+
 		if (base === 'T2') {
-			// T2 flexible, assume extension extends end for display simply, or explain interaction
-			if (ext === 30) return '18:00 - 20:30 (o antes)';
-			if (ext === 60) return '17:30 - 20:30 (Ejemplo)';
+			if (ext === 30) {
+				if (type === 'before') return '17:30 - 20:00';
+				return '18:00 - 20:30'; // Default is 'after'
+			}
+			if (ext === 60) {
+				if (type === 'before') return '17:00 - 20:00';
+				if (type === 'both') return '17:30 - 20:30';
+				return '18:00 - 21:00'; // Default is 'after'
+			}
 		}
+
 		if (base === 'T3') {
 			if (ext === 30) return '19:15 - 21:45';
 			if (ext === 60) return '19:15 - 22:15';
 		}
+
 		return getTurnoLabel(base);
 	};
 
@@ -290,7 +327,8 @@ const BookingPage = () => {
 			};
 
 			console.log('Sending:', finalData);
-			await createBooking(finalData);
+			const response = await createBooking(finalData);
+			setCreatedEventId(response.data.id || response.data._id);
 			setLoading(false);
 			nextStep();
 		} catch (error) {
@@ -301,25 +339,31 @@ const BookingPage = () => {
 	};
 
 	const stepsList = [
-		{ id: 1, icon: Calendar },
-		{ id: 2, icon: Users },
-		{ id: 3, icon: Utensils }, // Kids
-		{ id: 4, icon: Utensils }, // Adults
-		{ id: 5, icon: Sparkles }, // Taller
-		{ id: 6, icon: Users }, // Personajes
-		{ id: 7, icon: Clock }, // Extras
-		{ id: 8, icon: CheckCircle },
+		{ id: 1, icon: Calendar, label: 'Horario' },
+		{ id: 2, icon: Users, label: 'Datos' },
+		{ id: 3, icon: Utensils, label: 'Menús' },
+		{ id: 4, icon: Sparkles, label: 'Extras' },
+		{ id: 5, icon: CheckCircle, label: 'Listo' },
 	];
+
+	const currentStage = (() => {
+		if (step === 1) return 1;
+		if (step === 2) return 2;
+		if (step === 3 || step === 4) return 3; // Kids & Adults -> Menus
+		if (step >= 5 && step <= 7) return 4; // Workshops, Characters, Extras -> Extras
+		if (step >= 8) return 5; // Summary & Success -> Ready
+		return 1;
+	})();
 
 	return (
 		<div className="pt-16 sm:pt-20 pb-0 h-[100dvh] flex flex-col bg-surface sm:bg-cream-bg overflow-hidden nav-no-touch-callout">
 			{/* Header */}
-			<BookingHeader step={step} stepsList={stepsList} />
+			<BookingHeader stage={currentStage} stepsList={stepsList} />
 
 			{/* Main Content */}
 			<div className="flex-1 px-0 sm:px-4 pb-0 min-h-0 relative flex flex-col">
 				<div className="bg-surface sm:rounded-3xl sm:shadow-soft h-full flex flex-col relative overflow-hidden sm:border-t sm:border-x sm:border-white/50">
-					<div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 pb-24 sm:pb-6 no-scrollbar">
+					<div className="flex-1 overflow-y-auto overflow-x-hidden pt-4 px-4 sm:p-6 pb-0 no-scrollbar">
 						<AnimatePresence mode="popLayout">
 							<motion.div
 								key={step + view}
@@ -327,7 +371,7 @@ const BookingPage = () => {
 								animate={{ opacity: 1, x: 0 }}
 								exit={{ opacity: 0, x: -20 }}
 								transition={{ duration: 0.3 }}
-								className="flex flex-col h-full"
+								className="flex flex-col"
 							>
 								{step === 1 && (
 									<Step1Date
@@ -339,6 +383,7 @@ const BookingPage = () => {
 										setView={setView}
 										monthlyOccupied={monthlyOccupied}
 										availabilityError={availabilityError}
+										availabilityLoading={availabilityLoading}
 									/>
 								)}
 								{step === 2 && (
@@ -382,6 +427,7 @@ const BookingPage = () => {
 										formData={formData}
 										setFormData={setFormData}
 										getExtendedTime={getExtendedTime}
+										prices={prices}
 									/>
 								)}
 								{step === 8 && (
@@ -395,7 +441,13 @@ const BookingPage = () => {
 										ADULT_MENU_OPTIONS={prices.preciosAdultos}
 									/>
 								)}
-								{step === 9 && <BookingSuccess formData={formData} />}
+								{step === 9 && (
+									<BookingSuccess
+										formData={formData}
+										createdId={createdEventId}
+										getExtendedTime={getExtendedTime}
+									/>
+								)}
 							</motion.div>
 						</AnimatePresence>
 					</div>

@@ -179,17 +179,19 @@ const ReservationDetailModal = ({ reservation, onClose }) => {
 					{/* Extras */}
 					<section className="space-y-4">
 						<h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-							<Sparkles size={14} /> Extras y Talleres
+							<Sparkles size={14} /> Extras y Actividades
 						</h4>
 						<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
 							<div
 								className={`p-4 rounded-2xl border flex flex-col items-center gap-1 transition-all ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-50 border-blue-100 text-blue-600' : 'bg-gray-50 border-gray-100 text-gray-300'}`}
 							>
 								<Sparkles size={20} />
-								<span className="text-[10px] font-black uppercase">Taller</span>
+								<span className="text-[10px] font-black uppercase">
+									Actividad
+								</span>
 								<span className="text-xs font-bold text-center capitalize">
 									{reservation.detalles?.extras?.taller === 'ninguno'
-										? 'No'
+										? 'Sin actividad'
 										: reservation.detalles?.extras?.taller}
 								</span>
 							</div>

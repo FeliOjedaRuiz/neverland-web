@@ -26,14 +26,15 @@ const eventSchema = new mongoose.Schema({
     nombreNiño: String,
     edadNiño: Number,
     nombrePadre: String,
-    telefono: String
+    telefono: String,
+    email: String
   },
 
   // Configuración del evento
   detalles: {
     niños: {
       cantidad: { type: Number, min: 12 },
-      menuId: { type: Number, enum: [1, 2, 3, 4] }
+      menuId: { type: String }
     },
     adultos: [
       {

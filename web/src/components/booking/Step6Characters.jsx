@@ -13,7 +13,7 @@ const Step6Characters = ({
 	);
 
 	return (
-		<div className="flex flex-col h-full">
+		<div>
 			<h2 className="text-xl font-display font-bold text-text-black text-center mb-4">
 				Visita Especial
 			</h2>
@@ -28,7 +28,7 @@ const Step6Characters = ({
 				/>
 			</div>
 
-			<div className="space-y-2 overflow-y-auto pb-4">
+			<div className="space-y-2">
 				<div
 					onClick={() =>
 						setFormData({

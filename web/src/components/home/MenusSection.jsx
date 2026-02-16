@@ -1,6 +1,8 @@
-import { Pizza, Drumstick, Sandwich, Cookie } from 'lucide-react';
+import React from 'react';
+import { Pizza, Drumstick, Sandwich } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
+import { getConfig } from '../../services/api';
 import hotDogIcon from '../../assets/hot-dog.svg';
 
 const MenuCard = ({ number, title, items, icon: Icon, delay }) => {
@@ -54,49 +56,63 @@ const MenuCard = ({ number, title, items, icon: Icon, delay }) => {
 };
 
 const MenusSection = () => {
-	const { ref, controls, variants } = useScrollReveal();
+	const { ref, controls } = useScrollReveal();
+	const [menus, setMenus] = React.useState([]);
+	const [loading, setLoading] = React.useState(true);
+	const [error, setError] = React.useState(null);
 
-	const menus = [
-		{
-			number: 1,
-			title: 'Clásico',
-			icon: Sandwich,
-			items: [
-				'Sandwich Mixto/Nocilla',
-				'Patatillas',
-				'Gusanitos',
-				'Refresco/Agua',
-			],
-		},
-		{
-			number: 2,
-			title: 'Perrito',
-			icon: hotDogIcon,
-			items: ['Perrito Caliente', 'Patatillas', 'Gusanitos', 'Refresco/Agua'],
-		},
-		{
-			number: 3,
-			title: 'Pizza',
-			icon: Pizza,
-			items: [
-				'Pizza Jamón y Queso',
-				'Patatillas',
-				'Gusanitos',
-				'Refresco/Agua',
-			],
-		},
-		{
-			number: 4,
-			title: 'Nuggets',
-			icon: Drumstick,
-			items: [
-				'Nuggets de Pollo',
-				'Patatas Fritas',
-				'Gusanitos',
-				'Refresco/Agua',
-			],
-		},
-	];
+	React.useEffect(() => {
+		getConfig()
+			.then((res) => {
+				console.log('MenusSection: Config received', res.data);
+				if (res.data?.menusNiños) {
+					const icons = {
+						1: Sandwich,
+						2: hotDogIcon,
+						3: Pizza,
+						4: Drumstick,
+					};
+					const formattedMenus = res.data.menusNiños.map((m, idx) => {
+						const menuNum = m.id && typeof m.id === 'number' ? m.id : idx + 1;
+						return {
+							number: menuNum,
+							title: m.principal,
+							icon: icons[menuNum] || Sandwich,
+							items: m.resto ? m.resto.split('\n').filter((i) => i.trim()) : [],
+						};
+					});
+					setMenus(formattedMenus);
+				} else {
+					console.warn('MenusSection: No menusNiños in config');
+				}
+			})
+			.catch((err) => {
+				console.error('MenusSection: Error fetching config', err);
+				setError(err);
+			})
+			.finally(() => setLoading(false));
+	}, []);
+
+	if (loading)
+		return (
+			<div className="py-20 text-center bg-cream-bg">
+				<div className="inline-block w-8 h-8 border-4 border-neverland-green/20 border-t-neverland-green rounded-full animate-spin"></div>
+			</div>
+		);
+
+	if (error)
+		return (
+			<div className="py-20 text-center bg-cream-bg text-red-500">
+				<p>Error al cargar los menús. Por favor, intenta recargar la página.</p>
+			</div>
+		);
+
+	if (menus.length === 0)
+		return (
+			<div className="py-20 text-center bg-cream-bg text-gray-400 font-display italic">
+				<p>Configurando menús infantiles...</p>
+			</div>
+		);
 
 	return (
 		<section id="menus" className="py-16 bg-cream-bg">
@@ -105,7 +121,6 @@ const MenusSection = () => {
 					ref={ref}
 					initial="hidden"
 					animate={controls}
-					variants={variants}
 					className="text-center mb-12"
 				>
 					<h2 className="text-3xl sm:text-4xl font-display font-bold text-neverland-green mb-4">

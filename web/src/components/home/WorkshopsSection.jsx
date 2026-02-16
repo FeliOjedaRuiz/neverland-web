@@ -34,7 +34,7 @@ const WorkshopCard = ({ title, image, icon: Icon, description, delay }) => {
 					<div className="flex items-center gap-2 mb-2 text-energy-orange">
 						<Icon size={20} className="drop-shadow-md" />
 						<span className="text-sm font-display font-bold uppercase tracking-wider drop-shadow-md">
-							Taller
+							Actividad
 						</span>
 					</div>
 					<h3 className="text-3xl font-display font-bold text-white mb-2 drop-shadow-md">
@@ -53,7 +53,7 @@ const WorkshopsSection = () => {
 	const { ref, controls, variants } = useScrollReveal();
 
 	return (
-		<section id="talleres" className="py-20 bg-cream-bg">
+		<section id="actividades" className="py-20 bg-cream-bg">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<motion.div
 					ref={ref}
@@ -69,7 +69,7 @@ const WorkshopsSection = () => {
 						</span>
 					</div>
 					<h2 className="text-3xl sm:text-5xl font-display font-black text-neverland-green mb-6">
-						Talleres Creativos
+						Actividades Creativas
 					</h2>
 					<p className="text-text-muted max-w-2xl mx-auto text-lg font-sans">
 						Añade un toque mágico a tu fiesta con nuestros talleres temáticos

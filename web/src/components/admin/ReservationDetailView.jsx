@@ -410,7 +410,7 @@ const ReservationDetailView = ({ reservation: initialReservation, onBack }) => {
 				<section className="space-y-4 max-w-3xl mx-auto">
 					<div className="flex justify-between items-center">
 						<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-							<Sparkles size={14} /> Extras y Talleres
+							<Sparkles size={14} /> Extras y Actividades
 						</h4>
 						<button
 							onClick={() => setActiveModal('extras')}
@@ -424,10 +424,12 @@ const ReservationDetailView = ({ reservation: initialReservation, onBack }) => {
 							className={`p-4 rounded-3xl border flex flex-col items-center gap-1 transition-all ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-50 border-blue-100 text-blue-600' : 'bg-gray-50 border-gray-100 text-gray-300 opacity-60'}`}
 						>
 							<Sparkles size={20} />
-							<span className="text-[10px] font-black uppercase">Taller</span>
+							<span className="text-[10px] font-black uppercase">
+								Actividad
+							</span>
 							<span className="text-xs font-bold text-center capitalize">
 								{reservation.detalles?.extras?.taller === 'ninguno'
-									? 'Sin taller'
+									? 'Sin actividad'
 									: reservation.detalles?.extras?.taller}
 							</span>
 						</div>
@@ -486,7 +488,7 @@ const ReservationDetailView = ({ reservation: initialReservation, onBack }) => {
 								{activeModal === 'client' && 'Editar Información Cliente'}
 								{activeModal === 'datetime' && 'Editar Fecha y Horario'}
 								{activeModal === 'menus' && 'Editar Menús y Asistencia'}
-								{activeModal === 'extras' && 'Editar Extras y Talleres'}
+								{activeModal === 'extras' && 'Editar Extras y Actividades'}
 							</h3>
 							<button
 								onClick={() => setActiveModal(null)}
@@ -1050,7 +1052,7 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 				{/* Taller */}
 				<div className="space-y-2">
 					<label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">
-						Taller Seleccionado
+						Actividad Seleccionada
 					</label>
 					<select
 						value={formData.taller}
@@ -1059,7 +1061,7 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 						}
 						className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all"
 					>
-						<option value="ninguno">Ninguno</option>
+						<option value="ninguno">Sin actividad</option>
 						{config?.workshops?.map((ws) => (
 							<option key={ws.id} value={ws.name}>
 								{ws.name}

@@ -90,7 +90,37 @@ T2: Permite adelantar o extender (Máximo 1 hora total).
 3. 💰 ALGORITMO DE PRECIOS
    Mínimo: Siempre se cobra un mínimo de 12 niños.
 
-Menús Niños: - Tipos: 1 (9€), 2 (9€), 3 (10€), 4 (12€).
+Menús Niños:
+
+Menú 1
+-Sandwhiches ( 2 1/2 ) dulce o salado.
+-Zumo, batido o refresco.
+-Tarta.
+-Cono de chuches.
+
+9€
+
+Menú 2
+-Perrito caliente.
+-Zumo, batido o refresco.
+-Tarta.
+-Cono de chuches.
+9€
+
+Menú 3
+-Porción de pizza.
+-Zumo, batido o refresco.
+-Tarta.
+-Cono de chuches.
+
+10€
+
+Menú 4
+-Hamburguesa.
+-Zumo, batido o refresco.
+-Tarta.
+-Cono de chuches.
+12€
 
 Plus Fin de Semana/Festivo: +1,50 € por niño (Viernes, Sábado, Domingo y Festivos).
 
