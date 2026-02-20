@@ -4,7 +4,7 @@ import {
 	Route,
 	useLocation,
 } from 'react-router-dom';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import MinimalFooter from './components/layout/MinimalFooter';
@@ -14,6 +14,7 @@ import HomePage from './pages/HomePage';
 import BookingPage from './pages/BookingPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
+import ErrorPage from './pages/ErrorPage';
 import RequireAuth from './components/admin/RequireAuth';
 import { Toaster } from 'react-hot-toast';
 
@@ -51,6 +52,12 @@ function Layout() {
 							</RequireAuth>
 						}
 					/>
+
+					{/* Rutas de prueba para errores (puedes borrarlas luego) */}
+					<Route path="/test-404" element={<ErrorPage code={404} />} />
+					<Route path="/test-500" element={<ErrorPage code={500} />} />
+
+					<Route path="*" element={<ErrorPage code={404} />} />
 				</Routes>
 			</main>
 
@@ -61,11 +68,29 @@ function Layout() {
 	);
 }
 
+class GlobalErrorBoundary extends React.Component {
+	constructor(props) {
+		super(props);
+		this.state = { hasError: false };
+	}
+	static getDerivedStateFromError() {
+		return { hasError: true };
+	}
+	render() {
+		if (this.state.hasError) {
+			return <ErrorPage code={500} />;
+		}
+		return this.props.children;
+	}
+}
+
 function App() {
 	return (
-		<Router>
-			<Layout />
-		</Router>
+		<GlobalErrorBoundary>
+			<Router>
+				<Layout />
+			</Router>
+		</GlobalErrorBoundary>
 	);
 }
 

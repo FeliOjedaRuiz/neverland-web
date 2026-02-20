@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, useMotionValue, animate } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Calendar, CheckCircle } from 'lucide-react';
 
 const Step1Date = ({
@@ -8,21 +9,92 @@ const Step1Date = ({
 	setCurrentMonth,
 	view,
 	setView,
-	monthlyOccupied,
 	availabilityError,
 	availabilityLoading,
+	availabilityCache = {},
 }) => {
-	const changeMonth = (delta) => {
-		const newDate = new Date(currentMonth);
-		newDate.setMonth(newDate.getMonth() + delta);
-		setCurrentMonth(newDate);
+	// Carousel State
+	const containerRef = useRef(null);
+	const [width, setWidth] = useState(0);
+	const [headerDate, setHeaderDate] = useState(currentMonth); // Display date
+	const x = useMotionValue(0);
+
+	// Sync headerDate when currentMonth changes externally
+	useEffect(() => {
+		setHeaderDate(currentMonth);
+	}, [currentMonth]);
+
+	// Measure container width
+	useEffect(() => {
+		if (containerRef.current) {
+			setWidth(containerRef.current.offsetWidth);
+			x.set(-containerRef.current.offsetWidth);
+		}
+		const handleResize = () => {
+			if (containerRef.current) {
+				const w = containerRef.current.offsetWidth;
+				setWidth(w);
+				x.set(-w);
+			}
+		};
+		window.addEventListener('resize', handleResize);
+		return () => window.removeEventListener('resize', handleResize);
+	}, [x, view]);
+
+	const cycleMonth = async (direction) => {
+		if (width === 0) return;
+
+		const nextDate = new Date(currentMonth);
+		nextDate.setMonth(nextDate.getMonth() + direction);
+		setHeaderDate(nextDate);
+
+		const targetX = direction === 1 ? -2 * width : 0;
+
+		await animate(x, targetX, {
+			type: 'tween',
+			duration: 0.3,
+			ease: 'easeInOut',
+		});
+
+		setCurrentMonth(nextDate);
+		x.set(-width);
 	};
 
-	const getOccupiedForDate = (dateStr) => {
-		return monthlyOccupied
-			.filter((o) => o.date === dateStr)
-			.map((o) => o.shift);
+	const handleDragEnd = async () => {
+		const currentX = x.get();
+		const threshold = width * 0.25;
+
+		let direction = 0;
+		if (currentX < -width - threshold) direction = 1;
+		else if (currentX > -width + threshold) direction = -1;
+
+		if (direction !== 0) {
+			await cycleMonth(direction);
+		} else {
+			animate(x, -width, { type: 'tween', duration: 0.3, ease: 'easeOut' });
+		}
 	};
+
+	const getOccupiedForDate = (dateObj) => {
+		const y = dateObj.getFullYear();
+		const m = dateObj.getMonth() + 1;
+		const key = `${y}-${m}`;
+		const monthData = availabilityCache[key] || [];
+
+		const dateStr = [
+			dateObj.getFullYear(),
+			String(dateObj.getMonth() + 1).padStart(2, '0'),
+			String(dateObj.getDate()).padStart(2, '0'),
+		].join('-');
+
+		return monthData.filter((o) => o.date === dateStr).map((o) => o.shift);
+	};
+
+	const months = [-1, 0, 1].map((offset) => {
+		const date = new Date(currentMonth);
+		date.setMonth(date.getMonth() + offset);
+		return date;
+	});
 
 	if (availabilityError) {
 		return (
@@ -48,131 +120,156 @@ const Step1Date = ({
 	}
 
 	return (
-		<div>
-			<h2 className="text-xl font-display font-bold text-text-black text-center mb-3">
+		<div className="flex flex-col h-full overflow-hidden">
+			<h2 className="text-xl font-display font-bold text-text-black text-center mb-1">
 				{view === 'calendar' ? 'Elige la Fecha' : 'Elige el Turno'}
 			</h2>
 			{view === 'calendar' && (
-				<div>
-					<div className="flex justify-between items-center mb-2 px-2 shrink-0">
+				<div className="w-full flex-1 flex flex-col min-h-0">
+					{/* Navigation Overlay */}
+					<div className="flex justify-between items-center mb-1 px-2 shrink-0 bg-surface">
 						<button
-							onClick={() => changeMonth(-1)}
-							className="p-2 hover:bg-green-50 rounded-full text-neverland-green"
+							onClick={() => cycleMonth(-1)}
+							className="p-1.5 hover:bg-green-50 rounded-full text-neverland-green"
 						>
-							<ChevronLeft />
+							<ChevronLeft size={20} />
 						</button>
-						<span className="font-display font-bold capitalize text-neverland-green">
-							{currentMonth.toLocaleDateString('es-ES', {
+						<span className="font-display font-bold capitalize text-neverland-green select-none text-sm">
+							{headerDate.toLocaleDateString('es-ES', {
 								month: 'long',
 								year: 'numeric',
 							})}
 						</span>
 						<button
-							onClick={() => changeMonth(1)}
-							className="p-2 hover:bg-green-50 rounded-full text-neverland-green"
+							onClick={() => cycleMonth(1)}
+							className="p-1.5 hover:bg-green-50 rounded-full text-neverland-green"
 						>
-							<ChevronRight />
+							<ChevronRight size={20} />
 						</button>
 					</div>
-					<div className="grid grid-cols-7 mb-1 shrink-0">
-						{['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => (
-							<span
-								key={d}
-								className="text-xs font-bold text-center opacity-60"
-							>
-								{d}
-							</span>
-						))}
-					</div>
-					<div className="grid grid-cols-7 gap-1 auto-rows-[1fr] grow content-stretch relative">
-						{/* Loading Overlay */}
-						{availabilityLoading && (
-							<div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-2xl">
-								<div className="flex flex-col items-center gap-2">
-									<div className="w-8 h-8 border-4 border-neverland-green/20 border-t-neverland-green rounded-full animate-spin"></div>
-									<span className="text-[10px] font-black text-neverland-green uppercase tracking-widest">
-										Cargando...
-									</span>
-								</div>
-							</div>
-						)}
 
-						{Array.from({ length: 42 }).map((_, i) => {
-							const year = currentMonth.getFullYear();
-							const month = currentMonth.getMonth();
-							const firstDay = new Date(year, month, 1);
-							const startDay = (firstDay.getDay() + 6) % 7;
-							const date = new Date(year, month, 1 - startDay + i);
-							const isCur = date.getMonth() === month;
-							const dateStr = [
-								date.getFullYear(),
-								String(date.getMonth() + 1).padStart(2, '0'),
-								String(date.getDate()).padStart(2, '0'),
-							].join('-');
-							const today = new Date();
-							today.setHours(0, 0, 0, 0);
-							const isPast = date < today;
-							const isSel = formData.fecha === dateStr;
-							const occupied = getOccupiedForDate(dateStr);
-
-							return (
-								<button
-									key={i}
-									disabled={isPast}
-									onClick={() => {
-										if (!isCur) {
-											const newM = new Date(date);
-											newM.setDate(1);
-											setCurrentMonth(newM);
-										}
-										setFormData({
-											...formData,
-											fecha: dateStr,
-											turno: '',
-										});
-										setView('dayDetails');
-									}}
-									className={`rounded-xl flex flex-col items-center justify-start pt-1 relative transition-all border ${
-										isSel
-											? 'bg-neverland-green text-white shadow-md border-neverland-green'
-											: isPast
-												? 'bg-gray-50 text-gray-300 border-transparent'
-												: isCur
-													? 'bg-white text-gray-700 border-gray-100 hover:border-green-200'
-													: 'bg-gray-50/50 text-gray-400 border-transparent hover:bg-white hover:border-green-100'
-									}`}
-								>
-									<span
-										className={`text-sm mb-0.5 ${isSel ? 'font-bold' : ''}`}
+					{/* Sliding Container */}
+					<div
+						className="overflow-hidden w-full relative flex-1 min-h-0 shrink-0"
+						ref={containerRef}
+					>
+						{/* Sliding Track */}
+						<motion.div
+							className="flex h-full touch-pan-y cursor-grab active:cursor-grabbing"
+							style={{ x, width: width * 3 }}
+							drag="x"
+							dragConstraints={{ left: -2 * width, right: 0 }}
+							dragElastic={0.1}
+							onDragEnd={handleDragEnd}
+						>
+							{months.map((monthDate) => {
+								return (
+									<div
+										key={monthDate.toISOString()}
+										style={{ width: width }}
+										className="flex flex-col shrink-0 h-full bg-surface border-r border-gray-100/50"
 									>
-										{date.getDate()}
-									</span>
+										{/* Weekday Headers */}
+										<div className="grid grid-cols-7 mb-1 shrink-0">
+											{['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => (
+												<span
+													key={d}
+													className="text-[10px] font-bold text-center opacity-40"
+												>
+													{d}
+												</span>
+											))}
+										</div>
 
-									{/* Stripes Indicators */}
-									{!isPast && !isSel && (
-										<div className="w-full px-0.5 flex flex-col gap-px">
-											{['T1', 'T2', 'T3'].map((t) => {
-												const isOcc = occupied.includes(t);
+										{/* Grid */}
+										<div className="grid grid-cols-7 grid-rows-6 gap-px h-full relative touch-pan-y select-none pb-2">
+											{availabilityLoading && (
+												<div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-2xl pointer-events-none">
+													<div className="w-6 h-6 border-2 border-neverland-green/20 border-t-neverland-green rounded-full animate-spin"></div>
+												</div>
+											)}
+
+											{Array.from({ length: 42 }).map((_, i) => {
+												const year = monthDate.getFullYear();
+												const month = monthDate.getMonth();
+												const firstDay = new Date(year, month, 1);
+												const startDay = (firstDay.getDay() + 6) % 7;
+												const date = new Date(year, month, 1 - startDay + i);
+												const isCur = date.getMonth() === month;
+												const dateStr = [
+													date.getFullYear(),
+													String(date.getMonth() + 1).padStart(2, '0'),
+													String(date.getDate()).padStart(2, '0'),
+												].join('-');
+												const today = new Date();
+												today.setHours(0, 0, 0, 0);
+												const isPast = date < today;
+												const isSel = formData.fecha === dateStr;
+												const occupied = getOccupiedForDate(date);
+
 												return (
 													<div
-														key={t}
-														className={`h-2 w-full rounded-sm flex items-center justify-center ${
-															isOcc ? 'bg-gray-200' : 'bg-green-100'
+														key={i}
+														onClick={() => {
+															if (isPast) return;
+															if (!isCur) {
+																const newM = new Date(date);
+																newM.setDate(1);
+																setCurrentMonth(newM);
+																x.set(-width);
+															}
+															setFormData({
+																...formData,
+																fecha: dateStr,
+																turno: '',
+															});
+															setView('dayDetails');
+														}}
+														className={`rounded-lg flex flex-col items-center justify-between pt-0.5 pb-0.5 relative transition-all border select-none ${
+															isSel
+																? 'bg-neverland-green text-white shadow-md border-neverland-green'
+																: isPast
+																	? 'bg-gray-50 text-gray-300 border-transparent pointer-events-none'
+																	: isCur
+																		? 'bg-white text-gray-700 border-gray-100 hover:border-green-200 cursor-pointer'
+																		: 'bg-gray-50/50 text-gray-400 border-transparent hover:bg-white hover:border-green-100 cursor-pointer'
 														}`}
 													>
-														{!isOcc && (
-															<span className="text-[9px] font-bold text-neverland-green tracking-tighter leading-none scale-[0.7]">
-																LIBRE
-															</span>
+														<span
+															className={`text-[10px] mb-0.5 ${isSel ? 'font-black' : ''}`}
+														>
+															{date.getDate()}
+														</span>
+
+														{!isPast && !isSel && (
+															<div className="w-full px-0.5 flex flex-col gap-[1px]">
+																{['T1', 'T2', 'T3'].map((t) => {
+																	const isOcc = occupied.includes(t);
+																	return (
+																		<div
+																			key={t}
+																			className={`h-[9px] w-full rounded-sm flex items-center justify-center ${
+																				isOcc ? 'bg-gray-200' : 'bg-green-100'
+																			}`}
+																		>
+																			{!isOcc && (
+																				<span className="text-[6.5px] font-bold text-neverland-green tracking-tighter leading-none">
+																					LIBRE
+																				</span>
+																			)}
+																		</div>
+																	);
+																})}
+															</div>
 														)}
 													</div>
 												);
 											})}
 										</div>
-									)}
-								</button>
-							);
-						})}
+									</div>
+								);
+							})}
+						</motion.div>
 					</div>
 				</div>
 			)}
@@ -203,7 +300,9 @@ const Step1Date = ({
 						{ id: 'T2', l: 'Turno 2', t: '18:00 - 20:00' },
 						{ id: 'T3', l: 'Turno 3', t: '19:15 - 21:15' },
 					].map((turn) => {
-						const isOcc = getOccupiedForDate(formData.fecha).includes(turn.id);
+						const isOcc = getOccupiedForDate(new Date(formData.fecha)).includes(
+							turn.id,
+						);
 						return (
 							<button
 								key={turn.id}

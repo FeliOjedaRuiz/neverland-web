@@ -34,7 +34,7 @@ api.interceptors.response.use(
 export const createBooking = (data) => api.post('/events', data);
 export const getAvailability = (fecha) => api.get('/events/availability', { params: { fecha } });
 export const getMonthlyAvailability = (year, month) => api.get('/events/availability', { params: { year, month } });
-export const getReservations = () => api.get('/events');
+export const getReservations = (params) => api.get('/events', { params });
 export const updateReservation = (id, data) => api.patch(`/events/${id}`, data);
 export const deleteReservation = (id) => api.delete(`/events/${id}`);
 export const checkAvailability = (params) => api.get('/events/availability', { params });

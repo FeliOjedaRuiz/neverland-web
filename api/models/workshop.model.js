@@ -8,6 +8,7 @@ const workshopSchema = new mongoose.Schema({
   precio: { type: Number, required: true },
   requiereExtension: { type: Boolean, default: false },
   diasHabilitados: [String], // Ej: ["Lunes", "Martes"]
+  imageUrl: String,
 }, {
   timestamps: true,
   toJSON: {

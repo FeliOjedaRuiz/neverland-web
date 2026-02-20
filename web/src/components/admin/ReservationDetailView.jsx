@@ -19,6 +19,8 @@ import {
 	Trash2,
 	ChevronRight,
 	CheckCircle,
+	Pizza,
+	Mail,
 } from 'lucide-react';
 import {
 	updateReservation,
@@ -102,11 +104,24 @@ const ReservationDetailView = ({ reservation: initialReservation, onBack }) => {
 		return new Date(dateString).toLocaleDateString('es-ES', options);
 	};
 
-	const getTurnoLabel = (t) => {
-		if (t === 'T1') return '17:00 - 19:00';
-		if (t === 'T2') return '18:00 - 20:00';
-		if (t === 'T3') return '19:15 - 21:15';
-		return t;
+	const getTurnoLabel = (turnoId, horario) => {
+		// If we have actual start/end times in the horario object, use them
+		if (horario?.inicio && horario?.fin) {
+			return `${horario.inicio} - ${horario.fin}`;
+		}
+
+		// Fallback to base times
+		const baseTimes = {
+			T1: '17:00 - 19:00',
+			T2: '18:00 - 20:00',
+			T3: '19:15 - 21:15',
+		};
+
+		const base = baseTimes[turnoId] || turnoId;
+
+		// If there is an extension but no explicit inicio/fin, we should ideally calculate it,
+		// but since the backend/frontend now send it, the first if should catch it.
+		return base;
 	};
 
 	return (
@@ -171,7 +186,7 @@ const ReservationDetailView = ({ reservation: initialReservation, onBack }) => {
 
 					{/* Fila 2: ID */}
 					<p className="text-white/60 text-[9px] font-black uppercase tracking-tight truncate mb-2">
-						ID: {reservation.id}
+						ID: {reservation.publicId}
 					</p>
 
 					{/* Fila 3: Fecha + Turno + Horario + Boton Estado */}
@@ -184,8 +199,7 @@ const ReservationDetailView = ({ reservation: initialReservation, onBack }) => {
 								{reservation.turno}
 							</span>
 							<span className="opacity-95 text-[11px]">
-								{reservation.horario?.inicio || '17:00'} -{' '}
-								{reservation.horario?.fin || '19:00'}
+								{getTurnoLabel(reservation.turno, reservation.horario)}
 							</span>
 						</div>
 
@@ -298,6 +312,11 @@ const ReservationDetailView = ({ reservation: initialReservation, onBack }) => {
 							>
 								<Phone size={14} /> {reservation.cliente?.telefono}
 							</a>
+							{reservation.cliente?.email && (
+								<p className="flex items-center gap-1 text-sm font-bold mt-2 text-gray-500 bg-gray-100 w-fit px-3 py-1 rounded-full">
+									<Mail size={14} /> {reservation.cliente.email}
+								</p>
+							)}
 						</div>
 					</div>
 				</section>
@@ -338,7 +357,8 @@ const ReservationDetailView = ({ reservation: initialReservation, onBack }) => {
 									Turno / Horario
 								</p>
 								<p className="font-bold text-text-black">
-									{reservation.turno} ({getTurnoLabel(reservation.turno)})
+									{reservation.turno} (
+									{getTurnoLabel(reservation.turno, reservation.horario)})
 								</p>
 								{reservation.horario?.extensionMinutos > 0 && (
 									<p className="text-xs text-blue-500 font-bold">
@@ -372,7 +392,18 @@ const ReservationDetailView = ({ reservation: initialReservation, onBack }) => {
 								</span>
 							</div>
 							<span className="bg-neverland-green/10 text-neverland-green px-4 py-1.5 rounded-full text-xs font-black uppercase">
-								Menú {reservation.detalles?.niños?.menuId}
+								{(() => {
+									const menu = config?.menusNiños?.find(
+										(m) =>
+											m.id === reservation.detalles?.niños?.menuId ||
+											m.number === reservation.detalles?.niños?.menuId ||
+											String(m.id) ===
+												String(reservation.detalles?.niños?.menuId),
+									);
+									return menu
+										? `${menu.nombre}${menu.principal ? `, ${menu.principal}` : ''}`
+										: `Menú ${reservation.detalles?.niños?.menuId}`;
+								})()}
 							</span>
 						</div>
 
@@ -384,23 +415,55 @@ const ReservationDetailView = ({ reservation: initialReservation, onBack }) => {
 								</span>
 							</div>
 							<div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-8">
-								{reservation.detalles?.adultos?.comida?.length > 0 ? (
-									reservation.detalles.adultos.comida.map((item, idx) => (
-										<div
-											key={idx}
-											className="flex justify-between p-2 bg-gray-50 rounded-xl text-sm text-gray-600 font-medium"
-										>
-											<span>{item.item}</span>
-											<span className="font-black text-text-black">
-												x{item.cantidad}
-											</span>
-										</div>
-									))
-								) : (
-									<p className="text-xs text-gray-400 italic">
-										No se solicitó comida de adultos
-									</p>
-								)}
+								{(() => {
+									const adultos = reservation.detalles?.adultos;
+									let normalized = [];
+
+									if (Array.isArray(adultos)) {
+										// Old Direct Array Format: [{item, cantidad}]
+										normalized = adultos;
+									} else if (adultos && typeof adultos === 'object') {
+										if (Array.isArray(adultos.comida)) {
+											// New Unified Format: { cantidad, comida: [{item, cantidad}] }
+											normalized = adultos.comida;
+										} else if (
+											adultos.comida &&
+											typeof adultos.comida === 'object'
+										) {
+											// Legacy Client Format: { cantidad, comida: { name: qty } }
+											normalized = Object.entries(adultos.comida)
+												.filter(([, qty]) => qty > 0)
+												.map(([name, qty]) => ({
+													item: name,
+													cantidad: qty,
+												}));
+										}
+									}
+
+									const itemsToDisplay = normalized.filter(
+										(i) => i.item && String(i.item).trim(),
+									);
+
+									if (itemsToDisplay.length > 0) {
+										return itemsToDisplay.map((item, idx) => (
+											<div
+												key={idx}
+												className="flex justify-between p-2 bg-gray-50 rounded-xl text-sm text-gray-600 font-medium"
+											>
+												<span className="truncate mr-2">{item.item}</span>
+												<span className="font-black text-text-black shrink-0">
+													x{item.cantidad}
+												</span>
+											</div>
+										));
+									}
+
+									return (
+										<p className="text-xs text-gray-400 italic">
+											No se solicitó comida de adultos
+										</p>
+									);
+								})()}
 							</div>
 						</div>
 					</div>
@@ -419,39 +482,64 @@ const ReservationDetailView = ({ reservation: initialReservation, onBack }) => {
 							<Pencil size={14} />
 						</button>
 					</div>
-					<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+					<div className="grid grid-cols-1 gap-3">
+						{/* Actividad */}
 						<div
-							className={`p-4 rounded-3xl border flex flex-col items-center gap-1 transition-all ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-50 border-blue-100 text-blue-600' : 'bg-gray-50 border-gray-100 text-gray-300 opacity-60'}`}
+							className={`p-4 px-6 rounded-3xl border flex items-center justify-between transition-all ${
+								reservation.detalles?.extras?.taller !== 'ninguno'
+									? 'bg-blue-50 border-blue-100 text-blue-600'
+									: 'bg-gray-50 border-gray-100 text-gray-300 opacity-60'
+							}`}
 						>
-							<Sparkles size={20} />
-							<span className="text-[10px] font-black uppercase">
-								Actividad
-							</span>
-							<span className="text-xs font-bold text-center capitalize">
+							<div className="flex items-center gap-3">
+								<Sparkles size={18} />
+								<span className="text-[10px] font-black uppercase tracking-widest">
+									Actividad
+								</span>
+							</div>
+							<span className="text-sm font-black capitalize">
 								{reservation.detalles?.extras?.taller === 'ninguno'
 									? 'Sin actividad'
 									: reservation.detalles?.extras?.taller}
 							</span>
 						</div>
+
+						{/* Personaje */}
 						<div
-							className={`p-4 rounded-3xl border flex flex-col items-center gap-1 transition-all ${reservation.detalles?.extras?.personaje !== 'ninguno' ? 'bg-purple-50 border-purple-100 text-purple-600' : 'bg-gray-50 border-gray-100 text-gray-300 opacity-60'}`}
+							className={`p-4 px-6 rounded-3xl border flex items-center justify-between transition-all ${
+								reservation.detalles?.extras?.personaje !== 'ninguno'
+									? 'bg-purple-50 border-purple-100 text-purple-600'
+									: 'bg-gray-50 border-gray-100 text-gray-300 opacity-60'
+							}`}
 						>
-							<Smile size={20} />
-							<span className="text-[10px] font-black uppercase">
-								Personaje
-							</span>
-							<span className="text-xs font-bold text-center capitalize">
+							<div className="flex items-center gap-3">
+								<Smile size={18} />
+								<span className="text-[10px] font-black uppercase tracking-widest">
+									Personaje
+								</span>
+							</div>
+							<span className="text-sm font-black capitalize">
 								{reservation.detalles?.extras?.personaje === 'ninguno'
 									? 'Sin personaje'
 									: reservation.detalles?.extras?.personaje}
 							</span>
 						</div>
+
+						{/* Piñata */}
 						<div
-							className={`p-4 rounded-3xl border flex flex-col items-center gap-1 transition-all ${reservation.detalles?.extras?.pinata ? 'bg-energy-orange/5 border-energy-orange/20 text-energy-orange shadow-sm' : 'bg-gray-50 border-gray-100 text-gray-300 opacity-60'}`}
+							className={`p-4 px-6 rounded-3xl border flex items-center justify-between transition-all ${
+								reservation.detalles?.extras?.pinata
+									? 'bg-energy-orange/5 border-energy-orange/20 text-energy-orange shadow-sm'
+									: 'bg-gray-50 border-gray-100 text-gray-300 opacity-60'
+							}`}
 						>
-							<Package size={20} />
-							<span className="text-[10px] font-black uppercase">Piñata</span>
-							<span className="text-xs font-bold text-center">
+							<div className="flex items-center gap-3">
+								<Package size={18} />
+								<span className="text-[10px] font-black uppercase tracking-widest">
+									Piñata
+								</span>
+							</div>
+							<span className="text-sm font-black">
 								{reservation.detalles?.extras?.pinata ? 'Incluida' : 'No'}
 							</span>
 						</div>
@@ -469,14 +557,7 @@ const ReservationDetailView = ({ reservation: initialReservation, onBack }) => {
 						{reservation.precioTotal}€
 					</p>
 				</div>
-				<div className="flex gap-2">
-					<button
-						onClick={() => window.print()}
-						className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-text-black rounded-2xl font-black text-sm transition-all active:scale-95"
-					>
-						Imprimir
-					</button>
-				</div>
+				<div className="flex gap-2"></div>
 			</div>
 
 			{/* Modal Overlay System */}
@@ -506,10 +587,10 @@ const ReservationDetailView = ({ reservation: initialReservation, onBack }) => {
 									onSave={async (newData) => {
 										setIsUpdating(true);
 										try {
-											await updateReservation(reservation.id, {
+											const res = await updateReservation(reservation.id, {
 												cliente: newData,
 											});
-											setReservation({ ...reservation, cliente: newData });
+											setReservation(res.data); // Use server response
 											setActiveModal(null);
 										} catch (err) {
 											console.error(err);
@@ -848,10 +929,27 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 // Sub-component for Menus Edit
 const MenusEdit = ({ current, config, onCancel, onSave }) => {
 	const [niñosExt, setNiñosExt] = useState({ ...current.niños });
+	const [adultosQty, setAdultosQty] = useState(current.adultos?.cantidad || 0);
 	// Flatten/Normalize adultos for editing
 	const [adultosList, setAdultosList] = useState(() => {
 		if (Array.isArray(current.adultos)) return [...current.adultos];
-		if (current.adultos?.comida) return [...current.adultos.comida];
+		const comida = current.adultos?.comida;
+		if (Array.isArray(comida)) return [...comida];
+		if (comida && typeof comida === 'object') {
+			return Object.entries(comida)
+				.filter(([, qty]) => qty > 0)
+				.map(([name, qty]) => {
+					// Try to find price in config to maintain metadata if possible
+					const configItem = config?.preciosAdultos?.find(
+						(p) => p.nombre === name || p.id === name,
+					);
+					return {
+						item: name,
+						cantidad: qty,
+						precioUnitario: configItem?.precio || 0,
+					};
+				});
+		}
 		return [];
 	});
 
@@ -952,9 +1050,38 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 
 			{/* Adultos */}
 			<div className="space-y-4">
-				<h5 className="text-xs font-black text-energy-orange uppercase tracking-widest border-b border-energy-orange/10 pb-2">
-					Menú de Adultos
-				</h5>
+				<div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline border-b-2 border-orange-100/50 pb-5 gap-4">
+					<div className="space-y-1">
+						<h5 className="text-sm font-display font-black text-energy-orange uppercase tracking-wider">
+							Adultos y Comida
+						</h5>
+						<p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none">
+							Gestión de asistentes y menú
+						</p>
+					</div>
+					<div className="flex items-center justify-between w-full sm:w-auto gap-4 bg-orange-50 p-2.5 rounded-2xl border border-orange-100">
+						<span className="text-[10px] font-black text-energy-orange uppercase pl-1">
+							Total Adultos:
+						</span>
+						<div className="flex items-center bg-white border border-energy-orange/30 rounded-xl overflow-hidden shadow-sm">
+							<button
+								onClick={() => setAdultosQty(Math.max(0, adultosQty - 1))}
+								className="px-4 py-2 hover:bg-orange-50 text-energy-orange font-black transition-colors"
+							>
+								-
+							</button>
+							<span className="px-5 py-2 font-display font-black text-base border-x border-orange-50 min-w-[56px] text-center text-text-black">
+								{adultosQty}
+							</span>
+							<button
+								onClick={() => setAdultosQty(adultosQty + 1)}
+								className="px-4 py-2 hover:bg-orange-50 text-energy-orange font-black transition-colors"
+							>
+								+
+							</button>
+						</div>
+					</div>
+				</div>
 
 				<div className="space-y-3">
 					{adultosList.map((item, idx) => (
@@ -1025,7 +1152,14 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 			<div className="flex gap-3 pt-6 border-t border-gray-100">
 				<button
 					onClick={() =>
-						onSave({ ...current, niños: niñosExt, adultos: adultosList })
+						onSave({
+							...current,
+							niños: niñosExt,
+							adultos: {
+								cantidad: adultosQty,
+								comida: adultosList,
+							},
+						})
 					}
 					className="flex-1 py-4 bg-neverland-green text-white rounded-2xl font-black text-sm shadow-lg shadow-neverland-green/20 transition-all active:scale-95"
 				>
@@ -1196,6 +1330,20 @@ const ClientInfoEdit = ({ current, onCancel, onSave }) => {
 							setFormData({ ...formData, telefono: e.target.value })
 						}
 						className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all"
+					/>
+				</div>
+				<div className="space-y-2 sm:col-span-2">
+					<label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">
+						Email de contacto
+					</label>
+					<input
+						type="email"
+						value={formData.email || ''}
+						onChange={(e) =>
+							setFormData({ ...formData, email: e.target.value })
+						}
+						className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all"
+						placeholder="ejemplo@email.com"
 					/>
 				</div>
 			</div>

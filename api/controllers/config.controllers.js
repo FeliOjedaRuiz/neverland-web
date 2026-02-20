@@ -20,9 +20,9 @@ module.exports.get = (req, res, next) => {
           { id: 'bocadillos', nombre: 'Bocadillos', precio: 14, unidades: '12 Unidades' }
         ],
         workshops: [
-          { id: 'pintacaras', name: 'Pintacaras', priceBase: 25, pricePlus: 30, desc: 'Maquillaje de fantasía para todos.' },
-          { id: 'slime', name: 'Taller de Slime', priceBase: 25, pricePlus: 30, desc: '¡Creación de slime pegajoso y divertido!' },
-          { id: 'magia', name: 'Show de Magia', priceBase: 25, pricePlus: 30, desc: 'Trucos increíbles para sorprender.' }
+          { id: 'pintacaras', name: 'Pintacaras', priceBase: 25, pricePlus: 30, desc: 'Maquillaje de fantasía para todos.', imageUrl: '/src/assets/images/face_painting.png' },
+          { id: 'slime', name: 'Taller de Slime', priceBase: 25, pricePlus: 30, desc: '¡Creación de slime pegajoso y divertido!', imageUrl: '/src/assets/images/slime.png' },
+          { id: 'magia', name: 'Show de Magia', priceBase: 25, pricePlus: 30, desc: 'Trucos increíbles para sorprender.', imageUrl: '/src/assets/images/magic.png' }
         ],
         characters: [
           'Mickey', 'Minnie', 'Goofy', 'Donald', 'Daysi', 'Sonic', 'Stich', 'Marshall', 'Sky',

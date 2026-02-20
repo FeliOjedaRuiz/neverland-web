@@ -25,7 +25,11 @@ const ReservationDetailModal = ({ reservation, onClose }) => {
 		return new Date(dateString).toLocaleDateString('es-ES', options);
 	};
 
-	const getTurnoLabel = (t) => {
+	const getTurnoLabel = (reservation) => {
+		if (reservation.horario?.inicio && reservation.horario?.fin) {
+			return `${reservation.horario.inicio} - ${reservation.horario.fin}`;
+		}
+		const t = reservation.turno;
 		if (t === 'T1') return '17:00 - 19:00';
 		if (t === 'T2') return '18:00 - 20:00';
 		if (t === 'T3') return '19:15 - 21:15';
@@ -42,7 +46,7 @@ const ReservationDetailModal = ({ reservation, onClose }) => {
 							Detalles de la Reserva
 						</h3>
 						<p className="text-white/80 text-xs font-medium uppercase tracking-wider">
-							ID: {reservation.id?.substring(0, 8)}...
+							ID: {reservation.publicId}
 						</p>
 					</div>
 					<button
@@ -117,7 +121,7 @@ const ReservationDetailModal = ({ reservation, onClose }) => {
 										Turno / Horario
 									</p>
 									<p className="font-bold text-text-black">
-										{reservation.turno} ({getTurnoLabel(reservation.turno)})
+										{reservation.turno} ({getTurnoLabel(reservation)})
 									</p>
 									{reservation.horario?.extensionMinutos > 0 && (
 										<p className="text-xs text-blue-500 font-bold">

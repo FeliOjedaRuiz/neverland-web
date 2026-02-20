@@ -35,7 +35,7 @@ router.get('/users', secure.isAdmin, users.list);
 router.get('/events/availability', events.checkAvailability);
 router.post('/events', events.create); // Clients can create reservations
 router.get('/events', secure.isAdmin, events.list);
-router.get('/events/:id', events.detail); // Client needs detail for summary/edit
+router.get('/events/:id', secure.isAdmin, events.detail); // Protected for privacy
 router.patch('/events/:id', secure.isAdmin, events.update); // Only admin can edit for now
 router.delete('/events/:id', secure.isAdmin, events.delete);
 

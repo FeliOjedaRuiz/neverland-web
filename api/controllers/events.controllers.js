@@ -4,7 +4,15 @@ const googleService = require('../services/google.service');
 
 const Config = require('../models/config.model');
 
+// Centralized Shift Definitions
+const SHIFTS = {
+  'T1': { start: [17, 0], end: [19, 0] },
+  'T2': { start: [18, 0], end: [20, 0] },
+  'T3': { start: [19, 15], end: [21, 15] }
+};
+
 // Helper to calculate price based on config and event data
+// NOW MUTATES eventData to add snapshots if they are missing!
 const calculateEventPrice = async (eventData, config) => {
   const { tipo, fecha, turno, detalles, horario } = eventData;
   if (tipo === 'bloqueo') return 0;
@@ -12,79 +20,117 @@ const calculateEventPrice = async (eventData, config) => {
   if (!config) {
     config = await Config.findOne();
   }
-  if (!config) {
-    config = {
-      menusNiños: [
-        { id: 1, precio: 9 },
-        { id: 2, precio: 9 },
-        { id: 3, precio: 10 },
-        { id: 4, precio: 12 }
-      ],
-      plusFinDeSemana: 1.5,
-      preciosAdultos: [],
-      preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, pinata: 15, extension30: 30, extension60: 50 }
-    };
-  }
+
+  const safeConfig = config || {
+    menusNiños: [],
+    plusFinDeSemana: 1.5,
+    preciosAdultos: [],
+    preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, pinata: 15, extension30: 30, extension60: 50 },
+    workshops: []
+  };
 
   let total = 0;
 
-  // Children
-  const menu = config.menusNiños.find(m => String(m.id) === String(detalles.niños.menuId));
-  const childPrice = menu ? menu.precio : 0;
-  let subTotalNiños = childPrice * detalles.niños.cantidad;
+  // 1. Children
+  if (detalles?.niños) {
+    let childPrice = detalles.niños.precioApplied;
 
-  // Weekend Plus
-  const dateObj = new Date(fecha);
-  const day = dateObj.getDay();
-  if (day === 0 || day === 5 || day === 6) { // Fri, Sat, Sun
-    total += (config.plusFinDeSemana || 1.5) * detalles.niños.cantidad;
+    if (childPrice === undefined || childPrice === null) {
+      const menu = safeConfig.menusNiños?.find(m =>
+        String(m.id) === String(detalles.niños.menuId) ||
+        String(m._id) === String(detalles.niños.menuId)
+      );
+      // Hard fallback if not found in DB but matches our default logic
+      if (!menu && String(detalles.niños.menuId) === '4') childPrice = 12;
+      else if (!menu && ['1', '2'].includes(String(detalles.niños.menuId))) childPrice = 9;
+      else if (!menu && String(detalles.niños.menuId) === '3') childPrice = 10;
+      else childPrice = menu ? menu.precio : 0;
+
+      detalles.niños.precioApplied = childPrice;
+    }
+
+    total += childPrice * (detalles.niños.cantidad || 0);
+
+    // Weekend Plus
+    if (fecha) {
+      const dateObj = new Date(fecha);
+      const day = dateObj.getDay();
+      if (day === 0 || day === 5 || day === 6) {
+        total += (safeConfig.plusFinDeSemana || 1.5) * (detalles.niños.cantidad || 0);
+      }
+    }
   }
-  total += subTotalNiños;
 
-  // Adults Food
-  const adultosComida = detalles.adultos?.comida || (Array.isArray(detalles.adultos) ? detalles.adultos : []);
-  if (config.preciosAdultos?.length > 0 && adultosComida.length > 0) {
-    adultosComida.forEach(item => {
-      const adultOption = config.preciosAdultos.find(opt => opt.nombre === item.item || opt.id === item.item);
-      if (adultOption) {
-        total += adultOption.precio * item.cantidad;
+  // 2. Adults Food
+  const adultosData = detalles?.adultos;
+  const comidaList = Array.isArray(adultosData) ? adultosData : (adultosData?.comida || []);
+
+  if (comidaList.length > 0) {
+    comidaList.forEach(item => {
+      if (item.precioUnitario !== undefined && item.precioUnitario !== null) {
+        total += item.precioUnitario * item.cantidad;
+      } else if (safeConfig.preciosAdultos) {
+        const adultOption = safeConfig.preciosAdultos.find(opt =>
+          opt.nombre === item.item || String(opt.id) === String(item.item) || String(opt.id) === String(item.id)
+        );
+        if (adultOption) {
+          total += adultOption.precio * item.cantidad;
+          item.precioUnitario = adultOption.precio;
+        }
       }
     });
   }
 
-  // Extras: Activity
-  if (detalles.extras.taller !== 'ninguno') {
-    const workshop = config.workshops.find(
-      (w) => w.name === detalles.extras.taller,
-    );
-    if (workshop) {
-      const tallerPrice =
-        detalles.niños.cantidad >= 15 ? workshop.pricePlus : workshop.priceBase;
+  // 3. Extras
+  if (detalles?.extras) {
+    if (detalles.extras.taller && detalles.extras.taller !== 'ninguno') {
+      let tallerPrice = detalles.extras.precioTallerApplied;
+      if (tallerPrice === undefined || tallerPrice === null) {
+        const workshop = safeConfig.workshops?.find(
+          (w) => w.name.toLowerCase() === detalles.extras.taller.toLowerCase()
+        );
+        const isLargeGroup = (detalles.niños?.cantidad || 0) >= 15;
+        if (workshop) {
+          tallerPrice = isLargeGroup ? workshop.pricePlus : workshop.priceBase;
+        } else {
+          tallerPrice = isLargeGroup ? 30 : 25;
+        }
+        detalles.extras.precioTallerApplied = tallerPrice;
+      }
       total += tallerPrice;
-    } else {
-      // Fallback to general prices if workshop not found
-      const tallerPrice =
-        detalles.niños.cantidad >= 15
-          ? config.preciosExtras.tallerPlus
-          : config.preciosExtras.tallerBase;
-      total += tallerPrice;
+    }
+
+    if (detalles.extras.personaje && detalles.extras.personaje !== 'ninguno') {
+      let charPrice = detalles.extras.precioPersonajeApplied;
+      if (charPrice === undefined || charPrice === null) {
+        charPrice = safeConfig.preciosExtras?.personaje || 40;
+        detalles.extras.precioPersonajeApplied = charPrice;
+      }
+      total += charPrice;
+    }
+
+    if (detalles.extras.pinata) {
+      let pinataPrice = detalles.extras.precioPinataApplied;
+      if (pinataPrice === undefined || pinataPrice === null) {
+        pinataPrice = safeConfig.preciosExtras?.pinata || 15;
+        detalles.extras.precioPinataApplied = pinataPrice;
+      }
+      total += pinataPrice;
     }
   }
 
-  // Extras: Character
-  if (detalles.extras.personaje !== 'ninguno') {
-    total += config.preciosExtras.personaje;
+  // 4. Extension
+  if (horario?.extensionMinutos) {
+    let extCost = horario.costoExtension;
+    if (horario.extensionMinutos > 0 && !extCost) {
+      if (horario.extensionMinutos === 30) extCost = safeConfig.preciosExtras?.extension30 || 30;
+      if (horario.extensionMinutos === 60) extCost = safeConfig.preciosExtras?.extension60 || 50;
+      horario.costoExtension = extCost;
+    }
+    total += extCost || 0;
   }
 
-  // Extras: Pinata
-  if (detalles.extras.pinata) {
-    total += config.preciosExtras.pinata;
-  }
-
-  // Extras: Extension
-  if (horario?.extensionMinutos === 30) total += config.preciosExtras.extension30;
-  if (horario?.extensionMinutos === 60) total += config.preciosExtras.extension60;
-
+  console.log(`Final calculated price: ${total}€`);
   return total;
 };
 
@@ -154,17 +200,68 @@ module.exports.create = (req, res, next) => {
 };
 
 module.exports.list = (req, res, next) => {
-  const { from, to } = req.query;
+  const { from, to, estado, tipo, page, limit, sortBy = 'fecha', order = 'asc', search } = req.query;
   const query = {};
 
-  if (from && to) {
-    query.fecha = { $gte: new Date(from), $lte: new Date(to) };
+  if (from || to) {
+    query.fecha = {};
+    if (from) query.fecha.$gte = new Date(from);
+    if (to) query.fecha.$lte = new Date(to);
   }
 
-  Event.find(query)
-    .sort({ fecha: 1, turno: 1 })
-    .then(events => res.json(events))
-    .catch(next);
+  if (estado) {
+    query.estado = estado;
+  }
+
+  if (tipo) {
+    query.tipo = tipo;
+  }
+
+  if (search) {
+    const searchRegex = new RegExp(search, 'i');
+    query.$or = [
+      { publicId: searchRegex },
+      { 'cliente.nombreNiño': searchRegex },
+      { 'cliente.nombrePadre': searchRegex }
+    ];
+  }
+
+  const sortOrder = order === 'desc' ? -1 : 1;
+  const sortQuery = { [sortBy]: sortOrder };
+
+  // Secondary sort to ensure consistent ordering (e.g. by turno if dates are same)
+  if (sortBy === 'fecha') {
+    sortQuery.turno = sortOrder;
+  }
+
+  if (page) {
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 10;
+    const skip = (pageNum - 1) * limitNum;
+
+    Promise.all([
+      Event.find(query).sort(sortQuery).skip(skip).limit(limitNum),
+      Event.countDocuments(query)
+    ])
+      .then(([events, total]) => {
+        res.json({
+          data: events,
+          meta: {
+            total,
+            pages: Math.ceil(total / limitNum),
+            currentPage: pageNum,
+            limit: limitNum
+          }
+        });
+      })
+      .catch(next);
+  } else {
+    // Legacy / Calendar support
+    Event.find(query)
+      .sort(sortQuery)
+      .then(events => res.json(events))
+      .catch(next);
+  }
 };
 
 module.exports.detail = (req, res, next) => {
@@ -177,36 +274,63 @@ module.exports.detail = (req, res, next) => {
 };
 
 module.exports.update = (req, res, next) => {
-  // If we change details, date or turn, we might need to recalculate price
-  // To handle partial updates correctly, we first find the current event
   Event.findById(req.params.id)
-    .then(async (currentEvent) => {
-      if (!currentEvent) throw createError(404, 'Evento no encontrado');
+    .then(async (event) => {
+      if (!event) throw createError(404, 'Evento no encontrado');
 
-      // Prepare merged data for price calculation
-      const mergedData = {
-        ...currentEvent.toObject(),
-        ...req.body,
-        detalles: {
-          ...currentEvent.detalles,
-          ...(req.body.detalles || {})
+      // Update basic fields or merge details
+      if (req.body.detalles) {
+        const oldDetalles = event.detalles.toObject();
+        const newDetalles = req.body.detalles;
+
+        // Invalidate snapshots if crucial selections changed
+        if (newDetalles.niños?.menuId && String(newDetalles.niños.menuId) !== String(oldDetalles.niños?.menuId)) {
+          delete oldDetalles.niños.precioApplied;
         }
-      };
+        if (newDetalles.extras?.taller && newDetalles.extras.taller !== oldDetalles.extras?.taller) {
+          delete oldDetalles.extras.precioTallerApplied;
+        }
+        if (newDetalles.extras?.personaje && newDetalles.extras.personaje !== oldDetalles.extras?.personaje) {
+          delete oldDetalles.extras.precioPersonajeApplied;
+        }
+        if (newDetalles.extras?.pinata !== undefined && newDetalles.extras.pinata !== oldDetalles.extras?.pinata) {
+          delete oldDetalles.extras.precioPinataApplied;
+        }
 
-      // Recalculate price if relevant fields sent
-      if (req.body.detalles || req.body.fecha || req.body.turno || req.body.horario) {
-        req.body.precioTotal = await calculateEventPrice(mergedData);
+        // Deep merge details to avoid losing other sub-fields
+        event.detalles = {
+          niños: { ...oldDetalles.niños, ...(newDetalles.niños || {}) },
+          adultos: { ...oldDetalles.adultos, ...(newDetalles.adultos || {}) },
+          extras: { ...oldDetalles.extras, ...(newDetalles.extras || {}) }
+        };
+        delete req.body.detalles;
       }
 
-      return Event.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
-    })
-    .then(async (event) => {
-      // Update/Sync with Google Calendar
+      event.set(req.body);
+
+      // Recalculate price if relevant fields changed
+      if (event.isModified('detalles') || event.isModified('fecha') || event.isModified('turno') || event.isModified('horario')) {
+        const newPrice = await calculateEventPrice(event.toObject());
+        console.log(`Recalculating price for ${event.publicId}: ${newPrice}€`);
+        event.precioTotal = newPrice;
+      }
+
+      await event.save();
+
+      // Sync with Google
       try {
-        const gEvent = await googleService.createCalendarEvent(event);
-        if (gEvent?.id && !event.googleEventId) {
-          event.googleEventId = gEvent.id;
-          await event.save();
+        if (event.estado === 'cancelada') {
+          if (event.googleEventId) {
+            await googleService.deleteCalendarEvent(event.googleEventId);
+            event.googleEventId = undefined;
+            await event.save();
+          }
+        } else {
+          const gEvent = await googleService.createCalendarEvent(event);
+          if (gEvent?.id && !event.googleEventId) {
+            event.googleEventId = gEvent.id;
+            await event.save();
+          }
         }
       } catch (err) {
         console.error('Failed to sync updated event to Google:', err);
@@ -219,8 +343,14 @@ module.exports.update = (req, res, next) => {
 
 module.exports.delete = (req, res, next) => {
   Event.findByIdAndDelete(req.params.id)
-    .then(event => {
+    .then(async (event) => {
       if (!event) return next(createError(404, 'Evento no encontrado'));
+
+      // Sincronizar borrado con Google Calendar
+      if (event.googleEventId) {
+        await googleService.deleteCalendarEvent(event.googleEventId);
+      }
+
       res.status(204).send();
     })
     .catch(next);
@@ -299,32 +429,32 @@ module.exports.checkAvailability = async (req, res, next) => {
         }
 
         // Handle Timed Events
-        // We strictly check date string match to avoid timezone confusion for shift comparison base
-        // But for overlap we use real Date objects.
-        const eventDateStr = start.toISOString().split('T')[0];
+        const summary = (gEvent.summary || '').toUpperCase();
         const eventTurno = gEvent.extendedProperties?.private?.turno;
         const isNeverland = gEvent.extendedProperties?.private?.source === 'neverland' || gEvent.extendedProperties?.private?.bookingId;
 
-        if (!isNeverland) return; // Skip any personal/external events without our metadata
+        // Soporte para palabras clave manuales desde Google Calendar
+        const keywordShift = ['T1', 'T2', 'T3'].find(s => summary.includes(`#${s}`));
+        const hasGeneralKeyword = summary.includes('#BLOQUEO') || summary.includes('#NEVERLAND');
+
+        if (!isNeverland && !keywordShift && !hasGeneralKeyword) return;
+
+        const eventDateStr = start.toISOString().split('T')[0];
 
         Object.entries(SHIFTS).forEach(([shiftId, time]) => {
-          // If the event specifically belongs to a shift (our own sync), only block that shift
-          if (eventTurno) {
-            if (eventTurno === shiftId) {
-              occupied.push({ date: eventDateStr, shift: shiftId });
-            }
+          // 1. Por metadatos (App) o Palabra Clave específica (#T1, #T2, #T3)
+          if (eventTurno === shiftId || keywordShift === shiftId) {
+            occupied.push({ date: eventDateStr, shift: shiftId });
             return;
           }
 
-          // Case for manual blocks synced from dashboard (they have source: neverland but might not have a turno if they block all day)
-          // For now, if it's neverland but has no turno, we check overlap
+          // 2. Por solapamiento (Si es un evento de Neverland/Bloqueo sin turno específico)
           const shiftStart = new Date(eventDateStr);
           shiftStart.setHours(time.start[0], time.start[1], 0, 0);
 
           const shiftEnd = new Date(eventDateStr);
           shiftEnd.setHours(time.end[0], time.end[1], 0, 0);
 
-          // Overlap check: StartA < EndB && EndA > StartB
           if (start < shiftEnd && end > shiftStart) {
             occupied.push({ date: eventDateStr, shift: shiftId });
           }

@@ -16,6 +16,7 @@ import ConfigurationPanel from '../components/admin/ConfigurationPanel';
 import CalendarView from '../components/admin/CalendarView';
 import DayDetailView from '../components/admin/DayDetailView';
 import ReservationDetailView from '../components/admin/ReservationDetailView';
+import ErrorPage from './ErrorPage';
 
 const SidebarContent = ({
 	activeTab,
@@ -263,19 +264,11 @@ class ErrorBoundary extends React.Component {
 	render() {
 		if (this.state.hasError) {
 			return (
-				<div className="p-10 bg-red-50 text-red-600 rounded-3xl border border-red-100">
-					<h2 className="text-lg font-bold mb-2">
-						Algo salió mal cargando esta sección
-					</h2>
-					<pre className="text-xs overflow-auto p-4 bg-white rounded-xl border border-red-100">
-						{this.state.error?.toString()}
-					</pre>
-					<button
-						onClick={() => window.location.reload()}
-						className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold"
-					>
-						Reintentar
-					</button>
+				<div className="h-full overflow-y-auto">
+					<ErrorPage
+						code={500}
+						message="Hubo un error crítico al cargar esta sección del panel."
+					/>
 				</div>
 			);
 		}

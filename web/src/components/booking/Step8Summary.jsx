@@ -5,9 +5,8 @@ const Step8Summary = ({
 	prices,
 	calculateTotal,
 	getExtendedTime,
-	CHILDREN_MENUS,
-	WORKSHOPS,
-	ADULT_MENU_OPTIONS,
+	childrenMenusWithPrices,
+	workshops,
 }) => {
 	return (
 		<div>
@@ -34,24 +33,27 @@ const Step8Summary = ({
 				</div>
 
 				{/* Detail List */}
-				<div className="space-y-2 text-sm text-gray-600 pr-2">
-					<div className="flex justify-between">
+				<div className="space-y-3 text-sm pr-2">
+					<div className="flex justify-between text-energy-orange">
 						<span>
-							{formData.niños.cantidad} x{' '}
-							{CHILDREN_MENUS.find((m) => m.id === formData.niños.menuId)?.name}
+							{childrenMenusWithPrices?.find(
+								(m) => String(m.id) === String(formData.niños.menuId),
+							)?.name || `Menú Infantil ${formData.niños.menuId}`}{' '}
+							x {formData.niños.cantidad}
 						</span>
 						<span className="font-bold">
 							{(
 								formData.niños.cantidad *
-								(CHILDREN_MENUS.find((m) => m.id === formData.niños.menuId)
-									?.price || 0)
+								(childrenMenusWithPrices?.find(
+									(m) => String(m.id) === String(formData.niños.menuId),
+								)?.price || 0)
 							).toFixed(2)}
 							€
 						</span>
 					</div>
 					{formData.fecha &&
 						[0, 5, 6].includes(new Date(formData.fecha).getDay()) && (
-							<div className="flex justify-between text-neverland-green italic text-xs">
+							<div className="flex justify-between text-neverland-green italic text-xs bg-green-50/50 p-2 rounded-lg">
 								<span>Plus Fin de Semana (Vie-Dom)</span>
 								<span className="font-bold">
 									+
@@ -62,25 +64,35 @@ const Step8Summary = ({
 								</span>
 							</div>
 						)}
-					{Object.entries(formData.adultos.comida).map(([id, qty]) => {
-						const item = ADULT_MENU_OPTIONS.find((o) => o.id === id);
-						return (
-							<div key={id} className="flex justify-between">
-								<span>
-									{qty} x {item?.nombre}
-								</span>
-								<span className="font-bold">
-									{(qty * item?.precio).toFixed(2)}€
-								</span>
-							</div>
-						);
-					})}
-					{formData.extras.taller !== 'ninguno' && (
+
+					{/* Adult Food Summary */}
+					{formData.adultos.comida?.length > 0 && (
 						<div className="flex justify-between text-energy-orange">
+							<span>
+								Raciones adultos x
+								{formData.adultos.comida.reduce(
+									(acc, curr) => acc + curr.cantidad,
+									0,
+								)}
+							</span>
+							<span className="font-bold">
+								{formData.adultos.comida
+									.reduce(
+										(acc, curr) =>
+											acc + curr.cantidad * (curr.precioUnitario || 0),
+										0,
+									)
+									.toFixed(2)}
+								€
+							</span>
+						</div>
+					)}
+					{formData.extras.taller !== 'ninguno' && (
+						<div className="flex justify-between text-rec-blue border-t border-blue-50 pt-2">
 							<span>Actividad: {formData.extras.taller}</span>
 							<span className="font-bold">
 								{(() => {
-									const workshop = WORKSHOPS.find(
+									const workshop = (workshops || []).find(
 										(w) => w.name === formData.extras.taller,
 									);
 									if (!workshop) return '0';
@@ -96,23 +108,25 @@ const Step8Summary = ({
 						<div className="flex justify-between text-rec-blue">
 							<span>Personaje: {formData.extras.personaje}</span>
 							<span className="font-bold">
-								{prices.preciosExtras.personaje}€
+								{prices.preciosExtras?.personaje || 0}€
 							</span>
 						</div>
 					)}
 					{formData.extras.pinata && (
 						<div className="flex justify-between text-sun-yellow">
 							<span>Piñata</span>
-							<span className="font-bold">{prices.preciosExtras.pinata}€</span>
+							<span className="font-bold">
+								{prices.preciosExtras?.pinata || 0}€
+							</span>
 						</div>
 					)}
 					{formData.extras.extension > 0 && (
-						<div className="flex justify-between">
+						<div className="flex justify-between text-purple-600 italic text-xs pt-1 border-t border-purple-50 mt-1">
 							<span>Tiempo Extra (+{formData.extras.extension}m)</span>
 							<span className="font-bold">
 								{formData.extras.extension === 30
-									? prices.preciosExtras.extension30
-									: prices.preciosExtras.extension60}
+									? prices.preciosExtras?.extension30 || 0
+									: prices.preciosExtras?.extension60 || 0}
 								€
 							</span>
 						</div>

@@ -7,7 +7,8 @@ const configSchema = new mongoose.Schema({
       nombre: String,
       precio: Number,
       principal: String,
-      resto: String // Multiline text for other items
+      resto: String, // Multiline text for other items
+      active: { type: Boolean, default: true } // [NEW] Soft delete
     }
   ],
   plusFinDeSemana: { type: Number, default: 1.5 },
@@ -16,7 +17,8 @@ const configSchema = new mongoose.Schema({
       id: String,
       nombre: String,
       precio: Number,
-      unidades: String // Ej: "10 unidades por ración"
+      unidades: String, // Ej: "10 unidades por ración"
+      active: { type: Boolean, default: true } // [NEW] Soft delete
     }
   ],
   workshops: [
@@ -25,7 +27,9 @@ const configSchema = new mongoose.Schema({
       name: String,
       priceBase: Number,
       pricePlus: Number,
-      desc: String
+      desc: String,
+      imageUrl: String,
+      active: { type: Boolean, default: true } // [NEW] Soft delete
     }
   ],
   characters: [String], // Simple list of names

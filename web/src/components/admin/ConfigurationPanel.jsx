@@ -8,9 +8,12 @@ import {
 	Settings2,
 	Sparkles,
 	Utensils,
-	Star,
 	Clock,
 	ChevronDown,
+	Pizza,
+	Users,
+	EyeOff,
+	Eye,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { getConfig, updateConfig } from '../../services/api';
@@ -27,15 +30,15 @@ const AccordionSection = ({
 }) => {
 	return (
 		<div
-			className={`bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm transition-all duration-300 border-l-[6px] ${color}`}
+			className={`border-l-4 ${color} bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 ${isOpen ? 'shadow-lg' : ''}`}
 		>
 			<div
-				className="flex items-center justify-between p-5 cursor-pointer hover:bg-gray-50/50 transition-colors"
 				onClick={onToggle}
+				className="p-6 cursor-pointer flex items-center justify-between hover:bg-gray-50/50 transition-colors group"
 			>
-				<div className="flex items-center gap-4">
-					<div className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm text-gray-500">
-						<Icon size={20} />
+				<div className="flex items-center gap-5">
+					<div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:scale-110 group-hover:bg-white group-hover:shadow-md transition-all">
+						<Icon size={24} />
 					</div>
 					<div>
 						<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">
@@ -176,7 +179,7 @@ const ConfigurationPanel = () => {
 	};
 
 	// --- Change Detection Logic ---
-	const hasChanges = (section, itemOrId) => {
+	const hasChanges = (section) => {
 		if (!originalConfig || !config) return false;
 
 		if (section === 'kids') {
@@ -250,7 +253,7 @@ const ConfigurationPanel = () => {
 						<AccordionSection
 							title="Menús Infantiles"
 							subtitle="Precios Base & Fin de Semana"
-							icon={Sparkles}
+							icon={Pizza}
 							color="border-l-neverland-green"
 							isOpen={openSections.kids}
 							onToggle={() => toggleSection('kids')}
@@ -457,6 +460,33 @@ const ConfigurationPanel = () => {
 											</div>
 											<div className="absolute top-4 right-4 flex gap-1 transform transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
 												<button
+													onClick={() => {
+														const newList = [...config.preciosAdultos];
+														newList[idx] = {
+															...newList[idx],
+															suspended: !newList[idx].suspended,
+														};
+														setConfig({ ...config, preciosAdultos: newList });
+														handleSave({ ...config, preciosAdultos: newList });
+													}}
+													className={`p-2 transition-all ${
+														menu.suspended
+															? 'text-amber-500 bg-amber-50 rounded-lg'
+															: 'text-gray-300 hover:text-neverland-green'
+													}`}
+													title={
+														menu.suspended
+															? 'Activar (Suspendido)'
+															: 'Suspender (Ocultar a clientes)'
+													}
+												>
+													{menu.suspended ? (
+														<EyeOff size={18} />
+													) : (
+														<Eye size={18} />
+													)}
+												</button>
+												<button
 													onClick={() => handleSave()}
 													className={`p-2 transition-all ${
 														isItemChanged('preciosAdultos', menu)
@@ -529,7 +559,7 @@ const ConfigurationPanel = () => {
 						<AccordionSection
 							title="Actividades"
 							subtitle="Extras por niño"
-							icon={Star}
+							icon={Sparkles}
 							color="border-l-blue-400"
 							isOpen={openSections.workshops}
 							onToggle={() => toggleSection('workshops')}
@@ -577,6 +607,33 @@ const ConfigurationPanel = () => {
 											/>
 											<div className="flex gap-1 -mt-1 shrink-0 ml-2 transform transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
 												<button
+													onClick={() => {
+														const newList = [...config.workshops];
+														newList[idx] = {
+															...newList[idx],
+															suspended: !newList[idx].suspended,
+														};
+														setConfig({ ...config, workshops: newList });
+														handleSave({ ...config, workshops: newList });
+													}}
+													className={`p-2 transition-all ${
+														ws.suspended
+															? 'text-amber-500 bg-amber-50 rounded-lg'
+															: 'text-gray-300 hover:text-blue-500'
+													}`}
+													title={
+														ws.suspended
+															? 'Activar (Suspendido)'
+															: 'Suspender (Ocultar a clientes)'
+													}
+												>
+													{ws.suspended ? (
+														<EyeOff size={18} />
+													) : (
+														<Eye size={18} />
+													)}
+												</button>
+												<button
 													onClick={() => handleSave()}
 													className={`p-2 transition-all ${
 														isItemChanged('workshops', ws)
@@ -619,6 +676,48 @@ const ConfigurationPanel = () => {
 												}`}
 											>
 												{ws.desc?.length || 0}/150
+											</div>
+										</div>
+
+										<div className="mb-4 bg-gray-50/30 rounded-2xl p-2.5 border border-gray-100/50">
+											<div className="flex items-center gap-1.5 mb-1.5 px-1">
+												<label className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">
+													Imagen (URL)
+												</label>
+											</div>
+											<div className="flex gap-2 items-center">
+												<div className="w-10 h-10 rounded-lg bg-white border border-gray-100 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
+													{ws.imageUrl ? (
+														<img
+															src={ws.imageUrl}
+															alt="Preview"
+															className="w-full h-full object-cover"
+															onError={(e) => {
+																e.target.src = '';
+																e.target.parentElement.innerHTML =
+																	'<span class="text-[8px] text-red-300 font-bold">Error</span>';
+															}}
+														/>
+													) : (
+														<span className="text-[8px] text-gray-300 font-bold">
+															NO IMG
+														</span>
+													)}
+												</div>
+												<input
+													type="text"
+													value={ws.imageUrl || ''}
+													placeholder="URL de la imagen (Cloudinary, etc)..."
+													onChange={(e) =>
+														updateListItem(
+															'workshops',
+															idx,
+															'imageUrl',
+															e.target.value,
+														)
+													}
+													className="flex-1 bg-transparent p-0 text-xs font-bold text-gray-600 outline-none border-none placeholder:text-gray-200"
+												/>
 											</div>
 										</div>
 
@@ -679,7 +778,7 @@ const ConfigurationPanel = () => {
 						<AccordionSection
 							title="Personajes Neverland"
 							subtitle="Catálogo de Animación"
-							icon={Clock}
+							icon={Users}
 							color="border-l-purple-500"
 							isOpen={openSections.characters}
 							onToggle={() => toggleSection('characters')}

@@ -62,25 +62,58 @@ module.exports.createCalendarEvent = async (booking) => {
       return;
     }
 
-    // Parse Date
-    // Booking date is likely ISO Date or String YYYY-MM-DD
+    // Parse Horarios (Priorizar horario real almacenado con extensiones)
     const dateBase = new Date(fecha);
-    const dateStr = dateBase.toISOString().split('T')[0]; // YYYY-MM-DD
+    const dateStr = dateBase.toISOString().split('T')[0];
 
-    const startTime = `${dateStr}T${shiftTimes.start}:00`;
-    const endTime = `${dateStr}T${shiftTimes.end}:00`;
+    // Si la reserva tiene horario inicio/fin real (con extensiones), usarlo. Si no, fallback al turno base.
+    const hInicio = (booking.horario?.inicio && booking.horario?.inicio !== '00:00') ? booking.horario.inicio : shiftTimes.start;
+    const hFin = (booking.horario?.fin && booking.horario?.fin !== '00:00') ? booking.horario.fin : shiftTimes.end;
+
+    const startTime = `${dateStr}T${hInicio}:00`;
+    const endTime = `${dateStr}T${hFin}:00`;
+
+    // Preparar descripción detallada (Respaldo)
+    let description = '';
+    if (tipo === 'bloqueo') {
+      description = `Bloqueo manual: ${notasAdmin || 'Sin descripción'}`;
+    } else {
+      const { detalles } = booking;
+      description = `
+**🎂 NIÑO/A**: ${cliente.nombreNiño} (${cliente.edadNiño} años)
+**👤 RESPONSABLE**: ${cliente.nombrePadre}
+**📞 TELÉFONO**: ${cliente.telefono}
+**📧 EMAIL**: ${cliente.email || 'No proporcionado'}
+
+**📊 DETALLES COMERCIALES**:
+- **Niños**: ${detalles?.niños?.cantidad || 0} (Menú ${detalles?.niños?.menuId})
+- **Adultos**: ${detalles?.adultos?.cantidad || 0}
+- **Raciones**: ${detalles?.adultos?.comida?.map(c => `${c.item} (x${c.cantidad})`).join(', ') || 'Sin comida'}
+
+**✨ ACTIVIDADES Y EXTRAS**:
+- **Taller**: ${detalles?.extras?.taller && detalles.extras.taller !== 'ninguno' ? detalles.extras.taller : 'No'}
+- **Personaje**: ${detalles?.extras?.personaje && detalles.extras.personaje !== 'ninguno' ? detalles.extras.personaje : 'No'}
+- **Piñata**: ${detalles?.extras?.pinata ? 'Sí' : 'No'}
+- **Extensión**: ${booking.horario?.extensionMinutos || 0} min (+${booking.horario?.costoExtension || 0}€)
+
+**💰 TOTAL RESERVA**: ${booking.precioTotal}€
+**🆔 ID**: ${booking.publicId || _id}
+      `.trim();
+    }
+
+    // Determinar el color según el estado
+    let colorId = '8'; // Gris por defecto (Bloqueos o desconocido)
+    if (tipo === 'reserva') {
+      if (booking.estado === 'pendiente') colorId = '5'; // Amarillo/Plátano (Pendiente)
+      if (booking.estado === 'confirmado') colorId = '10'; // Verde/Basilio (Confirmado)
+    }
 
     const eventResource = {
       summary: tipo === 'bloqueo'
-        ? `BLOQUEO: ${notasAdmin || 'Sin asunto'}`
-        : `Reserva Neverland: ${cliente.nombreNiño} (${turno})`,
-      description: tipo === 'bloqueo' ? `Bloqueo manual: ${notasAdmin || 'Sin descripción'}` : `
-**Cliente**: ${cliente.nombrePadre}
-**Teléfono**: ${cliente.telefono}
-**Niño/a**: ${cliente.nombreNiño} (${cliente.edadNiño} años)
-**ID Reserva**: ${_id}
-**Turno**: ${turno} (${shiftTimes.start} - ${shiftTimes.end})
-            `.trim(),
+        ? `🔒 BLOQUEO: ${notasAdmin || 'Sin asunto'}`
+        : `🎉 ${cliente.nombreNiño} - ${turno} (${hInicio} - ${hFin})`,
+      description: description,
+      colorId: colorId,
       start: {
         dateTime: startTime,
         timeZone: 'Europe/Madrid',
@@ -90,6 +123,7 @@ module.exports.createCalendarEvent = async (booking) => {
         timeZone: 'Europe/Madrid',
       },
       extendedProperties: {
+        // ... sigue igual ...
         private: {
           turno: turno,
           bookingId: String(_id),
@@ -121,6 +155,32 @@ module.exports.createCalendarEvent = async (booking) => {
     console.error('Error creating calendar event:', error);
     // Do not throw, so we don't block the booking response if calendar fails
     return null;
+  }
+};
+
+/**
+ * Deletes a calendar event.
+ * @param {string} eventId - The Google Event ID to delete
+ */
+module.exports.deleteCalendarEvent = async (eventId) => {
+  if (!calendar || !eventId) {
+    return null;
+  }
+
+  try {
+    await calendar.events.delete({
+      calendarId: calendarId,
+      eventId: eventId,
+    });
+    console.log(`Calendar event deleted: ${eventId}`);
+    return true;
+  } catch (error) {
+    if (error.code === 404 || error.code === 410) {
+      console.warn('Event already deleted in Google Calendar');
+      return true;
+    }
+    console.error('Error deleting calendar event:', error);
+    return false;
   }
 };
 

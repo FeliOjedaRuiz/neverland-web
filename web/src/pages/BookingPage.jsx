@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
 	Calendar,
 	Users,
@@ -88,7 +88,7 @@ const BookingPage = () => {
 		},
 		adultos: {
 			cantidad: 0,
-			comida: {}, // { 'salaillas': 2, 'tortilla': 1 }
+			comida: [], // Unified: [{item, cantidad, precioUnitario}]
 		},
 		extras: {
 			taller: 'ninguno',
@@ -102,6 +102,18 @@ const BookingPage = () => {
 	// Helper for character search
 	const [charSearch, setCharSearch] = useState('');
 
+	const scrollContainerRef = useRef(null);
+
+	// Scroll to top when step or view changes
+	useEffect(() => {
+		if (scrollContainerRef.current) {
+			scrollContainerRef.current.scrollTo({
+				top: 0,
+				behavior: 'smooth',
+			});
+		}
+	}, [step, view]);
+
 	useEffect(() => {
 		getConfig()
 			.then((res) => {
@@ -110,22 +122,68 @@ const BookingPage = () => {
 			.catch(() => console.log('Using default config'));
 	}, []);
 
+	// Cache for availability: { 'YYYY-M': { occupied: [] } }
+	const [availabilityCache, setAvailabilityCache] = useState({});
+
+	// Add preload logic
+	const preloadAdjacentMonths = useCallback(
+		async (date) => {
+			const offsets = [-1, 1];
+			offsets.forEach(async (offset) => {
+				const targetDate = new Date(date);
+				targetDate.setMonth(targetDate.getMonth() + offset);
+				const y = targetDate.getFullYear();
+				const m = targetDate.getMonth() + 1;
+				const key = `${y}-${m}`;
+
+				if (!availabilityCache[key]) {
+					try {
+						const res = await getMonthlyAvailability(y, m);
+						setAvailabilityCache((prev) => ({
+							...prev,
+							[key]: res.data.occupied || [],
+						}));
+					} catch (err) {
+						console.warn(`Failed to preload ${key}`, err);
+					}
+				}
+			});
+		},
+		[availabilityCache],
+	);
+
 	useEffect(() => {
-		setAvailabilityError(false);
-		setAvailabilityLoading(true);
-		const year = currentMonth.getFullYear();
-		const month = currentMonth.getMonth() + 1;
-		getMonthlyAvailability(year, month)
-			.then((res) => {
-				setMonthlyOccupied(res.data?.occupied || []);
-				setAvailabilityLoading(false);
-			})
-			.catch((err) => {
+		const fetchAsyncAvailability = async () => {
+			const year = currentMonth.getFullYear();
+			const month = currentMonth.getMonth() + 1;
+			const key = `${year}-${month}`;
+
+			// Check Cache First
+			if (availabilityCache[key]) {
+				setMonthlyOccupied(availabilityCache[key]);
+				preloadAdjacentMonths(currentMonth); // Trigger preload for next/prev
+				return;
+			}
+
+			setAvailabilityError(false);
+			setAvailabilityLoading(true);
+			try {
+				const res = await getMonthlyAvailability(year, month);
+				const data = res.data.occupied || [];
+				setMonthlyOccupied(data);
+				// Update Cache
+				setAvailabilityCache((prev) => ({ ...prev, [key]: data }));
+				// Trigger Preload
+				preloadAdjacentMonths(currentMonth);
+			} catch (err) {
 				console.error(err);
 				setAvailabilityError(true);
+			} finally {
 				setAvailabilityLoading(false);
-			});
-	}, [currentMonth]);
+			}
+		};
+		fetchAsyncAvailability();
+	}, [currentMonth, availabilityCache, preloadAdjacentMonths]); // Cache is read-only inside connection, but we use ref pattern or just rely on state closures provided key is unique.
 
 	// Calculate current children menus with database data
 	const childrenMenusWithPrices = (
@@ -208,15 +266,14 @@ const BookingPage = () => {
 		total += subTotalNiños;
 
 		// Adults Food
-		Object.entries(formData.adultos.comida).forEach(([id, qty]) => {
-			const item = prices.preciosAdultos.find((opt) => opt.id === id);
-			if (item) total += item.precio * qty;
+		formData.adultos.comida.forEach((item) => {
+			total += (item.precioUnitario || 0) * item.cantidad;
 		});
 
 		// Extras: Taller
 		if (formData.extras.taller !== 'ninguno') {
 			const workshop = prices.workshops?.find(
-				(w) => w.name === formData.extras.taller,
+				(w) => w.name.toLowerCase() === formData.extras.taller.toLowerCase(),
 			);
 			if (workshop) {
 				const tallerPrice =
@@ -294,6 +351,11 @@ const BookingPage = () => {
 	const handleSubmit = async () => {
 		setLoading(true);
 		try {
+			const scheduleString = getExtendedTime(); // Ej: "17:30 - 20:30"
+			const [startTime, endTime] = scheduleString
+				.split(' - ')
+				.map((t) => t.trim());
+
 			const finalData = {
 				tipo: 'reserva',
 				fecha: formData.fecha,
@@ -304,19 +366,15 @@ const BookingPage = () => {
 					niños: formData.niños,
 					adultos: {
 						cantidad: formData.adultos.cantidad,
-						comida: Object.entries(formData.adultos.comida).map(([id, qty]) => {
-							const item = prices.preciosAdultos.find((opt) => opt.id === id);
-							return {
-								item: item ? item.nombre : id,
-								cantidad: qty,
-							};
-						}),
+						comida: formData.adultos.comida,
 					},
 					extras: formData.extras,
 				},
 				horario: {
+					inicio: startTime,
+					fin: endTime,
 					extensionMinutos: formData.extras.extension,
-					horaFinalEstimada: getExtendedTime(),
+					horaFinalEstimada: scheduleString,
 					costoExtension:
 						formData.extras.extension === 30
 							? prices.preciosExtras.extension30 || 30
@@ -328,7 +386,7 @@ const BookingPage = () => {
 
 			console.log('Sending:', finalData);
 			const response = await createBooking(finalData);
-			setCreatedEventId(response.data.id || response.data._id);
+			setCreatedEventId(response.data.publicId);
 			setLoading(false);
 			nextStep();
 		} catch (error) {
@@ -363,7 +421,10 @@ const BookingPage = () => {
 			{/* Main Content */}
 			<div className="flex-1 px-0 sm:px-4 pb-0 min-h-0 relative flex flex-col">
 				<div className="bg-surface sm:rounded-3xl sm:shadow-soft h-full flex flex-col relative overflow-hidden sm:border-t sm:border-x sm:border-white/50">
-					<div className="flex-1 overflow-y-auto overflow-x-hidden pt-4 px-4 sm:p-6 pb-0 no-scrollbar">
+					<div
+						ref={scrollContainerRef}
+						className={`flex-1 ${step === 1 && view === 'calendar' ? 'overflow-hidden pt-0 pb-24' : 'overflow-y-auto overflow-x-hidden pb-32 pt-4'} px-4 sm:p-6 no-scrollbar`}
+					>
 						<AnimatePresence mode="popLayout">
 							<motion.div
 								key={step + view}
@@ -371,7 +432,7 @@ const BookingPage = () => {
 								animate={{ opacity: 1, x: 0 }}
 								exit={{ opacity: 0, x: -20 }}
 								transition={{ duration: 0.3 }}
-								className="flex flex-col"
+								className="flex flex-col h-full"
 							>
 								{step === 1 && (
 									<Step1Date
@@ -384,6 +445,7 @@ const BookingPage = () => {
 										monthlyOccupied={monthlyOccupied}
 										availabilityError={availabilityError}
 										availabilityLoading={availabilityLoading}
+										availabilityCache={availabilityCache}
 									/>
 								)}
 								{step === 2 && (
@@ -436,9 +498,8 @@ const BookingPage = () => {
 										prices={prices}
 										calculateTotal={calculateTotal}
 										getExtendedTime={getExtendedTime}
-										CHILDREN_MENUS={childrenMenusWithPrices}
-										WORKSHOPS={prices.workshops}
-										ADULT_MENU_OPTIONS={prices.preciosAdultos}
+										childrenMenusWithPrices={childrenMenusWithPrices}
+										workshops={prices.workshops}
 									/>
 								)}
 								{step === 9 && (
@@ -453,15 +514,17 @@ const BookingPage = () => {
 					</div>
 
 					{/* Fixed Navigation Footer */}
-					<BookingNavigation
-						step={step}
-						loading={loading}
-						onNext={nextStep}
-						onBack={handleBack}
-						showBack={step > 1 || (step === 1 && view === 'dayDetails')}
-						onSubmit={handleSubmit}
-						isValid={validateStep()}
-					/>
+					<div className="fixed bottom-0 left-0 right-0 z-50 bg-surface sm:absolute sm:bottom-0 sm:left-0 sm:right-0">
+						<BookingNavigation
+							step={step}
+							loading={loading}
+							onNext={nextStep}
+							onBack={handleBack}
+							showBack={step > 1 || (step === 1 && view === 'dayDetails')}
+							onSubmit={handleSubmit}
+							isValid={validateStep()}
+						/>
+					</div>
 				</div>
 			</div>
 		</div>

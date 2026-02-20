@@ -10,12 +10,34 @@ const Navbar = () => {
 
 	const getLink = (hash) => (isHome ? hash : `/${hash}`);
 
+	const menuRef = React.useRef(null);
+	const buttonRef = React.useRef(null);
+
+	React.useEffect(() => {
+		const handleClickOutside = (event) => {
+			if (
+				isOpen &&
+				menuRef.current &&
+				!menuRef.current.contains(event.target) &&
+				buttonRef.current &&
+				!buttonRef.current.contains(event.target)
+			) {
+				setIsOpen(false);
+			}
+		};
+
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => {
+			document.removeEventListener('mousedown', handleClickOutside);
+		};
+	}, [isOpen]);
+
 	return (
 		<nav className="bg-cream-bg fixed w-full z-50 shadow-sm border-b border-neverland-green/10">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<div className="flex justify-between h-16 md:h-20 items-center">
 					{/* Logo */}
-					<div className="flex-shrink-0 flex items-center">
+					<div className="shrink-0 flex items-center">
 						<Link to="/">
 							<img
 								src={logo}
@@ -69,6 +91,7 @@ const Navbar = () => {
 					{/* Mobile menu button */}
 					<div className="md:hidden">
 						<button
+							ref={buttonRef}
 							onClick={() => setIsOpen(!isOpen)}
 							className="text-text-black hover:text-neverland-green focus:outline-none"
 						>
@@ -80,7 +103,10 @@ const Navbar = () => {
 
 			{/* Mobile Menu */}
 			{isOpen && (
-				<div className="md:hidden bg-cream-bg border-t border-gray-100">
+				<div
+					ref={menuRef}
+					className="md:hidden bg-cream-bg border-t border-gray-100 shadow-xl"
+				>
 					<div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 flex flex-col items-center">
 						<Link
 							to={getLink('#home')}

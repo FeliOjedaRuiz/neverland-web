@@ -34,19 +34,26 @@ const eventSchema = new mongoose.Schema({
   detalles: {
     niños: {
       cantidad: { type: Number, min: 12 },
-      menuId: { type: String }
+      menuId: { type: String },
+      precioApplied: { type: Number } // [NEW] Snapshot of the menu price per child
     },
-    adultos: [
-      {
-        item: String, // 'Salaillas', 'Tortilla', etc.
-        cantidad: Number,
-        precioUnitario: Number
-      }
-    ],
+    adultos: {
+      cantidad: { type: Number, default: 0 },
+      comida: [
+        {
+          item: String, // 'Salaillas', 'Tortilla', etc.
+          cantidad: Number,
+          precioUnitario: Number
+        }
+      ]
+    },
     extras: {
       taller: { type: String, default: 'ninguno' },
+      precioTallerApplied: { type: Number }, // [NEW] Snapshot
       personaje: { type: String, default: 'ninguno' },
-      pinata: { type: Boolean, default: false }
+      precioPersonajeApplied: { type: Number }, // [NEW] Snapshot
+      pinata: { type: Boolean, default: false },
+      precioPinataApplied: { type: Number } // [NEW] Snapshot
     }
   },
 
@@ -55,11 +62,12 @@ const eventSchema = new mongoose.Schema({
     inicio: String, // Ej: "16:30"
     fin: String,    // Ej: "19:00"
     extensionMinutos: { type: Number, enum: [0, 30, 60], default: 0 },
-    costoExtension: { type: Number, default: 0 }
+    costoExtension: { type: Number, default: 0 } // This already acted as a snapshot, keeping it.
   },
 
   // Finanzas y Sincronización
   precioTotal: { type: Number, default: 0 },
+  publicId: { type: String, unique: true },
   googleEventId: String, // ID devuelto por Google Calendar API
   notasAdmin: String,    // Para uso interno del salón
 }, {
@@ -74,12 +82,27 @@ const eventSchema = new mongoose.Schema({
   }
 });
 
-const Event = mongoose.model('Event', eventSchema);
+// Generate a random 6-character alphanumeric publicId
+eventSchema.pre('save', async function (next) {
+  if (this.isNew && !this.publicId) {
+    let isUnique = false;
+    let newId;
+    while (!isUnique) {
+      newId = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const existing = await mongoose.models.Event.findOne({ publicId: newId });
+      if (!existing) isUnique = true;
+    }
+    this.publicId = newId;
+  }
+  next();
+});
 
 // Prevent double bookings for the same time and shift, unless cancelled
 eventSchema.index({ fecha: 1, turno: 1 }, {
   unique: true,
   partialFilterExpression: { estado: { $ne: 'cancelada' } }
 });
+
+const Event = mongoose.model('Event', eventSchema);
 
 module.exports = Event;

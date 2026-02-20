@@ -40,7 +40,7 @@ const Step5Workshops = ({ formData, setFormData, WORKSHOPS }) => {
 					</p>
 				</div>
 
-				{WORKSHOPS.map((workshop) => (
+				{WORKSHOPS.filter((ws) => !ws.suspended).map((workshop) => (
 					<div
 						key={workshop.id}
 						onClick={() =>
@@ -49,18 +49,28 @@ const Step5Workshops = ({ formData, setFormData, WORKSHOPS }) => {
 								extras: { ...formData.extras, taller: workshop.name },
 							})
 						}
-						className={`relative overflow-hidden rounded-3xl border-2 transition-all cursor-pointer ${
-							formData.extras.taller === workshop.id
-								? 'border-energy-orange bg-orange-50 shadow-md'
-								: 'border-white bg-white shadow-sm'
+						className={`relative overflow-hidden rounded-2xl border-2 transition-all cursor-pointer ${
+							formData.extras.taller === workshop.name
+								? 'border-rec-blue bg-blue-50/30 shadow-md'
+								: 'border-white bg-white shadow-sm hover:border-blue-100'
 						}`}
 					>
-						{/* Image Placeholder */}
-						<div className="w-full h-32 bg-gray-100 flex items-center justify-center relative overflow-hidden">
+						{/* Image Holder */}
+						<div className="w-full h-32 bg-gray-50 flex items-center justify-center relative overflow-hidden">
+							{workshop.imageUrl ? (
+								<img
+									src={workshop.imageUrl}
+									alt={workshop.name}
+									className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+								/>
+							) : (
+								<div className="flex flex-col items-center gap-1 opacity-20">
+									<span className="text-gray-300 text-[10px] font-black uppercase tracking-[0.2em]">
+										Neverland
+									</span>
+								</div>
+							)}
 							<div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent"></div>
-							<span className="text-gray-300 text-xs font-bold uppercase tracking-widest">
-								Foto Ilustrativa
-							</span>
 						</div>
 
 						<div className="p-4 relative z-10">
@@ -68,14 +78,20 @@ const Step5Workshops = ({ formData, setFormData, WORKSHOPS }) => {
 								<span
 									className={`font-display font-black text-lg ${
 										formData.extras.taller === workshop.name
-											? 'text-energy-orange'
+											? 'text-rec-blue'
 											: 'text-gray-800'
 									}`}
 								>
 									{workshop.name}
 								</span>
 								<div className="text-right">
-									<span className="font-black text-xl bg-white px-2 py-1 rounded-lg text-energy-orange shadow-sm block">
+									<span
+										className={`font-black text-xl px-2 py-1 rounded-lg shadow-xs block transition-colors ${
+											formData.extras.taller === workshop.name
+												? 'bg-rec-blue text-white'
+												: 'bg-white text-rec-blue border border-blue-50'
+										}`}
+									>
 										{formData.niños.cantidad >= 15
 											? workshop.pricePlus
 											: workshop.priceBase}
@@ -83,21 +99,21 @@ const Step5Workshops = ({ formData, setFormData, WORKSHOPS }) => {
 									</span>
 								</div>
 							</div>
-							<p className="text-sm text-gray-600 italic opacity-80 mb-2">
+							<p className="text-sm text-gray-600 italic opacity-80 mb-3">
 								"{workshop.desc}"
 							</p>
 							{formData.niños.cantidad >= 15 && (
-								<div className="text-[10px] bg-energy-orange/10 p-2 rounded-lg text-energy-orange font-bold animate-in slide-in-from-left-2">
+								<div className="text-[10px] bg-blue-50 p-2 rounded-lg text-rec-blue font-bold border border-blue-100/50 animate-in slide-in-from-left-2">
 									✨ Incluye suplemento por grupo (+15 niños)
 								</div>
 							)}
 						</div>
-						{formData.extras.taller === workshop.id && (
+						{formData.extras.taller === workshop.name && (
 							<div className="absolute top-2 right-2 z-20">
 								<CheckCircle
-									className="text-energy-orange"
-									fill="currentColor"
-									stroke="white"
+									className="text-rec-blue"
+									fill="white"
+									stroke="currentColor"
 								/>
 							</div>
 						)}
