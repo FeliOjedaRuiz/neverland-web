@@ -700,18 +700,25 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 				month: currentMonth.getMonth() + 1,
 			});
 			// Filter out current reservation so it doesn't block itself
+			// Now we use the ID returned by the backend to handle overlaps correctly
 			const filtered = res.data.occupied.filter(
 				(o) =>
 					!(
 						o.date === reservation.fecha.split('T')[0] &&
-						o.shift === reservation.turno
+						(o.id === reservation.id ||
+							(reservation.googleEventId && o.id === reservation.googleEventId))
 					),
 			);
 			setOccupied(filtered);
 		} catch (err) {
 			console.error(err);
 		}
-	}, [currentMonth, reservation.fecha, reservation.turno]);
+	}, [
+		currentMonth,
+		reservation.fecha,
+		reservation.id,
+		reservation.googleEventId,
+	]);
 
 	React.useEffect(() => {
 		fetchAvailability();

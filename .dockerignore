@@ -1,0 +1,13 @@
+node_modules
+npm-debug.log
+web/node_modules
+web/dist
+api/public
+api/node_modules
+.git
+**/.env
+**/.env.local
+**/.env.*.local
+.DS_Store
+*.md
+google-credentials.json

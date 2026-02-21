@@ -139,38 +139,37 @@ module.exports.create = (req, res, next) => {
 
   // --- VALIDATION LAYER ---
   if (!fecha || !turno) throw createError(400, 'Fecha y turno requeridos');
-  if (!cliente?.nombreNiño || !cliente?.nombrePadre || !cliente?.telefono || !cliente?.email) {
-    throw createError(400, 'Datos del cliente incompletos (Nombre, Móvil, Email son obligatorios)');
-  }
 
-  // Validate Email
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(cliente.email)) {
-    throw createError(400, 'Email inválido');
-  }
-  // Validate Phone format (Strict 9 digits local + prefix)
-  // +34 600111222 = 11 digits
-  const phoneDigits = (cliente.telefono.match(/\d/g) || []).length;
-  // Being generous: some countries have shorter phones, but target is Spain (9) + Prefix (1-3)
-  // Let's require at least 10 digits total to be safe (e.g. US 10 digits + 1 prefix = 11, Spain 9 + 2 = 11)
-  // If user only enters local 9 digits without prefix space, frontend might send "+34 600..."
-  if (phoneDigits < 9) {
-    throw createError(400, 'Teléfono inválido (mínimo 9 dígitos)');
-  }
+  if (tipo === 'reserva') {
+    if (!cliente?.nombreNiño || !cliente?.nombrePadre || !cliente?.telefono || !cliente?.email) {
+      throw createError(400, 'Datos del cliente incompletos (Nombre, Móvil, Email son obligatorios)');
+    }
 
-  if (cliente?.edadNiño > 99) {
-    throw createError(400, 'La edad debe tener máximo 2 cifras');
-  }
+    // Validate Email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cliente.email)) {
+      throw createError(400, 'Email inválido');
+    }
+    // Validate Phone format
+    const phoneDigits = (cliente.telefono.match(/\d/g) || []).length;
+    if (phoneDigits < 9) {
+      throw createError(400, 'Teléfono inválido (mínimo 9 dígitos)');
+    }
 
-  if (detalles?.adultos?.cantidad !== undefined && detalles.adultos.cantidad < 0) {
-    throw createError(400, 'Cantidad de adultos inválida');
+    if (cliente?.edadNiño > 99) {
+      throw createError(400, 'La edad debe tener máximo 2 cifras');
+    }
+
+    if (detalles?.adultos?.cantidad !== undefined && detalles.adultos.cantidad < 0) {
+      throw createError(400, 'Cantidad de adultos inválida');
+    }
+    // Optional strict enforcement: if (detalles.adultos.cantidad === 0) throw ...
+    // For now, allow 0 if that's a valid use case (e.g. only kids party?), but UI enforces > 0. Let's align with UI request.
+    if (detalles?.adultos?.cantidad <= 0) {
+      throw createError(400, 'Se requiere al menos un adulto responsable');
+    }
+    if (detalles?.niños?.cantidad < 0) throw createError(400, 'Cantidad de niños inválida');
   }
-  // Optional strict enforcement: if (detalles.adultos.cantidad === 0) throw ...
-  // For now, allow 0 if that's a valid use case (e.g. only kids party?), but UI enforces > 0. Let's align with UI request.
-  if (detalles?.adultos?.cantidad <= 0) {
-    throw createError(400, 'Se requiere al menos un adulto responsable');
-  }
-  if (detalles?.niños?.cantidad < 0) throw createError(400, 'Cantidad de niños inválida');
 
   // Basic availability check
   Event.findOne({ fecha, turno, estado: { $ne: 'cancelada' } })
@@ -390,21 +389,68 @@ module.exports.checkAvailability = async (req, res, next) => {
       estado: { $ne: 'cancelada' }
     });
 
-    let occupied = dbEvents.map(e => ({
-      date: e.fecha.toISOString().split('T')[0],
-      shift: e.turno
-    }));
+    let occupied = [];
+
+    // Definición de turnos para comprobación de solapamiento
+    const SHIFTS = {
+      'T1': { start: [17, 0], end: [19, 0] },
+      'T2': { start: [18, 0], end: [20, 0] },
+      'T3': { start: [19, 15], end: [21, 15] }
+    };
+
+    dbEvents.forEach(event => {
+      const eventDateStr = event.fecha.toISOString().split('T')[0];
+
+      // Si el evento tiene horario específico (inicio/fin), usarlo para solapamiento
+      if (event.horario?.inicio && event.horario?.fin && event.horario.inicio !== '00:00') {
+        const [hStart, mStart] = event.horario.inicio.split(':').map(Number);
+        const [hEnd, mEnd] = event.horario.fin.split(':').map(Number);
+
+        const start = new Date(eventDateStr);
+        start.setHours(hStart, mStart, 0, 0);
+
+        const end = new Date(eventDateStr);
+        end.setHours(hEnd, mEnd, 0, 0);
+
+        Object.entries(SHIFTS).forEach(([shiftId, time]) => {
+          const shiftStart = new Date(eventDateStr);
+          shiftStart.setHours(time.start[0], time.start[1], 0, 0);
+          const shiftEnd = new Date(eventDateStr);
+          shiftEnd.setHours(time.end[0], time.end[1], 0, 0);
+
+          if (start < shiftEnd && end > shiftStart) {
+            occupied.push({ date: eventDateStr, shift: shiftId, id: String(event._id) });
+          }
+        });
+      } else {
+        // Fallback: Si no hay horario específico, bloquea su turno y otros que solapen con el horario base del turno
+        const baseTime = SHIFTS[event.turno];
+        if (baseTime) {
+          const start = new Date(eventDateStr);
+          start.setHours(baseTime.start[0], baseTime.start[1], 0, 0);
+          const end = new Date(eventDateStr);
+          end.setHours(baseTime.end[0], baseTime.end[1], 0, 0);
+
+          Object.entries(SHIFTS).forEach(([shiftId, time]) => {
+            const shiftStart = new Date(eventDateStr);
+            shiftStart.setHours(time.start[0], time.start[1], 0, 0);
+            const shiftEnd = new Date(eventDateStr);
+            shiftEnd.setHours(time.end[0], time.end[1], 0, 0);
+
+            if (start < shiftEnd && end > shiftStart) {
+              occupied.push({ date: eventDateStr, shift: shiftId, id: String(event._id) });
+            }
+          });
+        } else {
+          // Si por lo que sea el turno es raro, solo bloquea el turno
+          occupied.push({ date: eventDateStr, shift: event.turno, id: String(event._id) });
+        }
+      }
+    });
 
     // 2. Google Calendar Events
     try {
       const googleEvents = await googleService.listEvents(startDate, endDate);
-
-      // Shift Definitions (Hardcoded for now to match google.service.js)
-      const SHIFTS = {
-        'T1': { start: [17, 0], end: [19, 0] },
-        'T2': { start: [18, 0], end: [20, 0] },
-        'T3': { start: [19, 15], end: [21, 15] }
-      };
 
       googleEvents.forEach(gEvent => {
         // Skip available/transparent events
@@ -421,7 +467,7 @@ module.exports.checkAvailability = async (req, res, next) => {
             const dateStr = curr.toISOString().split('T')[0];
             // Block all shifts for all-day events
             ['T1', 'T2', 'T3'].forEach(shift => {
-              occupied.push({ date: dateStr, shift });
+              occupied.push({ date: dateStr, shift, id: gEvent.id });
             });
             curr.setDate(curr.getDate() + 1);
           }
@@ -431,7 +477,8 @@ module.exports.checkAvailability = async (req, res, next) => {
         // Handle Timed Events
         const summary = (gEvent.summary || '').toUpperCase();
         const eventTurno = gEvent.extendedProperties?.private?.turno;
-        const isNeverland = gEvent.extendedProperties?.private?.source === 'neverland' || gEvent.extendedProperties?.private?.bookingId;
+        const bookingId = gEvent.extendedProperties?.private?.bookingId;
+        const isNeverland = gEvent.extendedProperties?.private?.source === 'neverland' || bookingId;
 
         // Soporte para palabras clave manuales desde Google Calendar
         const keywordShift = ['T1', 'T2', 'T3'].find(s => summary.includes(`#${s}`));
@@ -444,7 +491,7 @@ module.exports.checkAvailability = async (req, res, next) => {
         Object.entries(SHIFTS).forEach(([shiftId, time]) => {
           // 1. Por metadatos (App) o Palabra Clave específica (#T1, #T2, #T3)
           if (eventTurno === shiftId || keywordShift === shiftId) {
-            occupied.push({ date: eventDateStr, shift: shiftId });
+            occupied.push({ date: eventDateStr, shift: shiftId, id: bookingId || gEvent.id });
             return;
           }
 
@@ -456,7 +503,7 @@ module.exports.checkAvailability = async (req, res, next) => {
           shiftEnd.setHours(time.end[0], time.end[1], 0, 0);
 
           if (start < shiftEnd && end > shiftStart) {
-            occupied.push({ date: eventDateStr, shift: shiftId });
+            occupied.push({ date: eventDateStr, shift: shiftId, id: bookingId || gEvent.id });
           }
         });
       });
@@ -471,11 +518,10 @@ module.exports.checkAvailability = async (req, res, next) => {
     if (fecha) {
       // Return occupied shifts for the specific day
       const occupiedShifts = occupied
-        .filter(o => o.date === fecha)
-        .map(o => o.shift);
+        .filter(o => o.date === fecha);
 
-      // Deduplicate
-      res.json({ occupiedShifts: [...new Set(occupiedShifts)] });
+      // Deduplicate by shift but keep info (though frontend usually only needs shifts)
+      res.json({ occupiedShifts });
     } else {
       // Return all occupied slots
       res.json({ occupied });

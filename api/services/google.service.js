@@ -13,10 +13,20 @@ let calendarId = 'primary'; // Default, can be overridden by env
  */
 const init = async () => {
   try {
-    const auth = new google.auth.GoogleAuth({
-      keyFile: KEYFILE_PATH,
-      scopes: ['https://www.googleapis.com/auth/calendar'],
-    });
+    let auth;
+
+    if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+      const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      auth = new google.auth.GoogleAuth({
+        credentials,
+        scopes: ['https://www.googleapis.com/auth/calendar'],
+      });
+    } else {
+      auth = new google.auth.GoogleAuth({
+        keyFile: KEYFILE_PATH,
+        scopes: ['https://www.googleapis.com/auth/calendar'],
+      });
+    }
 
     const authClient = await auth.getClient();
     calendar = google.calendar({ version: 'v3', auth: authClient });
@@ -28,7 +38,6 @@ const init = async () => {
     console.log('Google Calendar Service initialized successfully');
   } catch (error) {
     console.error('Failed to initialize Google Calendar Service:', error.message);
-    console.error('Make sure "google-credentials.json" exists in the api root.');
   }
 };
 
@@ -110,8 +119,8 @@ module.exports.createCalendarEvent = async (booking) => {
 
     const eventResource = {
       summary: tipo === 'bloqueo'
-        ? `🔒 BLOQUEO: ${notasAdmin || 'Sin asunto'}`
-        : `🎉 ${cliente.nombreNiño} - ${turno} (${hInicio} - ${hFin})`,
+        ? `🔒 BLOQUEO #${turno}: ${notasAdmin || 'Sin asunto'}`
+        : `🎉 ${cliente.nombreNiño} #${turno} (${hInicio} - ${hFin})`,
       description: description,
       colorId: colorId,
       start: {

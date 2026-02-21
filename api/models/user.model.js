@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
-const ADMIN_USERS = (process.env.ADMIN_USERS)
+const ADMIN_USERS = (process.env.ADMIN_USERS || "")
   .split(",")
   .map((email) => email.trim());
 

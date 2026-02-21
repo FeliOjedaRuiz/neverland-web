@@ -1,7 +1,7 @@
 # fly.toml app configuration file generated for neverland-web on 2026-02-14
 
-app = "neverland-web"
-primary_region = "mad"
+app = "neverland-app"
+primary_region = "cdg"
 
 [http_service]
   internal_port = 8080
