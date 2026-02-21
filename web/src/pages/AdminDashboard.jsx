@@ -80,7 +80,9 @@ const SidebarContent = ({
 );
 
 const AdminDashboard = () => {
-	const [activeTab, setActiveTab] = useState('reservas');
+	const [activeTab, setActiveTab] = useState(
+		() => localStorage.getItem('adminActiveTab') || 'reservas',
+	);
 	const [selectedDate, setSelectedDate] = useState(null);
 	const [selectedReservation, setSelectedReservation] = useState(null);
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -134,6 +136,11 @@ const AdminDashboard = () => {
 		{ id: 'config', label: 'Configuración', icon: Settings },
 	];
 
+	const handleTabChange = (tabId) => {
+		setActiveTab(tabId);
+		localStorage.setItem('adminActiveTab', tabId);
+	};
+
 	const handleLogout = () => {
 		localStorage.removeItem('token');
 		navigate('/admin/login');
@@ -141,7 +148,7 @@ const AdminDashboard = () => {
 
 	const commonProps = {
 		activeTab,
-		setActiveTab,
+		setActiveTab: handleTabChange,
 		setIsMobileMenuOpen,
 		sidebarItems,
 		navigate,

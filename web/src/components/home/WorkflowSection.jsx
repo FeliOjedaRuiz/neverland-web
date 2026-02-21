@@ -10,7 +10,7 @@ import { Link } from 'react-router-dom';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
 
 const Step = ({ number, title, description, icon: Icon, isLast, delay }) => {
-	const { ref, controls, variants } = useScrollReveal(0.2);
+	const { ref, controls } = useScrollReveal(0.2);
 
 	return (
 		<motion.div
@@ -83,7 +83,7 @@ const WorkflowSection = () => {
 					<Step
 						number="2"
 						title="Personaliza"
-						description="Escoge el pack, el menú y los extras que más te gusten para crear una fiesta única."
+						description="Escoge el menú, la actividad y los extras que más te gusten para crear una fiesta única."
 						icon={MousePointerClick}
 						delay={0.3}
 					/>

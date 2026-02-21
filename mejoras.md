@@ -21,7 +21,6 @@ Hacer de la vista de detalles de reserva una página aparte con su propia url, s
 
 Hay un problema al editar la fecha de una reserva... era de turno 2 con extensión de media hora más temprano, al cambiar de día, luego aparece bloqueado el turno 1, como si la solapara. Revisar bien la lógica de solapamiento de turnos.
 
-al crear eventos en google calendar usar la logica de bloqueos manuales del admin la que llevaba #
- para facilitar el uso del admin copiando otros eventos y editando...
+edición de tiempo extra en reservas
 
- Desde el admin dashboar da error al intentar bloquear un turno
+que al recargar en calendario admin no vuelva a bandeja de entrada ¿Crear página de cada parte del dashboard?

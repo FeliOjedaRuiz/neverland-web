@@ -16,7 +16,20 @@ app.set('trust proxy', 1); // trust first proxy
 
 const cors = require('./config/cors.config');
 app.use(cors);
-app.use(helmet()); // Headers de seguridad HTTP
+app.use(
+	helmet({
+		contentSecurityPolicy: {
+			directives: {
+				...helmet.contentSecurityPolicy.getDefaultDirectives(),
+				"img-src": ["'self'", "data:", "https://res.cloudinary.com", "https://*.googleapis.com", "https://*.gstatic.com", "https://www.google.com"],
+				"frame-src": ["'self'", "https://www.google.com", "https://www.google.es"],
+				"script-src": ["'self'", "'unsafe-inline'", "https://maps.googleapis.com"],
+				"connect-src": ["'self'", "https://maps.googleapis.com"]
+			},
+		},
+		crossOriginEmbedderPolicy: false
+	})
+); // Headers de seguridad HTTP
 app.use(express.static(__dirname + '/public'));
 app.use(express.json());
 app.use(mongoSanitize()); // Previene inyección NoSQL
