@@ -190,14 +190,15 @@ const BookingPage = () => {
 	}, [currentMonth, availabilityCache, preloadAdjacentMonths]); // Cache is read-only inside connection, but we use ref pattern or just rely on state closures provided key is unique.
 
 	// Calculate current children menus with database data
-	const childrenMenusWithPrices = (
-		prices.menusNiños?.length > 0 ? prices.menusNiños : CHILDREN_MENUS
-	).map((menu) => ({
-		...menu,
-		id: menu.id || menu._id,
-		name: menu.nombre,
-		price: menu.precio,
-	}));
+	const childrenMenusWithPrices =
+		(prices.menusNiños?.length > 0 ? prices.menusNiños : CHILDREN_MENUS)?.map(
+			(menu) => ({
+				...menu,
+				id: menu.id || menu._id,
+				name: menu.nombre,
+				price: menu.precio,
+			}),
+		) || [];
 
 	const nextStep = () => setStep((s) => s + 1);
 	const prevStep = () => setStep((s) => s - 1);
