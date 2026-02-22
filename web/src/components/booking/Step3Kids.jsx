@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
 
 const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {

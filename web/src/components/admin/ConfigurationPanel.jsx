@@ -314,20 +314,12 @@ const ConfigurationPanel = ({ initialConfig, onConfigChange }) => {
 								{(config.menusNiños || []).map((menu, idx) => (
 									<div
 										key={menu.id || idx}
-										className="p-6 bg-white rounded-[32px] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-neverland-green/5 transition-all duration-500 relative group flex flex-col gap-5 overflow-hidden"
+										className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative group hover:border-neverland-green/20 transition-all flex flex-col gap-4"
 									>
-										{/* Gradient Accent Overlay */}
-										<div className="absolute top-0 left-0 w-full h-1.5 bg-linear-to-r from-neverland-green/40 via-neverland-green/60 to-neverland-green/40 opacity-30 group-hover:opacity-100 transition-opacity" />
-
-										{/* Row 1: Name and Index */}
-										<div className="flex items-center gap-4">
-											<div className="w-12 h-12 rounded-2xl bg-neverland-green/5 flex items-center justify-center shrink-0 border border-neverland-green/10 group-hover:bg-neverland-green group-hover:text-white transition-all duration-500 group-hover:rotate-6 shadow-sm">
-												<span className="text-sm font-black transition-colors">
-													{idx + 1}
-												</span>
-											</div>
+										{/* Row 1: Name and Price */}
+										<div className="flex items-start gap-4">
 											<div className="flex-1">
-												<label className="text-[8px] font-black text-gray-300 uppercase tracking-[0.2em] block mb-1">
+												<label className="text-[8px] font-black text-gray-300 uppercase tracking-widest block mb-1">
 													Nombre del Menú
 												</label>
 												<input
@@ -343,48 +335,14 @@ const ConfigurationPanel = ({ initialConfig, onConfigChange }) => {
 														};
 														setConfig({ ...config, menusNiños: newList });
 													}}
-													className="w-full bg-transparent border-none p-0 font-display font-black text-2xl text-text-black outline-none placeholder:text-gray-100 transition-all focus:placeholder:opacity-0"
+													className="w-full p-0 bg-transparent border-none font-display font-black text-xl text-text-black outline-none placeholder:text-gray-300"
 												/>
 											</div>
-										</div>
-
-										{/* Row 2: Data Grid */}
-										<div className="grid grid-cols-2 gap-4">
-											<div className="bg-gray-50/50 rounded-2xl p-3 border border-gray-100/50 hover:bg-white hover:border-gray-200 transition-all">
-												<div className="flex items-center gap-2 mb-1.5">
-													<div className="w-5 h-5 rounded-md bg-white shadow-sm flex items-center justify-center text-gray-400">
-														<Pizza size={12} />
-													</div>
-													<label className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">
-														Plato Principal
-													</label>
-												</div>
-												<input
-													type="text"
-													value={menu.principal}
-													placeholder="Ej: Hamburguesa"
-													onChange={(e) => {
-														const newList = [...config.menusNiños];
-														newList[idx] = {
-															...newList[idx],
-															principal: e.target.value,
-														};
-														setConfig({ ...config, menusNiños: newList });
-													}}
-													className="w-full bg-transparent p-0 text-sm font-bold text-gray-700 outline-none border-none"
-												/>
-											</div>
-
-											<div className="bg-neverland-green/5 rounded-2xl p-3 border border-neverland-green/10 hover:bg-neverland-green/10 transition-all">
-												<div className="flex items-center gap-2 mb-1.5">
-													<div className="w-5 h-5 rounded-md bg-white shadow-sm flex items-center justify-center text-neverland-green">
-														<span className="text-[10px] font-black">€</span>
-													</div>
-													<label className="text-[9px] font-black text-neverland-green uppercase tracking-widest leading-none">
-														Precio Base
-													</label>
-												</div>
-												<div className="flex items-center">
+											<div className="bg-neverland-green/5 rounded-xl p-2 border border-neverland-green/10 shrink-0 w-20 flex flex-col items-center justify-center">
+												<label className="text-[8px] font-black text-neverland-green uppercase block leading-none mb-1.5">
+													Precio
+												</label>
+												<div className="flex items-center justify-center w-full">
 													<input
 														type="number"
 														value={menu.precio}
@@ -396,28 +354,44 @@ const ConfigurationPanel = ({ initialConfig, onConfigChange }) => {
 															};
 															setConfig({ ...config, menusNiños: newList });
 														}}
-														className="w-full bg-transparent p-0 text-lg font-black text-neverland-green outline-none border-none ring-0"
+														className="w-full bg-transparent p-0 text-lg font-black text-neverland-green outline-none border-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
 													/>
-													<span className="text-xs font-black text-neverland-green opacity-40 ml-1">
+													<span className="text-[10px] font-black text-neverland-green opacity-40 ml-0.5">
 														€
 													</span>
 												</div>
 											</div>
 										</div>
 
+										{/* Row 2: Main Dish (Full Width now) */}
+										<div className="bg-gray-50 rounded-xl p-2 px-3 border border-gray-50">
+											<label className="text-[8px] font-black text-gray-400 uppercase block leading-none mb-1">
+												Plato Principal
+											</label>
+											<input
+												type="text"
+												value={menu.principal}
+												placeholder="Hamburguesa..."
+												onChange={(e) => {
+													const newList = [...config.menusNiños];
+													newList[idx] = {
+														...newList[idx],
+														principal: e.target.value,
+													};
+													setConfig({ ...config, menusNiños: newList });
+												}}
+												className="w-full bg-transparent p-0 text-sm font-bold text-gray-600 outline-none border-none"
+											/>
+										</div>
+
 										{/* Row 3: Others Textarea */}
-										<div className="bg-gray-50/30 rounded-2xl p-4 border border-gray-50/50 hover:bg-white hover:border-gray-100 transition-all">
-											<div className="flex items-center gap-2 mb-3">
-												<div className="w-5 h-5 rounded-md bg-white shadow-sm flex items-center justify-center text-gray-300">
-													<Utensils size={12} />
-												</div>
-												<label className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">
-													Otros Detalles
-												</label>
-											</div>
+										<div className="bg-gray-50/50 rounded-xl p-3 px-3 border border-gray-100/50">
+											<label className="text-[8px] font-black text-gray-400 uppercase block leading-none mb-1.5">
+												Otros Detalles
+											</label>
 											<textarea
 												value={menu.resto}
-												rows={2}
+												rows={3}
 												placeholder="- Bebida, postre..."
 												onChange={(e) => {
 													const newList = [...config.menusNiños];
@@ -427,29 +401,30 @@ const ConfigurationPanel = ({ initialConfig, onConfigChange }) => {
 													};
 													setConfig({ ...config, menusNiños: newList });
 												}}
-												className="w-full bg-transparent p-0 text-sm font-medium text-gray-500 outline-none border-none resize-none leading-relaxed scrollbar-hide italic"
+												className="w-full bg-transparent p-0 text-sm font-medium text-gray-500 outline-none border-none resize-none leading-relaxed"
 											/>
 										</div>
 
 										{/* Row 4: Action Bar */}
-										<div className="flex items-center justify-end pt-2 mt-auto">
+										<div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-1">
 											<div className="flex items-center gap-2">
+												{/* Status or other info can go here */}
+											</div>
+											<div className="flex items-center gap-1.5">
 												<button
 													onClick={() => handleSave()}
-													className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all ${
+													className={`p-1.5 rounded-lg transition-all ${
 														isItemChanged('menusNiños', menu)
-															? 'bg-neverland-green text-white shadow-lg shadow-neverland-green/20'
-															: 'text-gray-300 hover:text-neverland-green hover:bg-neverland-green/5'
+															? 'text-neverland-green bg-neverland-green/10 scale-110 shadow-sm'
+															: 'text-gray-300 hover:text-neverland-green hover:bg-gray-50'
 													}`}
+													title="Guardar"
 												>
-													<Save size={16} />
-													{isItemChanged('menusNiños', menu) && (
-														<span>Guardar</span>
-													)}
+													<Save size={18} />
 												</button>
 												<button
 													onClick={() => removeItem('menusNiños', idx)}
-													className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+													className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
 													title="Eliminar"
 												>
 													<Trash2 size={18} />
