@@ -418,9 +418,7 @@ const ReservationDetailView = ({
 									);
 
 									const menu = config.menusNiños?.find(
-										(m) =>
-											String(m.id) === currentMenuId ||
-											String(m._id) === currentMenuId,
+										(m) => String(m.id) === currentMenuId,
 									);
 
 									if (menu) {

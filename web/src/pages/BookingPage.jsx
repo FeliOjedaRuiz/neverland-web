@@ -109,12 +109,11 @@ const BookingPage = () => {
 			.then((res) => {
 				if (res.data) {
 					const data = res.data;
+					// Normalización simplificada
 					const normalizeList = (list) =>
 						(list || []).map((item) => ({
 							...item,
 							id: String(item.id || item._id || ''),
-							name: item.nombre || item.name || '',
-							price: item.precio || item.price || 0,
 						}));
 
 					if (data.menusNiños) data.menusNiños = normalizeList(data.menusNiños);
