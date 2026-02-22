@@ -29,25 +29,33 @@ import {
 	checkAvailability,
 } from '../../services/api';
 
-const ReservationDetailView = ({ reservation: initialReservation, onBack }) => {
+const ReservationDetailView = ({
+	reservation: initialReservation,
+	onBack,
+	initialConfig,
+}) => {
 	const [reservation, setReservation] = useState(initialReservation);
 	const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
 	const [isUpdating, setIsUpdating] = useState(false);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [activeModal, setActiveModal] = useState(null); // 'client', 'datetime', 'menus', 'extras'
-	const [config, setConfig] = useState(null);
+	const [config, setConfig] = useState(initialConfig);
 
 	React.useEffect(() => {
-		const fetchConfig = async () => {
-			try {
-				const res = await getConfig();
-				setConfig(res.data);
-			} catch (err) {
-				console.error('Error fetching config:', err);
-			}
-		};
-		fetchConfig();
-	}, []);
+		if (!initialConfig) {
+			const fetchConfig = async () => {
+				try {
+					const res = await getConfig();
+					setConfig(res.data);
+				} catch (err) {
+					console.error('Error fetching config:', err);
+				}
+			};
+			fetchConfig();
+		} else {
+			setConfig(initialConfig);
+		}
+	}, [initialConfig]);
 
 	if (!reservation) return null;
 
@@ -393,18 +401,25 @@ const ReservationDetailView = ({ reservation: initialReservation, onBack }) => {
 							</div>
 							<span className="bg-neverland-green/10 text-neverland-green px-4 py-1.5 rounded-full text-xs font-black uppercase">
 								{(() => {
-									const menu = config?.menusNiños?.find(
+									if (!config)
+										return <span className="animate-pulse">Cargando...</span>;
+
+									const currentMenuId = String(
+										reservation.detalles?.niños?.menuId || '',
+									).toLowerCase();
+
+									const menu = config.menusNiños?.find(
 										(m) =>
-											m.id === reservation.detalles?.niños?.menuId ||
-											m._id === reservation.detalles?.niños?.menuId ||
-											String(m.id) ===
-												String(reservation.detalles?.niños?.menuId) ||
-											String(m._id) ===
-												String(reservation.detalles?.niños?.menuId),
+											String(m.id || '').toLowerCase() === currentMenuId ||
+											String(m._id || '').toLowerCase() === currentMenuId,
 									);
-									return menu
-										? `${menu.nombre}${menu.principal ? `, ${menu.principal}` : ''}`
-										: `Menú ${reservation.detalles?.niños?.menuId}`;
+
+									if (menu) {
+										const nombre = menu.nombre || menu.name || '';
+										const principal = menu.principal || menu.main || '';
+										return `${nombre}${principal ? `, ${principal}` : ''}`;
+									}
+									return `Menú ${reservation.detalles?.niños?.menuId}`;
 								})()}
 							</span>
 						</div>
@@ -1044,14 +1059,15 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 						<select
 							value={niñosExt.menuId}
 							onChange={(e) =>
-								setNiñosExt({ ...niñosExt, menuId: parseInt(e.target.value) })
+								setNiñosExt({ ...niñosExt, menuId: e.target.value })
 							}
 							className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all"
 						>
-							<option value={1}>Menú 1</option>
-							<option value={2}>Menú 2</option>
-							<option value={3}>Menú 3</option>
-							<option value={4}>Menú 4</option>
+							{(config?.menusNiños || []).map((m) => (
+								<option key={m.id || m._id} value={m.id || m._id}>
+									{m.nombre || m.name} ({m.precio || m.price}€)
+								</option>
+							))}
 						</select>
 					</div>
 				</div>

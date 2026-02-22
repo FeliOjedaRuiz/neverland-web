@@ -10,6 +10,7 @@ import {
 	X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getConfig } from '../services/api';
 import ReservationInbox from '../components/admin/ReservationInbox';
 import ConfigurationPanel from '../components/admin/ConfigurationPanel';
 
@@ -136,6 +137,20 @@ const AdminDashboard = () => {
 		{ id: 'config', label: 'Configuración', icon: Settings },
 	];
 
+	const [config, setConfig] = useState(null);
+
+	React.useEffect(() => {
+		const fetchConfig = async () => {
+			try {
+				const res = await getConfig();
+				setConfig(res.data);
+			} catch (err) {
+				console.error('Error fetching config:', err);
+			}
+		};
+		fetchConfig();
+	}, []);
+
 	const handleTabChange = (tabId) => {
 		setActiveTab(tabId);
 		localStorage.setItem('adminActiveTab', tabId);
@@ -153,6 +168,7 @@ const AdminDashboard = () => {
 		sidebarItems,
 		navigate,
 		handleLogout,
+		config,
 	};
 
 	return (
@@ -230,6 +246,7 @@ const AdminDashboard = () => {
 							<ReservationDetailView
 								reservation={selectedReservation}
 								onBack={handleBack}
+								initialConfig={config}
 							/>
 						</ErrorBoundary>
 					) : activeTab === 'reservas' ? (
@@ -238,7 +255,10 @@ const AdminDashboard = () => {
 						</ErrorBoundary>
 					) : activeTab === 'config' ? (
 						<ErrorBoundary>
-							<ConfigurationPanel />
+							<ConfigurationPanel
+								initialConfig={config}
+								onConfigChange={setConfig}
+							/>
 						</ErrorBoundary>
 					) : activeTab === 'calendario' ? (
 						<ErrorBoundary>

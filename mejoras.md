@@ -32,3 +32,5 @@ En preguntas frecuentes agregar todo lo que incluye el servicio, como la limpiez
 Información sobre las bebidas para padres, que se puede consumir en el salón, se puede traer comodia o bebida?
 
 Que se puedan agregar o quitar menús infantiles.
+
+Hay que rediseñar las cards de los menús infantiles, no se ven muy bien, usa tus skills para un buen diseño. Hay que eliminar el texto "opciones de menú" y cambiar el de "detalles del menú" por "otros detalles"

@@ -90,10 +90,10 @@ const AccordionSection = ({
 	);
 };
 
-const ConfigurationPanel = () => {
-	const [config, setConfig] = useState(null);
-	const [originalConfig, setOriginalConfig] = useState(null);
-	const [loading, setLoading] = useState(true);
+const ConfigurationPanel = ({ initialConfig, onConfigChange }) => {
+	const [config, setConfig] = useState(initialConfig);
+	const [originalConfig, setOriginalConfig] = useState(initialConfig);
+	const [loading, setLoading] = useState(!initialConfig);
 	const [openSections, setOpenSections] = useState({
 		kids: false,
 		adults: false,
@@ -110,24 +110,36 @@ const ConfigurationPanel = () => {
 		}));
 	};
 
-	const fetchData = async () => {
+	// Transformation logic to ensure stable IDs for list items
+	const transformConfig = (data) => {
+		if (data.preciosAdultos) {
+			data.preciosAdultos = data.preciosAdultos.map((item) => ({
+				...item,
+				id: item.id || item._id || Date.now().toString() + Math.random(),
+			}));
+		}
+		if (data.workshops) {
+			data.workshops = data.workshops.map((item) => ({
+				...item,
+				id: item.id || item._id || Date.now().toString() + Math.random(),
+			}));
+		}
+		return data;
+	};
+
+	const fetchData = React.useCallback(async () => {
+		if (initialConfig && Object.keys(initialConfig).length > 0) {
+			const data = transformConfig(JSON.parse(JSON.stringify(initialConfig)));
+			setConfig(data);
+			setOriginalConfig(JSON.parse(JSON.stringify(data)));
+			setLoading(false);
+			return;
+		}
+
 		setLoading(true);
 		try {
 			const res = await getConfig();
-			const data = res.data;
-			// Ensure IDs for lists to track changes
-			if (data.preciosAdultos) {
-				data.preciosAdultos = data.preciosAdultos.map((item) => ({
-					...item,
-					id: item.id || item._id || Date.now().toString() + Math.random(),
-				}));
-			}
-			if (data.workshops) {
-				data.workshops = data.workshops.map((item) => ({
-					...item,
-					id: item.id || item._id || Date.now().toString() + Math.random(),
-				}));
-			}
+			const data = transformConfig(res.data);
 			setConfig(data);
 			setOriginalConfig(JSON.parse(JSON.stringify(data)));
 		} catch (err) {
@@ -135,17 +147,19 @@ const ConfigurationPanel = () => {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [initialConfig]);
 
 	useEffect(() => {
 		fetchData();
-	}, []);
+	}, [fetchData]);
 
 	const handleSave = async (newConfig = config) => {
 		try {
 			await updateConfig(newConfig || config);
 			toast.success('Guardado correctamente');
-			setOriginalConfig(JSON.parse(JSON.stringify(newConfig || config)));
+			const savedConfig = newConfig || config;
+			setOriginalConfig(JSON.parse(JSON.stringify(savedConfig)));
+			if (onConfigChange) onConfigChange(savedConfig);
 		} catch (err) {
 			console.error('Error saving config:', err);
 			toast.error('Error al guardar');
