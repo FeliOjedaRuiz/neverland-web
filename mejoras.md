@@ -30,7 +30,3 @@ Que abajo del precio de menu infantil en reserva y home, aparezca el texto "x ni
 En preguntas frecuentes agregar todo lo que incluye el servicio, como la limpieza u otras cosas que puedan surgir, como tambien lo del servicio de cafetería etc...
 
 Información sobre las bebidas para padres, que se puede consumir en el salón, se puede traer comodia o bebida?
-
-Que se puedan agregar o quitar menús infantiles.
-
-Hay que rediseñar las cards de los menús infantiles, no se ven muy bien, usa tus skills para un buen diseño. Hay que eliminar el texto "opciones de menú" y cambiar el de "detalles del menú" por "otros detalles"
