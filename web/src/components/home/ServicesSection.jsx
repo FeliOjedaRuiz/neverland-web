@@ -62,7 +62,7 @@ const ServicesSection = () => {
 					<ServiceCard
 						icon={Smile}
 						title="Parque de Bolas"
-						description="Estructura de juegos de 3 niveles con toboganes, piscina de bolas y obstáculos para niños de 3 a 10 años."
+						description="Estructura de juegos de 2 niveles con toboganes, piscina de bolas y obstáculos para niños de 3 a 12 años."
 						color="bg-energy-orange"
 						delay={0.1}
 					/>

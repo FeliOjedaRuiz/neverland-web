@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import {
 	Calendar,
 	Users,
@@ -35,7 +35,6 @@ const CHILDREN_MENUS = [
 	{ id: 1, name: 'Menú 1', price: 9, main: '', desc: '' },
 	{ id: 2, name: 'Menú 2', price: 9, main: '', desc: '' },
 	{ id: 3, name: 'Menú 3', price: 10, main: '', desc: '' },
-	{ id: 4, name: 'Menú 4', price: 12, main: '', desc: '' },
 ];
 
 const DEFAULT_CONFIG = {

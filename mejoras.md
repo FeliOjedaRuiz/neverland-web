@@ -31,3 +31,4 @@ En preguntas frecuentes agregar todo lo que incluye el servicio, como la limpiez
 
 Información sobre las bebidas para padres, que se puede consumir en el salón, se puede traer comodia o bebida?
 
+Que se puedan agregar o quitar menús infantiles.

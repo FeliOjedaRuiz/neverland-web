@@ -124,13 +124,6 @@ Menú 3
 
 10€
 
-Menú 4
--Hamburguesa.
--Zumo, batido o refresco.
--Tarta.
--Cono de chuches.
-12€
-
 Plus Fin de Semana/Festivo: +1,50 € por niño (Viernes, Sábado, Domingo y Festivos).
 
 Menú Adultos (Por cantidad): - Salaillas Jamón (15€), Tortilla (12€), Saladitos (16€), Pasteles (16€), Bocadillos (14€).
