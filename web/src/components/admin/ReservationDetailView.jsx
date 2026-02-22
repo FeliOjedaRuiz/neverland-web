@@ -406,18 +406,16 @@ const ReservationDetailView = ({
 
 									const currentMenuId = String(
 										reservation.detalles?.niños?.menuId || '',
-									).toLowerCase();
+									);
 
 									const menu = config.menusNiños?.find(
 										(m) =>
-											String(m.id || '').toLowerCase() === currentMenuId ||
-											String(m._id || '').toLowerCase() === currentMenuId,
+											String(m.id) === currentMenuId ||
+											String(m._id) === currentMenuId,
 									);
 
 									if (menu) {
-										const nombre = menu.nombre || menu.name || '';
-										const principal = menu.principal || menu.main || '';
-										return `${nombre}${principal ? `, ${principal}` : ''}`;
+										return `${menu.nombre}${menu.principal ? `, ${menu.principal}` : ''}`;
 									}
 									return `Menú ${reservation.detalles?.niños?.menuId}`;
 								})()}

@@ -40,11 +40,7 @@ const calculateEventPrice = async (eventData, config) => {
         String(m.id) === String(detalles.niños.menuId) ||
         String(m._id) === String(detalles.niños.menuId)
       );
-      // Hard fallback if not found in DB but matches our default logic
-      if (['1', '2'].includes(String(detalles.niños.menuId))) childPrice = 9;
-      else if (String(detalles.niños.menuId) === '3') childPrice = 10;
-      else childPrice = menu ? menu.precio : 0;
-
+      childPrice = menu ? menu.precio : 0;
       detalles.niños.precioApplied = childPrice;
     }
 

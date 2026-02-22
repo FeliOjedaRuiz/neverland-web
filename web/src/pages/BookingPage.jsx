@@ -32,9 +32,9 @@ import BookingSuccess from '../components/booking/BookingSuccess';
 // Constants (Static data for UI structure, Prices/Options loaded from API)
 // Initial static placeholder (will be overwritten by API)
 const CHILDREN_MENUS = [
-	{ id: 1, name: 'Menú 1', price: 9, main: '', desc: '' },
-	{ id: 2, name: 'Menú 2', price: 9, main: '', desc: '' },
-	{ id: 3, name: 'Menú 3', price: 10, main: '', desc: '' },
+	{ id: 1, nombre: 'Menú 1', precio: 9, principal: '', resto: '' },
+	{ id: 2, nombre: 'Menú 2', precio: 9, principal: '', resto: '' },
+	{ id: 3, nombre: 'Menú 3', precio: 10, principal: '', resto: '' },
 ];
 
 const DEFAULT_CONFIG = {
@@ -193,11 +193,10 @@ const BookingPage = () => {
 	const childrenMenusWithPrices = (
 		prices.menusNiños?.length > 0 ? prices.menusNiños : CHILDREN_MENUS
 	).map((menu) => ({
-		id: menu.id || menu._id, // Keep the original ID as provided by DB or default
-		name: menu.nombre || menu.name,
-		price: menu.precio || menu.price,
-		main: menu.principal || menu.main,
-		desc: menu.resto || menu.desc,
+		...menu,
+		id: menu.id || menu._id,
+		name: menu.nombre,
+		price: menu.precio,
 	}));
 
 	const nextStep = () => setStep((s) => s + 1);

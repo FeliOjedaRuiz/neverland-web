@@ -89,12 +89,12 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 								<span
 									className={`font-display font-black text-lg ${String(formData.niños.menuId) === String(menu.id || menu._id) ? 'text-energy-orange' : 'text-gray-800'}`}
 								>
-									{menu.nombre || menu.name}
+									{menu.nombre}
 								</span>
 								<span
 									className={`font-black text-xl bg-white px-2 py-1 rounded-lg shadow-sm ${String(formData.niños.menuId) === String(menu.id || menu._id) ? 'text-energy-orange' : 'text-orange-300/80'}`}
 								>
-									{menu.precio || menu.price}€
+									{menu.precio}€
 								</span>
 							</div>
 							{formData.fecha &&
@@ -113,11 +113,11 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 										Principal
 									</strong>
 									<span className="font-bold text-gray-800">
-										{menu.principal || menu.main}
+										{menu.principal}
 									</span>
 								</p>
 								<div className="flex flex-wrap gap-1.5 pt-1">
-									{(menu.resto || menu.desc)
+									{menu.resto
 										?.split('\n')
 										.filter((i) => i.trim())
 										.map((item, i) => (
