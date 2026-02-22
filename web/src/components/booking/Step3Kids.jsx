@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
 
 const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
@@ -72,15 +71,15 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 			<div className="space-y-3">
 				{CHILDREN_MENUS.map((menu) => (
 					<div
-						key={menu.id}
+						key={menu.id || menu._id}
 						onClick={() =>
 							setFormData({
 								...formData,
-								niños: { ...formData.niños, menuId: menu.id },
+								niños: { ...formData.niños, menuId: menu.id || menu._id },
 							})
 						}
 						className={`relative overflow-hidden rounded-2xl border-2 transition-all cursor-pointer ${
-							formData.niños.menuId === menu.id
+							String(formData.niños.menuId) === String(menu.id || menu._id)
 								? 'border-energy-orange bg-orange-50/30 shadow-md'
 								: 'border-orange-50 bg-white shadow-sm hover:border-orange-100'
 						}`}
@@ -88,14 +87,14 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 						<div className="p-4 relative z-10">
 							<div className="flex justify-between items-start mb-2">
 								<span
-									className={`font-display font-black text-lg ${formData.niños.menuId === menu.id ? 'text-energy-orange' : 'text-gray-800'}`}
+									className={`font-display font-black text-lg ${String(formData.niños.menuId) === String(menu.id || menu._id) ? 'text-energy-orange' : 'text-gray-800'}`}
 								>
-									{menu.name}
+									{menu.nombre || menu.name}
 								</span>
 								<span
-									className={`font-black text-xl bg-white px-2 py-1 rounded-lg shadow-sm ${formData.niños.menuId === menu.id ? 'text-energy-orange' : 'text-orange-300/80'}`}
+									className={`font-black text-xl bg-white px-2 py-1 rounded-lg shadow-sm ${String(formData.niños.menuId) === String(menu.id || menu._id) ? 'text-energy-orange' : 'text-orange-300/80'}`}
 								>
-									{menu.price}€
+									{menu.precio || menu.price}€
 								</span>
 							</div>
 							{formData.fecha &&
@@ -109,14 +108,16 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 							<div className="text-sm text-gray-600 mb-1 space-y-2">
 								<p className="flex items-baseline gap-2 leading-tight">
 									<strong
-										className={`font-black uppercase text-[9px] tracking-widest shrink-0 ${formData.niños.menuId === menu.id ? 'text-energy-orange' : 'text-orange-200'}`}
+										className={`font-black uppercase text-[9px] tracking-widest shrink-0 ${String(formData.niños.menuId) === String(menu.id || menu._id) ? 'text-energy-orange' : 'text-orange-200'}`}
 									>
 										Principal
 									</strong>
-									<span className="font-bold text-gray-800">{menu.main}</span>
+									<span className="font-bold text-gray-800">
+										{menu.principal || menu.main}
+									</span>
 								</p>
 								<div className="flex flex-wrap gap-1.5 pt-1">
-									{menu.desc
+									{(menu.resto || menu.desc)
 										?.split('\n')
 										.filter((i) => i.trim())
 										.map((item, i) => (
@@ -125,7 +126,7 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 												className="bg-gray-100/60 text-[10px] px-2.5 py-1 rounded-full text-gray-500 font-bold flex items-center gap-1.5 border border-gray-100/50"
 											>
 												<div
-													className={`w-1 h-1 rounded-full ${formData.niños.menuId === menu.id ? 'bg-energy-orange/40' : 'bg-orange-100'}`}
+													className={`w-1 h-1 rounded-full ${String(formData.niños.menuId) === String(menu.id || menu._id) ? 'bg-energy-orange/40' : 'bg-orange-100'}`}
 												/>
 												{item.replace(/^-/, '').trim()}
 											</span>
@@ -133,7 +134,7 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 								</div>
 							</div>
 						</div>
-						{formData.niños.menuId === menu.id && (
+						{String(formData.niños.menuId) === String(menu.id || menu._id) && (
 							<div className="absolute top-0 right-0 p-4">
 								<CheckCircle
 									className="text-energy-orange"

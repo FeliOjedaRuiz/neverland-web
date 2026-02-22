@@ -396,8 +396,10 @@ const ReservationDetailView = ({ reservation: initialReservation, onBack }) => {
 									const menu = config?.menusNiños?.find(
 										(m) =>
 											m.id === reservation.detalles?.niños?.menuId ||
-											m.number === reservation.detalles?.niños?.menuId ||
+											m._id === reservation.detalles?.niños?.menuId ||
 											String(m.id) ===
+												String(reservation.detalles?.niños?.menuId) ||
+											String(m._id) ===
 												String(reservation.detalles?.niños?.menuId),
 									);
 									return menu

@@ -37,7 +37,9 @@ const Step8Summary = ({
 					<div className="flex justify-between text-energy-orange">
 						<span>
 							{childrenMenusWithPrices?.find(
-								(m) => String(m.id) === String(formData.niños.menuId),
+								(m) =>
+									String(m.id) === String(formData.niños.menuId) ||
+									String(m._id) === String(formData.niños.menuId),
 							)?.name || `Menú Infantil ${formData.niños.menuId}`}{' '}
 							x {formData.niños.cantidad}
 						</span>
@@ -45,7 +47,9 @@ const Step8Summary = ({
 							{(
 								formData.niños.cantidad *
 								(childrenMenusWithPrices?.find(
-									(m) => String(m.id) === String(formData.niños.menuId),
+									(m) =>
+										String(m.id) === String(formData.niños.menuId) ||
+										String(m._id) === String(formData.niños.menuId),
 								)?.price || 0)
 							).toFixed(2)}
 							€
