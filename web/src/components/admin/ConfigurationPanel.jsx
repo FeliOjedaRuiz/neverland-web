@@ -12,11 +12,27 @@ import {
 	ChevronDown,
 	Pizza,
 	Users,
-	EyeOff,
-	Eye,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { getConfig, updateConfig } from '../../services/api';
+
+const ToggleSwitch = ({ active, onChange, title }) => {
+	return (
+		<button
+			onClick={onChange}
+			title={title}
+			className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+				active ? 'bg-neverland-green' : 'bg-gray-200'
+			}`}
+		>
+			<span
+				className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+					active ? 'translate-x-4' : 'translate-x-0'
+				}`}
+			/>
+		</button>
+	);
+};
 
 const AccordionSection = ({
 	title,
@@ -440,8 +456,8 @@ const ConfigurationPanel = () => {
 										key={menu.id || idx}
 										className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative group hover:border-neverland-green/20 transition-colors"
 									>
-										<div className="flex justify-between mb-4">
-											<div className="flex-1 mr-8">
+										<div className="flex items-start justify-between gap-4 mb-4">
+											<div className="flex-1 min-w-0">
 												<input
 													type="text"
 													value={menu.nombre}
@@ -458,9 +474,10 @@ const ConfigurationPanel = () => {
 													className="w-full p-0 bg-transparent border-none font-display font-black text-lg text-text-black outline-none placeholder:text-gray-200"
 												/>
 											</div>
-											<div className="absolute top-4 right-4 flex gap-1 transform transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-												<button
-													onClick={() => {
+											<div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+												<ToggleSwitch
+													active={!menu.suspended}
+													onChange={() => {
 														const newList = [...config.preciosAdultos];
 														newList[idx] = {
 															...newList[idx],
@@ -469,29 +486,18 @@ const ConfigurationPanel = () => {
 														setConfig({ ...config, preciosAdultos: newList });
 														handleSave({ ...config, preciosAdultos: newList });
 													}}
-													className={`p-2 transition-all ${
-														menu.suspended
-															? 'text-amber-500 bg-amber-50 rounded-lg'
-															: 'text-gray-300 hover:text-neverland-green'
-													}`}
 													title={
 														menu.suspended
 															? 'Activar (Suspendido)'
 															: 'Suspender (Ocultar a clientes)'
 													}
-												>
-													{menu.suspended ? (
-														<EyeOff size={18} />
-													) : (
-														<Eye size={18} />
-													)}
-												</button>
+												/>
 												<button
 													onClick={() => handleSave()}
-													className={`p-2 transition-all ${
+													className={`p-1.5 rounded-lg transition-all ${
 														isItemChanged('preciosAdultos', menu)
-															? 'text-neverland-green scale-110'
-															: 'text-gray-300 hover:text-neverland-green'
+															? 'text-neverland-green bg-neverland-green/10 scale-110'
+															: 'text-gray-300 hover:text-neverland-green hover:bg-gray-50'
 													}`}
 													title="Guardar"
 												>
@@ -499,7 +505,7 @@ const ConfigurationPanel = () => {
 												</button>
 												<button
 													onClick={() => removeItem('preciosAdultos', idx)}
-													className="p-2 text-gray-300 hover:text-red-500 transition-all"
+													className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
 													title="Eliminar"
 												>
 													<Trash2 size={18} />
@@ -589,25 +595,28 @@ const ConfigurationPanel = () => {
 										key={ws.id || idx}
 										className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative group hover:border-blue-200 transition-colors"
 									>
-										<div className="flex-1 mb-4 flex justify-between">
-											<input
-												type="text"
-												value={ws.name}
-												placeholder="Nombre de la actividad..."
-												autoFocus={ws.isNew}
-												onChange={(e) =>
-													updateListItem(
-														'workshops',
-														idx,
-														'name',
-														e.target.value,
-													)
-												}
-												className="w-full p-0 bg-transparent border-none font-display font-black text-lg text-text-black outline-none placeholder:text-gray-200"
-											/>
-											<div className="flex gap-1 -mt-1 shrink-0 ml-2 transform transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-												<button
-													onClick={() => {
+										<div className="flex items-start justify-between gap-4 mb-4">
+											<div className="flex-1 min-w-0">
+												<input
+													type="text"
+													value={ws.name}
+													placeholder="Nombre de la actividad..."
+													autoFocus={ws.isNew}
+													onChange={(e) =>
+														updateListItem(
+															'workshops',
+															idx,
+															'name',
+															e.target.value,
+														)
+													}
+													className="w-full p-0 bg-transparent border-none font-display font-black text-lg text-text-black outline-none placeholder:text-gray-200"
+												/>
+											</div>
+											<div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+												<ToggleSwitch
+													active={!ws.suspended}
+													onChange={() => {
 														const newList = [...config.workshops];
 														newList[idx] = {
 															...newList[idx],
@@ -616,36 +625,25 @@ const ConfigurationPanel = () => {
 														setConfig({ ...config, workshops: newList });
 														handleSave({ ...config, workshops: newList });
 													}}
-													className={`p-2 transition-all ${
-														ws.suspended
-															? 'text-amber-500 bg-amber-50 rounded-lg'
-															: 'text-gray-300 hover:text-blue-500'
-													}`}
 													title={
 														ws.suspended
 															? 'Activar (Suspendido)'
 															: 'Suspender (Ocultar a clientes)'
 													}
-												>
-													{ws.suspended ? (
-														<EyeOff size={18} />
-													) : (
-														<Eye size={18} />
-													)}
-												</button>
+												/>
 												<button
 													onClick={() => handleSave()}
-													className={`p-2 transition-all ${
+													className={`p-1.5 rounded-lg transition-all ${
 														isItemChanged('workshops', ws)
-															? 'text-blue-500 scale-110'
-															: 'text-gray-300 hover:text-blue-500'
+															? 'text-blue-500 bg-blue-50/50 scale-110'
+															: 'text-gray-300 hover:text-blue-500 hover:bg-gray-50'
 													}`}
 												>
 													<Save size={18} />
 												</button>
 												<button
 													onClick={() => removeItem('workshops', idx)}
-													className="p-2 text-gray-300 hover:text-red-500 transition-all"
+													className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
 												>
 													<Trash2 size={18} />
 												</button>
