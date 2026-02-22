@@ -454,66 +454,30 @@ const ConfigurationPanel = () => {
 								{(config.preciosAdultos || []).map((menu, idx) => (
 									<div
 										key={menu.id || idx}
-										className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative group hover:border-neverland-green/20 transition-colors"
+										className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative group hover:border-neverland-green/20 transition-all flex flex-col gap-4"
 									>
-										<div className="flex items-start justify-between gap-4 mb-4">
-											<div className="flex-1 min-w-0">
-												<input
-													type="text"
-													value={menu.nombre}
-													placeholder="Nombre del plato..."
-													autoFocus={menu.isNew}
-													onChange={(e) =>
-														updateListItem(
-															'preciosAdultos',
-															idx,
-															'nombre',
-															e.target.value,
-														)
-													}
-													className="w-full p-0 bg-transparent border-none font-display font-black text-lg text-text-black outline-none placeholder:text-gray-200"
-												/>
-											</div>
-											<div className="flex items-center gap-1.5 shrink-0 pt-0.5">
-												<ToggleSwitch
-													active={!menu.suspended}
-													onChange={() => {
-														const newList = [...config.preciosAdultos];
-														newList[idx] = {
-															...newList[idx],
-															suspended: !newList[idx].suspended,
-														};
-														setConfig({ ...config, preciosAdultos: newList });
-														handleSave({ ...config, preciosAdultos: newList });
-													}}
-													title={
-														menu.suspended
-															? 'Activar (Suspendido)'
-															: 'Suspender (Ocultar a clientes)'
-													}
-												/>
-												<button
-													onClick={() => handleSave()}
-													className={`p-1.5 rounded-lg transition-all ${
-														isItemChanged('preciosAdultos', menu)
-															? 'text-neverland-green bg-neverland-green/10 scale-110'
-															: 'text-gray-300 hover:text-neverland-green hover:bg-gray-50'
-													}`}
-													title="Guardar"
-												>
-													<Save size={18} />
-												</button>
-												<button
-													onClick={() => removeItem('preciosAdultos', idx)}
-													className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-													title="Eliminar"
-												>
-													<Trash2 size={18} />
-												</button>
-											</div>
+										{/* Row 1: Name (Full Width) */}
+										<div className="w-full">
+											<input
+												type="text"
+												value={menu.nombre}
+												placeholder="Nombre del plato..."
+												autoFocus={menu.isNew}
+												onChange={(e) =>
+													updateListItem(
+														'preciosAdultos',
+														idx,
+														'nombre',
+														e.target.value,
+													)
+												}
+												className="w-full p-0 bg-transparent border-none font-display font-black text-xl text-text-black outline-none placeholder:text-gray-300"
+											/>
 										</div>
-										<div className="flex items-center gap-4">
-											<div className="flex-1 bg-gray-50 rounded-xl p-2 px-3 border border-gray-50">
+
+										{/* Row 2: Data Grid */}
+										<div className="grid grid-cols-2 gap-3">
+											<div className="bg-gray-50 rounded-xl p-2 px-3 border border-gray-50">
 												<label className="text-[8px] font-black text-gray-400 uppercase block leading-none mb-1">
 													Unidades
 												</label>
@@ -532,7 +496,7 @@ const ConfigurationPanel = () => {
 													className="w-full bg-transparent p-0 text-xs font-bold text-gray-600 outline-none border-none"
 												/>
 											</div>
-											<div className="w-20 bg-neverland-green/5 rounded-xl p-2 px-3 border border-neverland-green/10">
+											<div className="bg-neverland-green/5 rounded-xl p-2 px-3 border border-neverland-green/10">
 												<label className="text-[8px] font-black text-neverland-green uppercase block leading-none mb-1">
 													Precio
 												</label>
@@ -554,6 +518,52 @@ const ConfigurationPanel = () => {
 														€
 													</span>
 												</div>
+											</div>
+										</div>
+
+										{/* Row 3: Action Bar */}
+										<div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-1">
+											<div className="flex items-center gap-2">
+												<span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+													Visible
+												</span>
+												<ToggleSwitch
+													active={!menu.suspended}
+													onChange={() => {
+														const newList = [...config.preciosAdultos];
+														newList[idx] = {
+															...newList[idx],
+															suspended: !newList[idx].suspended,
+														};
+														setConfig({ ...config, preciosAdultos: newList });
+														handleSave({ ...config, preciosAdultos: newList });
+													}}
+													title={
+														menu.suspended
+															? 'Activar (Suspendido)'
+															: 'Suspender (Ocultar a clientes)'
+													}
+												/>
+											</div>
+											<div className="flex items-center gap-1.5">
+												<button
+													onClick={() => handleSave()}
+													className={`p-1.5 rounded-lg transition-all ${
+														isItemChanged('preciosAdultos', menu)
+															? 'text-neverland-green bg-neverland-green/10 scale-110 shadow-sm'
+															: 'text-gray-300 hover:text-neverland-green hover:bg-gray-50'
+													}`}
+													title="Guardar"
+												>
+													<Save size={18} />
+												</button>
+												<button
+													onClick={() => removeItem('preciosAdultos', idx)}
+													className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+													title="Eliminar"
+												>
+													<Trash2 size={18} />
+												</button>
 											</div>
 										</div>
 									</div>
@@ -593,64 +603,29 @@ const ConfigurationPanel = () => {
 								{(config.workshops || []).map((ws, idx) => (
 									<div
 										key={ws.id || idx}
-										className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative group hover:border-blue-200 transition-colors"
+										className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative group hover:border-blue-200 transition-colors flex flex-col gap-4"
 									>
-										<div className="flex items-start justify-between gap-4 mb-4">
-											<div className="flex-1 min-w-0">
-												<input
-													type="text"
-													value={ws.name}
-													placeholder="Nombre de la actividad..."
-													autoFocus={ws.isNew}
-													onChange={(e) =>
-														updateListItem(
-															'workshops',
-															idx,
-															'name',
-															e.target.value,
-														)
-													}
-													className="w-full p-0 bg-transparent border-none font-display font-black text-lg text-text-black outline-none placeholder:text-gray-200"
-												/>
-											</div>
-											<div className="flex items-center gap-1.5 shrink-0 pt-0.5">
-												<ToggleSwitch
-													active={!ws.suspended}
-													onChange={() => {
-														const newList = [...config.workshops];
-														newList[idx] = {
-															...newList[idx],
-															suspended: !newList[idx].suspended,
-														};
-														setConfig({ ...config, workshops: newList });
-														handleSave({ ...config, workshops: newList });
-													}}
-													title={
-														ws.suspended
-															? 'Activar (Suspendido)'
-															: 'Suspender (Ocultar a clientes)'
-													}
-												/>
-												<button
-													onClick={() => handleSave()}
-													className={`p-1.5 rounded-lg transition-all ${
-														isItemChanged('workshops', ws)
-															? 'text-blue-500 bg-blue-50/50 scale-110'
-															: 'text-gray-300 hover:text-blue-500 hover:bg-gray-50'
-													}`}
-												>
-													<Save size={18} />
-												</button>
-												<button
-													onClick={() => removeItem('workshops', idx)}
-													className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-												>
-													<Trash2 size={18} />
-												</button>
-											</div>
+										{/* Row 1: Name (Full Width) */}
+										<div className="w-full">
+											<input
+												type="text"
+												value={ws.name}
+												placeholder="Nombre de la actividad..."
+												autoFocus={ws.isNew}
+												onChange={(e) =>
+													updateListItem(
+														'workshops',
+														idx,
+														'name',
+														e.target.value,
+													)
+												}
+												className="w-full p-0 bg-transparent border-none font-display font-black text-xl text-text-black outline-none placeholder:text-gray-300"
+											/>
 										</div>
 
-										<div className="mb-4 relative group/desc">
+										{/* Row 2: Description */}
+										<div className="relative group/desc">
 											<textarea
 												value={ws.desc || ''}
 												onChange={(e) => {
@@ -677,7 +652,8 @@ const ConfigurationPanel = () => {
 											</div>
 										</div>
 
-										<div className="mb-4 bg-gray-50/30 rounded-2xl p-2.5 border border-gray-100/50">
+										{/* Row 3: Image URL */}
+										<div className="bg-gray-50/30 rounded-2xl p-2.5 border border-gray-100/50">
 											<div className="flex items-center gap-1.5 mb-1.5 px-1">
 												<label className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">
 													Imagen (URL)
@@ -719,6 +695,7 @@ const ConfigurationPanel = () => {
 											</div>
 										</div>
 
+										{/* Row 4: Pricing Grid */}
 										<div className="grid grid-cols-2 gap-3">
 											<div className="bg-gray-50 rounded-xl p-2 px-3">
 												<label className="text-[8px] font-black text-gray-400 uppercase block leading-none mb-1">
@@ -765,6 +742,50 @@ const ConfigurationPanel = () => {
 														€
 													</span>
 												</div>
+											</div>
+										</div>
+
+										{/* Row 5: Action Bar */}
+										<div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-1">
+											<div className="flex items-center gap-2">
+												<span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+													Visible
+												</span>
+												<ToggleSwitch
+													active={!ws.suspended}
+													onChange={() => {
+														const newList = [...config.workshops];
+														newList[idx] = {
+															...newList[idx],
+															suspended: !newList[idx].suspended,
+														};
+														setConfig({ ...config, workshops: newList });
+														handleSave({ ...config, workshops: newList });
+													}}
+													title={
+														ws.suspended
+															? 'Activar (Suspendido)'
+															: 'Suspender (Ocultar a clientes)'
+													}
+												/>
+											</div>
+											<div className="flex items-center gap-1.5">
+												<button
+													onClick={() => handleSave()}
+													className={`p-1.5 rounded-lg transition-all ${
+														isItemChanged('workshops', ws)
+															? 'text-blue-500 bg-blue-50/50 scale-110 shadow-sm'
+															: 'text-gray-300 hover:text-blue-500 hover:bg-gray-50'
+													}`}
+												>
+													<Save size={18} />
+												</button>
+												<button
+													onClick={() => removeItem('workshops', idx)}
+													className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+												>
+													<Trash2 size={18} />
+												</button>
 											</div>
 										</div>
 									</div>
