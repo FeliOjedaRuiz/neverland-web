@@ -143,7 +143,23 @@ const AdminDashboard = () => {
 		const fetchConfig = async () => {
 			try {
 				const res = await getConfig();
-				setConfig(res.data);
+				const data = res.data;
+
+				// Normaliza los datos para asegurar campos consistentes
+				const normalizeList = (list) =>
+					(list || []).map((item) => ({
+						...item,
+						id: String(item.id || item._id || ''),
+						name: item.nombre || item.name || '',
+						price: item.precio || item.price || 0,
+					}));
+
+				if (data.menusNiños) data.menusNiños = normalizeList(data.menusNiños);
+				if (data.workshops) data.workshops = normalizeList(data.workshops);
+				if (data.preciosAdultos)
+					data.preciosAdultos = normalizeList(data.preciosAdultos);
+
+				setConfig(data);
 			} catch (err) {
 				console.error('Error fetching config:', err);
 			}

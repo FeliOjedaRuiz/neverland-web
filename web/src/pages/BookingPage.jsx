@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+console.log('Framer Motion ready:', !!motion);
 import {
 	Calendar,
 	Users,
@@ -29,8 +30,6 @@ import BookingSuccess from '../components/booking/BookingSuccess';
 
 // --- Constants & Data ---
 
-// Constants (Static data for UI structure, Prices/Options loaded from API)
-// Initial static placeholder (will be overwritten by API)
 const CHILDREN_MENUS = [
 	{ id: 1, nombre: 'Menú 1', precio: 9, principal: '', resto: '' },
 	{ id: 2, nombre: 'Menú 2', precio: 9, principal: '', resto: '' },
@@ -53,21 +52,15 @@ const DEFAULT_CONFIG = {
 	},
 };
 
-// --- Component ---
-
 const BookingPage = () => {
-	// Steps:
-	// 1: Calendar/Time, 2: Responsibility Data, 3: Kids Data, 4: Adults Data,
-	// 5: Workshops, 6: Characters, 7: Extras (Time/Pinata), 8: Summary
 	const [step, setStep] = useState(1);
 	const [prices, setPrices] = useState(DEFAULT_CONFIG);
 	const [loading, setLoading] = useState(false);
 	const [createdEventId, setCreatedEventId] = useState(null);
 
-	// Calendar State
 	const [currentMonth, setCurrentMonth] = useState(new Date());
 	const [monthlyOccupied, setMonthlyOccupied] = useState([]);
-	const [view, setView] = useState('calendar'); // 'calendar' | 'dayDetails'
+	const [view, setView] = useState('calendar');
 	const [availabilityError, setAvailabilityError] = useState(false);
 	const [availabilityLoading, setAvailabilityLoading] = useState(false);
 
@@ -82,37 +75,30 @@ const BookingPage = () => {
 			email: '',
 		},
 		niños: {
-			cantidad: 12, // Min 12
+			cantidad: 12,
 			menuId: 1,
 		},
 		adultos: {
 			cantidad: 0,
-			comida: [], // Unified: [{item, cantidad, precioUnitario}]
+			comida: [],
 		},
 		extras: {
 			taller: 'ninguno',
 			personaje: 'ninguno',
 			pinata: false,
-			extension: 0, // 0, 30, 60
-			extensionType: 'default', // For Turn 2: 'before', 'after', 'both'
+			extension: 0,
+			extensionType: 'default',
 		},
 	});
 
-	// Helper for character search
 	const [charSearch, setCharSearch] = useState('');
-
 	const scrollContainerRef = useRef(null);
 
-	// Scroll to top when step or view changes
 	useEffect(() => {
 		if (scrollContainerRef.current) {
 			try {
-				scrollContainerRef.current.scrollTo({
-					top: 0,
-					behavior: 'smooth',
-				});
+				scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
 			} catch {
-				// Fallback for older browsers
 				scrollContainerRef.current.scrollTop = 0;
 			}
 		}
@@ -121,15 +107,40 @@ const BookingPage = () => {
 	useEffect(() => {
 		getConfig()
 			.then((res) => {
-				if (res.data) setPrices((prev) => ({ ...prev, ...res.data }));
+				if (res.data) {
+					const data = res.data;
+					const normalizeList = (list) =>
+						(list || []).map((item) => ({
+							...item,
+							id: String(item.id || item._id || ''),
+							name: item.nombre || item.name || '',
+							price: item.precio || item.price || 0,
+						}));
+
+					if (data.menusNiños) data.menusNiños = normalizeList(data.menusNiños);
+					if (data.workshops) data.workshops = normalizeList(data.workshops);
+					if (data.preciosAdultos)
+						data.preciosAdultos = normalizeList(data.preciosAdultos);
+
+					setPrices((prev) => ({ ...prev, ...data }));
+
+					if (data.menusNiños?.length > 0) {
+						const firstId = data.menusNiños[0].id;
+						setFormData((prev) => ({
+							...prev,
+							niños: {
+								...prev.niños,
+								menuId: prev.niños.menuId === 1 ? firstId : prev.niños.menuId,
+							},
+						}));
+					}
+				}
 			})
-			.catch(() => console.log('Using default config'));
+			.catch((err) => console.log('Error loading config:', err));
 	}, []);
 
-	// Cache for availability: { 'YYYY-M': { occupied: [] } }
 	const [availabilityCache, setAvailabilityCache] = useState({});
 
-	// Add preload logic
 	const preloadAdjacentMonths = useCallback(
 		async (date) => {
 			const offsets = [-1, 1];
@@ -162,22 +173,19 @@ const BookingPage = () => {
 			const month = currentMonth.getMonth() + 1;
 			const key = `${year}-${month}`;
 
-			// Check Cache First
 			if (availabilityCache[key]) {
 				setMonthlyOccupied(availabilityCache[key]);
-				preloadAdjacentMonths(currentMonth); // Trigger preload for next/prev
+				preloadAdjacentMonths(currentMonth);
 				return;
 			}
 
-			setAvailabilityError(false);
 			setAvailabilityLoading(true);
+			setAvailabilityError(false);
 			try {
 				const res = await getMonthlyAvailability(year, month);
-				const data = res.data.occupied || [];
-				setMonthlyOccupied(data);
-				// Update Cache
-				setAvailabilityCache((prev) => ({ ...prev, [key]: data }));
-				// Trigger Preload
+				const occupied = res.data.occupied || [];
+				setMonthlyOccupied(occupied);
+				setAvailabilityCache((prev) => ({ ...prev, [key]: occupied }));
 				preloadAdjacentMonths(currentMonth);
 			} catch (err) {
 				console.error(err);
@@ -187,16 +195,15 @@ const BookingPage = () => {
 			}
 		};
 		fetchAsyncAvailability();
-	}, [currentMonth, availabilityCache, preloadAdjacentMonths]); // Cache is read-only inside connection, but we use ref pattern or just rely on state closures provided key is unique.
+	}, [currentMonth, availabilityCache, preloadAdjacentMonths]);
 
-	// Calculate current children menus with database data
 	const childrenMenusWithPrices =
 		(prices.menusNiños?.length > 0 ? prices.menusNiños : CHILDREN_MENUS)?.map(
 			(menu) => ({
 				...menu,
 				id: menu.id || menu._id,
-				name: menu.nombre,
-				price: menu.precio,
+				name: menu.nombre || 'Menú',
+				price: menu.precio || 0,
 			}),
 		) || [];
 
@@ -211,28 +218,14 @@ const BookingPage = () => {
 		}
 	};
 
-	// Validations
 	const validateStep = () => {
 		if (step === 1) return formData.fecha && formData.turno;
 		if (step === 2) {
 			const { nombreNiño, edadNiño, nombrePadre, telefono, email } =
 				formData.cliente;
-
-			// Strict phone validation: Must have exactly 9 digits after prefix
-			let isPhoneValid = false;
-			if (telefono) {
-				const parts = telefono.split(' ');
-				if (parts.length >= 2) {
-					const numberPart = parts.slice(1).join('');
-					isPhoneValid = numberPart.replace(/\D/g, '').length === 9;
-				} else {
-					isPhoneValid = telefono.replace(/\D/g, '').length >= 11;
-				}
-			}
-
-			// Email validation
+			let isPhoneValid = telefono.length >= 9;
+			if (telefono.startsWith('+')) isPhoneValid = telefono.length >= 11;
 			const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
 			return (
 				nombreNiño &&
 				edadNiño &&
@@ -242,11 +235,10 @@ const BookingPage = () => {
 				isEmailValid
 			);
 		}
-		if (step === 4) return formData.adultos.cantidad > 0;
+		if (step === 4) return formData.adultos.cantidad >= 0;
 		return true;
 	};
 
-	// Calculations
 	const calculateTotal = () => {
 		let total = 0;
 		const menu = childrenMenusWithPrices.find(
@@ -255,13 +247,11 @@ const BookingPage = () => {
 		const childPrice = Number(menu ? menu.price : 0) || 0;
 		let subTotalNiños = childPrice * (Number(formData.niños.cantidad) || 0);
 
-		// Weekend Plus
 		if (formData.fecha) {
 			const date = new Date(formData.fecha);
 			if (!isNaN(date.getTime())) {
 				const day = date.getDay();
 				if (day === 0 || day === 5 || day === 6) {
-					// Fri, Sat, Sun
 					subTotalNiños +=
 						(prices.plusFinDeSemana || 1.5) * formData.niños.cantidad;
 				}
@@ -269,42 +259,32 @@ const BookingPage = () => {
 		}
 		total += subTotalNiños;
 
-		// Adults Food
 		formData.adultos.comida.forEach((item) => {
 			total += (item.precioUnitario || 0) * item.cantidad;
 		});
 
-		// Extras: Taller
 		if (formData.extras.taller !== 'ninguno') {
 			const workshop = prices.workshops?.find(
-				(w) => w.name.toLowerCase() === formData.extras.taller.toLowerCase(),
+				(w) =>
+					String(w.name).toLowerCase() ===
+					String(formData.extras.taller).toLowerCase(),
 			);
 			if (workshop) {
-				const tallerPrice =
+				total +=
 					formData.niños.cantidad >= 15
-						? workshop.pricePlus
-						: workshop.priceBase;
-				total += tallerPrice;
+						? workshop.pricePlus || 0
+						: workshop.priceBase || 0;
 			} else {
-				const tallerPrice =
+				total +=
 					formData.niños.cantidad >= 15
 						? prices.preciosExtras.tallerPlus || 30
 						: prices.preciosExtras.tallerBase || 25;
-				total += tallerPrice;
 			}
 		}
 
-		// Extras: Personaje
-		if (formData.extras.personaje !== 'ninguno') {
+		if (formData.extras.personaje !== 'ninguno')
 			total += prices.preciosExtras.personaje || 40;
-		}
-
-		// Extras: Pinata
-		if (formData.extras.pinata) {
-			total += prices.preciosExtras.pinata || 15;
-		}
-
-		// Extras: Extension
+		if (formData.extras.pinata) total += prices.preciosExtras.pinata || 15;
 		if (formData.extras.extension === 30)
 			total += prices.preciosExtras.extension30 || 30;
 		if (formData.extras.extension === 60)
@@ -314,52 +294,38 @@ const BookingPage = () => {
 	};
 
 	const getTurnoLabel = (t) => {
-		if (t === 'T1') return '17:00 - 19:00';
-		if (t === 'T2') return '18:00 - 20:00';
-		if (t === 'T3') return '19:15 - 21:15';
-		return '';
+		const labels = {
+			T1: '17:00 - 19:00',
+			T2: '18:00 - 20:00',
+			T3: '19:15 - 21:15',
+		};
+		return labels[t] || '';
 	};
 
 	const getExtendedTime = () => {
 		const base = formData.turno;
 		const ext = formData.extras.extension;
 		const type = formData.extras.extensionType;
-
 		if (ext === 0) return getTurnoLabel(base);
-
-		if (base === 'T1') {
-			if (ext === 30) return '16:30 - 19:00';
-			if (ext === 60) return '16:00 - 19:00';
-		}
-
+		if (base === 'T1') return ext === 30 ? '16:30 - 19:00' : '16:00 - 19:00';
 		if (base === 'T2') {
-			if (ext === 30) {
-				if (type === 'before') return '17:30 - 20:00';
-				return '18:00 - 20:30'; // Default is 'after'
-			}
-			if (ext === 60) {
-				if (type === 'before') return '17:00 - 20:00';
-				if (type === 'both') return '17:30 - 20:30';
-				return '18:00 - 21:00'; // Default is 'after'
-			}
+			if (ext === 30)
+				return type === 'before' ? '17:30 - 20:00' : '18:00 - 20:30';
+			if (type === 'before') return '17:00 - 20:00';
+			if (type === 'both') return '17:30 - 20:30';
+			return '18:00 - 21:00';
 		}
-
-		if (base === 'T3') {
-			if (ext === 30) return '19:15 - 21:45';
-			if (ext === 60) return '19:15 - 22:15';
-		}
-
+		if (base === 'T3') return ext === 30 ? '19:15 - 21:45' : '19:15 - 22:15';
 		return getTurnoLabel(base);
 	};
 
 	const handleSubmit = async () => {
 		setLoading(true);
 		try {
-			const scheduleString = getExtendedTime(); // Ej: "17:30 - 20:30"
+			const scheduleString = getExtendedTime();
 			const [startTime, endTime] = scheduleString
 				.split(' - ')
 				.map((t) => t.trim());
-
 			const finalData = {
 				tipo: 'reserva',
 				fecha: formData.fecha,
@@ -387,8 +353,6 @@ const BookingPage = () => {
 								: 0,
 				},
 			};
-
-			console.log('Sending:', finalData);
 			const response = await createBooking(finalData);
 			setCreatedEventId(response.data.publicId);
 			setLoading(false);
@@ -411,18 +375,15 @@ const BookingPage = () => {
 	const currentStage = (() => {
 		if (step === 1) return 1;
 		if (step === 2) return 2;
-		if (step === 3 || step === 4) return 3; // Kids & Adults -> Menus
-		if (step >= 5 && step <= 7) return 4; // Workshops, Characters, Extras -> Extras
-		if (step >= 8) return 5; // Summary & Success -> Ready
+		if (step === 3 || step === 4) return 3;
+		if (step >= 5 && step <= 7) return 4;
+		if (step >= 8) return 5;
 		return 1;
 	})();
 
 	return (
-		<div className="pt-16 sm:pt-20 pb-0 flex flex-col bg-surface sm:bg-cream-bg overflow-hidden nav-no-touch-callout min-h-screen h-dvh">
-			{' '}
-			{/* Header */}
+		<div className="pt-16 sm:pt-20 pb-0 flex flex-col bg-surface sm:bg-cream-bg overflow-hidden min-h-screen h-dvh">
 			<BookingHeader stage={currentStage} stepsList={stepsList} />
-			{/* Main Content */}
 			<div className="flex-1 px-0 sm:px-4 pb-0 min-h-0 relative flex flex-col">
 				<div className="bg-surface sm:rounded-3xl sm:shadow-soft h-full flex flex-col relative overflow-hidden sm:border-t sm:border-x sm:border-white/50">
 					<div
@@ -516,8 +477,6 @@ const BookingPage = () => {
 							</motion.div>
 						</AnimatePresence>
 					</div>
-
-					{/* Fixed Navigation Footer */}
 					<div className="fixed bottom-0 left-0 right-0 z-50 bg-surface sm:absolute sm:bottom-0 sm:left-0 sm:right-0">
 						<BookingNavigation
 							step={step}

@@ -110,20 +110,23 @@ const ConfigurationPanel = ({ initialConfig, onConfigChange }) => {
 		}));
 	};
 
-	// Transformation logic to ensure stable IDs for list items
+	// Transformation logic to ensure stable IDs and fields for list items
 	const transformConfig = (data) => {
-		if (data.preciosAdultos) {
-			data.preciosAdultos = data.preciosAdultos.map((item) => ({
+		const normalize = (list) =>
+			(list || []).map((item) => ({
 				...item,
 				id: item.id || item._id || Date.now().toString() + Math.random(),
+				nombre: item.nombre || item.name || '',
+				name: item.nombre || item.name || '',
+				precio: item.precio || item.price || 0,
+				price: item.precio || item.price || 0,
 			}));
-		}
-		if (data.workshops) {
-			data.workshops = data.workshops.map((item) => ({
-				...item,
-				id: item.id || item._id || Date.now().toString() + Math.random(),
-			}));
-		}
+
+		if (data.menusNiños) data.menusNiños = normalize(data.menusNiños);
+		if (data.preciosAdultos)
+			data.preciosAdultos = normalize(data.preciosAdultos);
+		if (data.workshops) data.workshops = normalize(data.workshops);
+
 		return data;
 	};
 

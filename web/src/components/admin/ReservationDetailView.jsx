@@ -42,19 +42,28 @@ const ReservationDetailView = ({
 	const [config, setConfig] = useState(initialConfig);
 
 	React.useEffect(() => {
-		if (!initialConfig) {
-			const fetchConfig = async () => {
-				try {
-					const res = await getConfig();
-					setConfig(res.data);
-				} catch (err) {
-					console.error('Error fetching config:', err);
-				}
-			};
-			fetchConfig();
-		} else {
+		if (initialConfig) {
 			setConfig(initialConfig);
+			return;
 		}
+
+		const fetchConfig = async () => {
+			try {
+				const res = await getConfig();
+				const data = res.data;
+				// Normalización básica de IDs para asegurar el matching de nombres
+				if (data.menusNiños) {
+					data.menusNiños = data.menusNiños.map((m) => ({
+						...m,
+						id: String(m.id || m._id || ''),
+					}));
+				}
+				setConfig(data);
+			} catch (err) {
+				console.error('Error fetching config:', err);
+			}
+		};
+		fetchConfig();
 	}, [initialConfig]);
 
 	if (!reservation) return null;
