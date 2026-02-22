@@ -107,10 +107,15 @@ const BookingPage = () => {
 	// Scroll to top when step or view changes
 	useEffect(() => {
 		if (scrollContainerRef.current) {
-			scrollContainerRef.current.scrollTo({
-				top: 0,
-				behavior: 'smooth',
-			});
+			try {
+				scrollContainerRef.current.scrollTo({
+					top: 0,
+					behavior: 'smooth',
+				});
+			} catch {
+				// Fallback for older browsers
+				scrollContainerRef.current.scrollTop = 0;
+			}
 		}
 	}, [step, view]);
 
@@ -248,8 +253,8 @@ const BookingPage = () => {
 		const menu = childrenMenusWithPrices.find(
 			(m) => String(m.id) === String(formData.niños.menuId),
 		);
-		const childPrice = menu ? menu.price : 0;
-		let subTotalNiños = childPrice * formData.niños.cantidad;
+		const childPrice = Number(menu ? menu.price : 0) || 0;
+		let subTotalNiños = childPrice * (Number(formData.niños.cantidad) || 0);
 
 		// Weekend Plus
 		if (formData.fecha) {
@@ -414,10 +419,10 @@ const BookingPage = () => {
 	})();
 
 	return (
-		<div className="pt-16 sm:pt-20 pb-0 h-[100dvh] flex flex-col bg-surface sm:bg-cream-bg overflow-hidden nav-no-touch-callout">
+		<div className="pt-16 sm:pt-20 pb-0 flex flex-col bg-surface sm:bg-cream-bg overflow-hidden nav-no-touch-callout min-h-screen h-dvh">
+			{' '}
 			{/* Header */}
 			<BookingHeader stage={currentStage} stepsList={stepsList} />
-
 			{/* Main Content */}
 			<div className="flex-1 px-0 sm:px-4 pb-0 min-h-0 relative flex flex-col">
 				<div className="bg-surface sm:rounded-3xl sm:shadow-soft h-full flex flex-col relative overflow-hidden sm:border-t sm:border-x sm:border-white/50">
@@ -425,9 +430,9 @@ const BookingPage = () => {
 						ref={scrollContainerRef}
 						className={`flex-1 ${step === 1 && view === 'calendar' ? 'overflow-hidden pt-0 pb-24' : 'overflow-y-auto overflow-x-hidden pb-32 pt-4'} px-4 sm:p-6 no-scrollbar`}
 					>
-						<AnimatePresence mode="popLayout">
+						<AnimatePresence mode="wait">
 							<motion.div
-								key={step + view}
+								key={`${step}-${view}`}
 								initial={{ opacity: 0, x: 20 }}
 								animate={{ opacity: 1, x: 0 }}
 								exit={{ opacity: 0, x: -20 }}

@@ -25,7 +25,7 @@ const Footer = () => {
 								<span className="text-gray-300 text-sm">
 									Calle Ramal del Río 19,
 									<br />
-									18101 Cúllar Vega, Granada
+									18195 Cúllar Vega, Granada
 								</span>
 							</div>
 							<div className="flex items-center gap-4">

@@ -20,6 +20,15 @@ Este documento constituye el Plan Maestro de Desarrollo para Neverland, diseñad
    • Enfoque: Mobile-First obligatorio para garantizar que los padres puedan navegar cómodamente desde sus celulares.
    • Colores: Utiliza la paleta de colores definida en el archivo "PALETA DE COLORES.md".
    • Tipografía: Fuentes redondeadas y amigables, reforzando el tono infantil y acogedor del salón.
+   3.1. Safari/iOS Compatibility Standards (CRITICAL)
+   Debido a las limitaciones específicas de Safari móvil, todo el desarrollo debe seguir estas reglas:
+   • Viewport Heights: Prohibido el uso de `h-screen` o `100vh` para contenedores principales. Usar `h-dvh` (Dynamic Viewport Height) o incluir fallbacks de `min-h-screen`.
+   • Framer Motion: Evitar `mode="popLayout"` en AnimatePresence si causa saltos visuales; preferir `mode="wait"`.
+   • Date Parsing: No confiar en `new Date("YYYY-MM-DD")` directamente para cálculos de UI; usar utilidades que descompongan la cadena (split('-')) para asegurar consistencia en Safari.
+   • Smooth Scroll: El método `scrollTo({ behavior: 'smooth' })` debe estar envuelto en try/catch o tener fallback a `scrollTop = 0`.
+   • Forms: Evitar `zoom` automático en inputs asegurando un `font-size` mínimo de `16px` en móviles.
+   • Layout: Usar `min-h-full` en contenedores de éxito/confirmación para evitar colapsos visuales.
+
 4. Arquitectura de Datos (Propuesta MongoDB)
    Se proponen las siguientes colecciones para estructurar la información en el backend:
    • users: Para la gestión de acceso al panel de administración.

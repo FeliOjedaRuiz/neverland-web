@@ -156,7 +156,7 @@ const AdminDashboard = () => {
 	};
 
 	return (
-		<div className="flex h-screen bg-white overflow-hidden font-sans">
+		<div className="flex h-dvh bg-white overflow-hidden font-sans">
 			{/* Sidebar Desktop */}
 			<aside className="w-64 bg-white border-r border-gray-100 hidden md:flex flex-col">
 				<SidebarContent {...commonProps} />

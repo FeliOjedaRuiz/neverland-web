@@ -4,14 +4,17 @@ import { CheckCircle } from 'lucide-react';
 
 const BookingSuccess = ({ formData, createdId, getExtendedTime }) => {
 	const whatsappNumber = '34651707985'; // Number from Footer
-	const reservationDate = formData.fecha;
-	const reservationTime = getExtendedTime();
-	const clientName = formData.cliente.nombrePadre;
+	const reservationDate = formData?.fecha || '';
+	const reservationTime =
+		typeof getExtendedTime === 'function' ? getExtendedTime() : '';
+	const clientName = formData?.cliente?.nombrePadre || 'Cliente';
 
-	// Format date to DD/MM/AA
+	// Format date to DD/MM/AA - Improved resilience
 	const formatDate = (dateStr) => {
-		if (!dateStr) return '';
-		const [year, month, day] = dateStr.split('-');
+		if (!dateStr || typeof dateStr !== 'string') return '';
+		const parts = dateStr.split('-');
+		if (parts.length < 3) return dateStr;
+		const [year, month, day] = parts;
 		return `${day}/${month}/${year.slice(-2)}`;
 	};
 
@@ -20,7 +23,7 @@ const BookingSuccess = ({ formData, createdId, getExtendedTime }) => {
 	const whatsappMessage = encodeURIComponent(
 		`¡Hola! Soy ${clientName}. He enviado una solicitud de reserva en Neverland.\n\n` +
 			`📍 *Detalles de la Reserva:*\n` +
-			`- ID: *${createdId}*\n` +
+			`- ID: *${createdId || 'N/A'}*\n` +
 			`- Día: *${formattedDate}*\n` +
 			`- Horario: *${reservationTime}*\n\n` +
 			`Aguardo su confirmación para completar el proceso. ¡Muchas gracias!`,
@@ -29,19 +32,19 @@ const BookingSuccess = ({ formData, createdId, getExtendedTime }) => {
 	const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
 	return (
-		<div className="flex flex-col items-center justify-center h-full text-center p-6 bg-white/50 rounded-3xl">
+		<div className="flex flex-col items-center justify-center min-h-[400px] h-full text-center p-6 bg-white/50 rounded-3xl">
 			<motion.div
 				initial={{ scale: 0 }}
 				animate={{ scale: 1 }}
 				transition={{ type: 'spring', damping: 12 }}
-				className="w-24 h-24 bg-neverland-green text-white rounded-full flex items-center justify-center mb-6 shadow-xl"
+				className="w-20 h-20 sm:w-24 sm:h-24 bg-neverland-green text-white rounded-full flex items-center justify-center mb-6 shadow-xl shrink-0"
 			>
-				<CheckCircle size={48} />
+				<CheckCircle className="w-10 h-10 sm:w-12 sm:h-12" />
 			</motion.div>
-			<h2 className="text-3xl font-display font-bold text-text-black mb-2">
+			<h2 className="text-2xl sm:text-3xl font-display font-bold text-text-black mb-2">
 				¡Solicitud Enviada!
 			</h2>
-			<div className="text-gray-600 max-w-sm mx-auto text-sm mb-8 space-y-4">
+			<div className="text-gray-600 max-w-sm mx-auto text-sm sm:text-base mb-8 space-y-4">
 				<p>
 					Gracias{' '}
 					<span className="font-bold text-neverland-green">{clientName}</span>.
@@ -56,13 +59,15 @@ const BookingSuccess = ({ formData, createdId, getExtendedTime }) => {
 						ID de tu solicitud
 					</span>
 					<span className="text-lg font-display font-black text-neverland-green bg-neverland-green/10 border-2 border-neverland-green/20 px-6 py-2 rounded-2xl shadow-inner tracking-widest">
-						{createdId}
+						{createdId || '---'}
 					</span>
 				</div>
-				<p>El equipo de Neverland te contactará muy pronto.</p>
+				<p className="text-xs sm:text-sm">
+					El equipo de Neverland te contactará muy pronto.
+				</p>
 			</div>
 
-			<div className="flex flex-col gap-3 w-full">
+			<div className="flex flex-col gap-3 w-full max-w-xs mx-auto">
 				<a
 					href={whatsappUrl}
 					target="_blank"

@@ -24,3 +24,10 @@ Hay un problema al editar la fecha de una reserva... era de turno 2 con extensi�
 edición de tiempo extra en reservas
 
 que al recargar en calendario admin no vuelva a bandeja de entrada ¿Crear página de cada parte del dashboard?
+
+Que abajo del precio de menu infantil en reserva y home, aparezca el texto "x niño" pequeñito y en cursiva.
+
+En preguntas frecuentes agregar todo lo que incluye el servicio, como la limpieza u otras cosas que puedan surgir, como tambien lo del servicio de cafetería etc...
+
+Información sobre las bebidas para padres, que se puede consumir en el salón, se puede traer comodia o bebida?
+
