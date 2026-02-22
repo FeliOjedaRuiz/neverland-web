@@ -275,18 +275,21 @@ const ConfigurationPanel = () => {
 							onToggle={() => toggleSection('kids')}
 							action={
 								<button
-									onClick={(e) => {
-										e.stopPropagation();
-										handleSave();
-									}}
-									className={`p-2 rounded-xl transition-all ${
-										hasChanges('kids')
-											? 'text-neverland-green bg-neverland-green/10 hover:bg-neverland-green/20'
-											: 'text-gray-300 hover:text-gray-400'
-									}`}
-									title="Guardar Cambios"
+									onClick={() =>
+										addItem(
+											'menusNiños',
+											{
+												nombre: '',
+												precio: 0,
+												principal: '',
+												resto: '',
+											},
+											'kids',
+										)
+									}
+									className="p-1.5 bg-neverland-green/10 text-neverland-green rounded-lg hover:bg-neverland-green hover:text-white transition-all shadow-sm"
 								>
-									<Save size={20} />
+									<Plus size={16} />
 								</button>
 							}
 						>
@@ -294,53 +297,34 @@ const ConfigurationPanel = () => {
 								{(config.menusNiños || []).map((menu, idx) => (
 									<div
 										key={menu.id || idx}
-										className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 relative group"
+										className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 relative group flex flex-col gap-4"
 									>
-										{/* Header Line: Name & Price */}
-										<div className="flex items-center justify-between gap-3 mb-3 px-1">
-											<div className="flex-1 flex items-center gap-2">
-												<div className="w-8 h-8 rounded-lg bg-neverland-green/10 flex items-center justify-center shrink-0">
-													<span className="text-xs font-black text-neverland-green">
-														{idx + 1}
-													</span>
-												</div>
-												<input
-													type="text"
-													value={menu.nombre}
-													placeholder="Nombre..."
-													onChange={(e) => {
-														const newList = [...config.menusNiños];
-														newList[idx] = {
-															...newList[idx],
-															nombre: e.target.value,
-														};
-														setConfig({ ...config, menusNiños: newList });
-													}}
-													className="bg-transparent border-none font-display font-black text-base text-text-black outline-none placeholder:text-gray-200 w-full"
-												/>
-											</div>
-											<div className="flex items-center bg-gray-50 rounded-lg px-2.5 py-1.5 border border-gray-100 shrink-0">
-												<input
-													type="number"
-													value={menu.precio}
-													onChange={(e) => {
-														const newList = [...config.menusNiños];
-														newList[idx] = {
-															...newList[idx],
-															precio: parseFloat(e.target.value),
-														};
-														setConfig({ ...config, menusNiños: newList });
-													}}
-													className="w-10 bg-transparent p-0 text-sm font-black text-neverland-green outline-none border-none text-right"
-												/>
-												<span className="text-[10px] font-black text-neverland-green opacity-40 ml-1">
-													€
+										{/* Row 1: Name and Index (Full Width) */}
+										<div className="flex items-center gap-3">
+											<div className="w-8 h-8 rounded-lg bg-neverland-green/10 flex items-center justify-center shrink-0">
+												<span className="text-xs font-black text-neverland-green">
+													{idx + 1}
 												</span>
 											</div>
+											<input
+												type="text"
+												value={menu.nombre}
+												placeholder="Nombre del menú..."
+												autoFocus={menu.isNew}
+												onChange={(e) => {
+													const newList = [...config.menusNiños];
+													newList[idx] = {
+														...newList[idx],
+														nombre: e.target.value,
+													};
+													setConfig({ ...config, menusNiños: newList });
+												}}
+												className="flex-1 bg-transparent border-none font-display font-black text-xl text-text-black outline-none placeholder:text-gray-200"
+											/>
 										</div>
 
-										{/* Content Inputs */}
-										<div className="space-y-2">
+										{/* Row 2: Basic Info Grid */}
+										<div className="grid grid-cols-2 gap-3">
 											<div className="bg-gray-50/30 rounded-xl p-2.5 border border-gray-50/50">
 												<div className="flex items-center gap-1.5 mb-0.5">
 													<label className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">
@@ -359,30 +343,85 @@ const ConfigurationPanel = () => {
 														};
 														setConfig({ ...config, menusNiños: newList });
 													}}
-													className="w-full bg-transparent p-0 text-sm font-bold text-gray-600 outline-none border-none pl-1"
+													className="w-full bg-transparent p-0 text-sm font-bold text-gray-600 outline-none border-none"
 												/>
 											</div>
 
-											<div className="bg-gray-50/30 rounded-xl p-2.5 border border-gray-50/50">
-												<div className="flex items-center gap-1.5 mb-1">
-													<label className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">
-														Detalles del Menú
-													</label>
+											<div className="bg-neverland-green/5 rounded-xl p-2.5 border border-neverland-green/10">
+												<label className="text-[9px] font-black text-neverland-green uppercase tracking-widest block leading-none mb-1">
+													Precio Base
+												</label>
+												<div className="flex items-center">
+													<input
+														type="number"
+														value={menu.precio}
+														onChange={(e) => {
+															const newList = [...config.menusNiños];
+															newList[idx] = {
+																...newList[idx],
+																precio: parseFloat(e.target.value),
+															};
+															setConfig({ ...config, menusNiños: newList });
+														}}
+														className="w-full bg-transparent p-0 text-sm font-black text-neverland-green outline-none border-none"
+													/>
+													<span className="text-[10px] font-black text-neverland-green opacity-40 ml-1">
+														€
+													</span>
 												</div>
-												<textarea
-													value={menu.resto}
-													rows={2}
-													placeholder="- Bebida\n- Postre..."
-													onChange={(e) => {
-														const newList = [...config.menusNiños];
-														newList[idx] = {
-															...newList[idx],
-															resto: e.target.value,
-														};
-														setConfig({ ...config, menusNiños: newList });
-													}}
-													className="w-full bg-transparent p-0 text-xs font-medium text-gray-500 outline-none border-none resize-none leading-normal pl-1 scrollbar-hide"
-												/>
+											</div>
+										</div>
+
+										{/* Row 3: Details Textarea */}
+										<div className="bg-gray-50/30 rounded-xl p-3 border border-gray-50/50">
+											<div className="flex items-center gap-1.5 mb-2">
+												<label className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">
+													Detalles del Menú (Bebida, postre...)
+												</label>
+											</div>
+											<textarea
+												value={menu.resto}
+												rows={2}
+												placeholder="- Bebida\n- Postre..."
+												onChange={(e) => {
+													const newList = [...config.menusNiños];
+													newList[idx] = {
+														...newList[idx],
+														resto: e.target.value,
+													};
+													setConfig({ ...config, menusNiños: newList });
+												}}
+												className="w-full bg-transparent p-0 text-sm font-medium text-gray-500 outline-none border-none resize-none leading-normal scrollbar-hide"
+											/>
+										</div>
+
+										{/* Row 4: Action Bar */}
+										<div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-1">
+											<div className="flex items-center gap-2">
+												{/* Placeholder for potential visibility switch similar to raciones */}
+												<span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">
+													Opciones de Menú
+												</span>
+											</div>
+											<div className="flex items-center gap-1.5">
+												<button
+													onClick={() => handleSave()}
+													className={`p-1.5 rounded-lg transition-all ${
+														isItemChanged('menusNiños', menu)
+															? 'text-neverland-green bg-neverland-green/10 scale-110 shadow-sm'
+															: 'text-gray-300 hover:text-neverland-green hover:bg-gray-50'
+													}`}
+													title="Guardar"
+												>
+													<Save size={18} />
+												</button>
+												<button
+													onClick={() => removeItem('menusNiños', idx)}
+													className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+													title="Eliminar"
+												>
+													<Trash2 size={18} />
+												</button>
 											</div>
 										</div>
 									</div>
