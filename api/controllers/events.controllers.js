@@ -442,7 +442,7 @@ module.exports.checkAvailability = async (req, res, next) => {
 
         const eventDateStr = start.toISOString().split('T')[0];
 
-        const shiftToBlock = eventTurno || keywordShift;
+        const shiftToBlock = eventTurno || keywordShift?.replace('#', '');
         if (shiftToBlock) {
           // 1. Por metadatos (App) o Palabra Clave específica (#T1, #T2, #T3)
           // Bloquea EXCLUSIVAMENTE su propio turno.
