@@ -381,13 +381,13 @@ const BookingPage = () => {
 	})();
 
 	return (
-		<div className="pt-16 sm:pt-20 pb-0 flex flex-col bg-surface sm:bg-cream-bg overflow-hidden min-h-screen h-dvh">
+		<div className="pt-16 sm:pt-20 pb-0 flex flex-col bg-surface sm:bg-cream-bg overflow-hidden fixed inset-0 w-full">
 			<BookingHeader stage={currentStage} stepsList={stepsList} />
 			<div className="flex-1 px-0 sm:px-4 pb-0 min-h-0 relative flex flex-col">
 				<div className="bg-surface sm:rounded-3xl sm:shadow-soft h-full flex flex-col relative overflow-hidden sm:border-t sm:border-x sm:border-white/50">
 					<div
 						ref={scrollContainerRef}
-						className={`flex-1 ${step === 1 && view === 'calendar' ? 'overflow-hidden pt-0 pb-24' : 'overflow-y-auto overflow-x-hidden pb-32 pt-4'} px-4 sm:p-6 no-scrollbar`}
+						className={`flex-1 min-h-0 relative ${step === 1 && view === 'calendar' ? 'overflow-hidden pt-0 pb-2' : 'overflow-y-auto overflow-x-hidden pb-8 pt-4'} px-4 sm:p-6 no-scrollbar`}
 					>
 						<AnimatePresence mode="wait">
 							<motion.div
@@ -396,7 +396,7 @@ const BookingPage = () => {
 								animate={{ opacity: 1, x: 0 }}
 								exit={{ opacity: 0, x: -20 }}
 								transition={{ duration: 0.3 }}
-								className="flex flex-col h-full"
+								className="flex flex-col min-h-full"
 							>
 								{step === 1 && (
 									<Step1Date
@@ -476,7 +476,7 @@ const BookingPage = () => {
 							</motion.div>
 						</AnimatePresence>
 					</div>
-					<div className="fixed bottom-0 left-0 right-0 z-50 bg-surface sm:absolute sm:bottom-0 sm:left-0 sm:right-0">
+					<div className="z-50 shrink-0 pb-[env(safe-area-inset-bottom)] bg-white sm:rounded-b-3xl w-full">
 						<BookingNavigation
 							step={step}
 							loading={loading}

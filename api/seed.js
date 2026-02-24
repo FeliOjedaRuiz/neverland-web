@@ -3,8 +3,8 @@ const mongoose = require('mongoose');
 const Event = require('./models/event.model');
 const Config = require('./models/config.model');
 
-// Hardcoded for seed script simplicity in this environment
-const MONGO_URI = 'mongodb+srv://felicianoojedaruiz:h5D9YS7JO1QBAfYM@proyects-cluster.gmoy64l.mongodb.net/neverland-app';
+// Hardcoded for seed script simplicity in this environmentrequire('dotenv').config();
+const MONGO_URI = process.env.MONGODB_URI;
 
 const seedDB = async () => {
   try {

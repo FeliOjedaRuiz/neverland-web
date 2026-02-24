@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 const Config = require('./models/config.model');
 
-// Using the same connection URI from seed.js
-const MONGO_URI = 'mongodb+srv://felicianoojedaruiz:h5D9YS7JO1QBAfYM@proyects-cluster.gmoy64l.mongodb.net/neverland-app';
+// Using the same connection URI from seed.jsrequire('dotenv').config();
+const MONGO_URI = process.env.MONGODB_URI;
 
 const backupData = {
   "preciosExtras": {
