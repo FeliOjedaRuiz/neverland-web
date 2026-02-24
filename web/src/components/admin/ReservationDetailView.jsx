@@ -388,6 +388,33 @@ const ReservationDetailView = ({
 					</div>
 				</section>
 
+				{/* Observaciones - Moved between Date/Time and Menus */}
+				<section className="space-y-4 max-w-3xl mx-auto">
+					<div className="flex justify-between items-center">
+						<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+							<MessageSquare size={14} /> Observaciones
+						</h4>
+						<button
+							onClick={() => setActiveModal('observations')}
+							className="p-1.5 hover:bg-neverland-green/10 text-neverland-green rounded-lg transition-colors"
+						>
+							<Pencil size={14} />
+						</button>
+					</div>
+					<div className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden group">
+						<div className="absolute top-0 left-0 w-1 h-full bg-blue-400 opacity-20"></div>
+						{reservation.detalles?.extras?.observaciones ? (
+							<p className="text-sm font-medium text-gray-700 italic leading-relaxed">
+								"{reservation.detalles.extras.observaciones}"
+							</p>
+						) : (
+							<p className="text-xs text-gray-400 italic">
+								No hay observaciones para esta reserva
+							</p>
+						)}
+					</div>
+				</section>
+
 				{/* Menus */}
 				<section className="space-y-4 max-w-3xl mx-auto">
 					<div className="flex justify-between items-center">
@@ -593,6 +620,7 @@ const ReservationDetailView = ({
 								{activeModal === 'datetime' && 'Editar Fecha y Horario'}
 								{activeModal === 'menus' && 'Editar Menús y Asistencia'}
 								{activeModal === 'extras' && 'Editar Extras y Actividades'}
+								{activeModal === 'observations' && 'Editar Observaciones'}
 							</h3>
 							<button
 								onClick={() => setActiveModal(null)}
@@ -660,6 +688,34 @@ const ReservationDetailView = ({
 												detalles: {
 													...reservation.detalles,
 													extras: newExtras,
+												},
+											});
+											setReservation(res.data);
+											setActiveModal(null);
+										} catch (err) {
+											console.error(err);
+											alert('Error al guardar');
+										} finally {
+											setIsUpdating(false);
+										}
+									}}
+								/>
+							)}
+
+							{activeModal === 'observations' && (
+								<ObservationsEdit
+									current={reservation.detalles.extras.observaciones}
+									onCancel={() => setActiveModal(null)}
+									onSave={async (newObs) => {
+										setIsUpdating(true);
+										try {
+											const res = await updateReservation(reservation.id, {
+												detalles: {
+													...reservation.detalles,
+													extras: {
+														...reservation.detalles.extras,
+														observaciones: newObs,
+													},
 												},
 											});
 											setReservation(res.data);
@@ -1286,7 +1342,30 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 				</div>
 			</div>
 
-			{/* Observaciones Edit */}
+			<div className="flex gap-3 pt-6 border-t border-gray-100">
+				<button
+					onClick={() => onSave(formData)}
+					className="flex-1 py-4 bg-neverland-green text-white rounded-2xl font-black text-sm shadow-lg shadow-neverland-green/20 transition-all active:scale-95"
+				>
+					Guardar
+				</button>
+				<button
+					onClick={onCancel}
+					className="px-8 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-sm transition-all active:scale-95"
+				>
+					Cancelar
+				</button>
+			</div>
+		</div>
+	);
+};
+
+// Sub-component for Observations Edit
+const ObservationsEdit = ({ current, onCancel, onSave }) => {
+	const [obs, setObs] = useState(current || '');
+
+	return (
+		<div className="space-y-6">
 			<div className="space-y-3">
 				<label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1">
 					Observaciones / Notas del Cliente
@@ -1296,20 +1375,15 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 						<MessageSquare size={18} />
 					</div>
 					<textarea
-						value={formData.observaciones || ''}
-						onChange={(e) =>
-							setFormData({
-								...formData,
-								observaciones: e.target.value.substring(0, 500),
-							})
-						}
+						value={obs}
+						onChange={(e) => setObs(e.target.value.substring(0, 500))}
 						maxLength={500}
-						className="w-full bg-gray-50 border border-gray-100 rounded-3xl pl-12 pr-4 py-4 text-sm font-bold text-text-black focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all resize-y min-h-[100px]"
+						className="w-full bg-gray-50 border border-gray-100 rounded-3xl pl-12 pr-4 py-4 text-sm font-bold text-text-black focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all resize-y min-h-[150px]"
 						placeholder="Alergias, peticiones especiales..."
 					/>
 					<div className="text-right mt-1">
 						<span className="text-[10px] text-gray-400 font-medium">
-							{(formData.observaciones || '').length}/500
+							{obs.length}/500
 						</span>
 					</div>
 				</div>
@@ -1317,7 +1391,7 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 
 			<div className="flex gap-3 pt-6 border-t border-gray-100">
 				<button
-					onClick={() => onSave(formData)}
+					onClick={() => onSave(obs)}
 					className="flex-1 py-4 bg-neverland-green text-white rounded-2xl font-black text-sm shadow-lg shadow-neverland-green/20 transition-all active:scale-95"
 				>
 					Guardar

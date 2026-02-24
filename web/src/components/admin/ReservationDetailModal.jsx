@@ -134,6 +134,25 @@ const ReservationDetailModal = ({ reservation, onClose }) => {
 						</div>
 					</section>
 
+					{/* Observaciones - Moved between Date/Time and Menus */}
+					<section className="space-y-3">
+						<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+							<MessageSquare size={14} /> Observaciones / Notas
+						</h4>
+						<div className="p-4 px-6 rounded-2xl border bg-gray-50 border-gray-100 flex flex-col gap-2 relative w-full overflow-hidden">
+							<div className="absolute top-0 left-0 w-1 h-full bg-blue-400 opacity-20"></div>
+							{reservation.detalles?.extras?.observaciones ? (
+								<p className="text-sm font-medium text-gray-700 italic">
+									"{reservation.detalles.extras.observaciones}"
+								</p>
+							) : (
+								<p className="text-xs text-gray-400 italic">
+									Sin observaciones adicionales
+								</p>
+							)}
+						</div>
+					</section>
+
 					{/* Menus */}
 					<section className="space-y-4">
 						<h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
@@ -223,20 +242,6 @@ const ReservationDetailModal = ({ reservation, onClose }) => {
 								</span>
 							</div>
 						</div>
-						{/* Observaciones */}
-						{reservation.detalles?.extras?.observaciones && (
-							<div className="mt-3 p-4 px-6 rounded-2xl border bg-gray-50 border-gray-100 flex flex-col gap-2 relative w-full">
-								<div className="flex items-center gap-2">
-									<MessageSquare size={16} className="text-blue-500" />
-									<span className="text-[10px] font-black uppercase tracking-widest text-blue-500">
-										Observaciones
-									</span>
-								</div>
-								<p className="text-sm font-medium text-gray-700 italic">
-									"{reservation.detalles.extras.observaciones}"
-								</p>
-							</div>
-						)}
 					</section>
 				</div>
 

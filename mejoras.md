@@ -18,8 +18,6 @@ Tarjeta de invitación para cumpleaños con datos de la reserva.
 
 Hacer de la vista de detalles de reserva una página aparte con su propia url, solo accesible por el admin y el usuario que realizó la reserva.
 
-Hay un problema al editar la fecha de una reserva... era de turno 2 con extensión de media hora más temprano, al cambiar de día, luego aparece bloqueado el turno 1, como si la solapara. Revisar bien la lógica de solapamiento de turnos.
-
 edición de tiempo extra en reservas
 
 que al recargar en calendario admin no vuelva a bandeja de entrada ¿Crear página de cada parte del dashboard?
