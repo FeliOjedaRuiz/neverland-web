@@ -1298,11 +1298,20 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 					<textarea
 						value={formData.observaciones || ''}
 						onChange={(e) =>
-							setFormData({ ...formData, observaciones: e.target.value })
+							setFormData({
+								...formData,
+								observaciones: e.target.value.substring(0, 500),
+							})
 						}
+						maxLength={500}
 						className="w-full bg-gray-50 border border-gray-100 rounded-3xl pl-12 pr-4 py-4 text-sm font-bold text-text-black focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all resize-y min-h-[100px]"
 						placeholder="Alergias, peticiones especiales..."
 					/>
+					<div className="text-right mt-1">
+						<span className="text-[10px] text-gray-400 font-medium">
+							{(formData.observaciones || '').length}/500
+						</span>
+					</div>
 				</div>
 			</div>
 

@@ -255,13 +255,19 @@ const Step7Extras = ({ formData, setFormData, getExtendedTime, prices }) => {
 								...formData,
 								extras: {
 									...formData.extras,
-									observaciones: e.target.value,
+									observaciones: e.target.value.substring(0, 500),
 								},
 							})
 						}
+						maxLength={500}
 						placeholder="Aquí puedes agregar alergias u otras cosas que quieras comentarnos..."
 						className="w-full min-h-[100px] p-3 rounded-2xl border-2 border-gray-100 bg-gray-50 text-sm resize-none focus:outline-none focus:border-blue-300 focus:bg-white transition-all text-gray-700"
 					/>
+					<div className="text-right mt-1">
+						<span className="text-[10px] text-gray-400 font-medium">
+							{(formData.extras.observaciones || '').length}/500
+						</span>
+					</div>
 				</div>
 			</div>
 		</div>

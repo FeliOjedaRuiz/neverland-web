@@ -137,3 +137,20 @@ Emitted 'error' event on Server instance at:
 
 Node.js v24.12.0
 [31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node app.js`[39m
+aplication is running at port 8080
+Google Calendar Service initialized successfully
+Successfully connect to the database
+[0mGET /api/v1/config [36m304[0m 135.501 ms - -[0m
+[0mGET /api/v1/config [36m304[0m 134.971 ms - -[0m
+[0mGET /api/v1/events/availability?year=2026&month=2 [36m304[0m 1530.679 ms - -[0m
+[0mGET /api/v1/events/availability?year=2026&month=2 [36m304[0m 688.107 ms - -[0m
+[0mGET /api/v1/events/availability?year=2026&month=3 [36m304[0m 662.300 ms - -[0m
+[0mGET /api/v1/events/availability?year=2026&month=1 [36m304[0m 693.963 ms - -[0m
+[0mGET /api/v1/events/availability?year=2026&month=1 [36m304[0m 482.862 ms - -[0m
+[0mGET /api/v1/events/availability?year=2026&month=3 [36m304[0m 878.816 ms - -[0m
+[0mGET /api/v1/events/availability?year=2026&month=1 [36m304[0m 678.540 ms - -[0m
+[0mGET /api/v1/events/availability?year=2026&month=3 [36m304[0m 837.792 ms - -[0m
+[0mGET /api/v1/events/availability?year=2026&month=1 [36m304[0m 499.030 ms - -[0m
+[0mGET /api/v1/events/availability?year=2026&month=3 [36m304[0m 632.609 ms - -[0m
