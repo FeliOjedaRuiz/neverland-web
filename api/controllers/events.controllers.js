@@ -395,51 +395,10 @@ module.exports.checkAvailability = async (req, res, next) => {
 
     dbEvents.forEach(event => {
       const eventDateStr = event.fecha.toISOString().split('T')[0];
-
-      // Si el evento tiene horario específico (inicio/fin), usarlo para solapamiento
-      if (event.horario?.inicio && event.horario?.fin && event.horario.inicio !== '00:00') {
-        const [hStart, mStart] = event.horario.inicio.split(':').map(Number);
-        const [hEnd, mEnd] = event.horario.fin.split(':').map(Number);
-
-        const start = new Date(eventDateStr);
-        start.setHours(hStart, mStart, 0, 0);
-
-        const end = new Date(eventDateStr);
-        end.setHours(hEnd, mEnd, 0, 0);
-
-        Object.entries(SHIFTS).forEach(([shiftId, time]) => {
-          const shiftStart = new Date(eventDateStr);
-          shiftStart.setHours(time.start[0], time.start[1], 0, 0);
-          const shiftEnd = new Date(eventDateStr);
-          shiftEnd.setHours(time.end[0], time.end[1], 0, 0);
-
-          if (start < shiftEnd && end > shiftStart) {
-            occupied.push({ date: eventDateStr, shift: shiftId, id: String(event._id) });
-          }
-        });
-      } else {
-        // Fallback: Si no hay horario específico, bloquea su turno y otros que solapen con el horario base del turno
-        const baseTime = SHIFTS[event.turno];
-        if (baseTime) {
-          const start = new Date(eventDateStr);
-          start.setHours(baseTime.start[0], baseTime.start[1], 0, 0);
-          const end = new Date(eventDateStr);
-          end.setHours(baseTime.end[0], baseTime.end[1], 0, 0);
-
-          Object.entries(SHIFTS).forEach(([shiftId, time]) => {
-            const shiftStart = new Date(eventDateStr);
-            shiftStart.setHours(time.start[0], time.start[1], 0, 0);
-            const shiftEnd = new Date(eventDateStr);
-            shiftEnd.setHours(time.end[0], time.end[1], 0, 0);
-
-            if (start < shiftEnd && end > shiftStart) {
-              occupied.push({ date: eventDateStr, shift: shiftId, id: String(event._id) });
-            }
-          });
-        } else {
-          // Si por lo que sea el turno es raro, solo bloquea el turno
-          occupied.push({ date: eventDateStr, shift: event.turno, id: String(event._id) });
-        }
+      // El solapamiento entre salas se gestiona manualmente. 
+      // Si hay un evento en BD local, bloquea EXCLUSIVAMENTE su turno designado.
+      if (event.turno) {
+        occupied.push({ date: eventDateStr, shift: event.turno, id: String(event._id) });
       }
     });
 
@@ -483,14 +442,16 @@ module.exports.checkAvailability = async (req, res, next) => {
 
         const eventDateStr = start.toISOString().split('T')[0];
 
-        Object.entries(SHIFTS).forEach(([shiftId, time]) => {
+        const shiftToBlock = eventTurno || keywordShift;
+        if (shiftToBlock) {
           // 1. Por metadatos (App) o Palabra Clave específica (#T1, #T2, #T3)
-          if (eventTurno === shiftId || keywordShift === shiftId) {
-            occupied.push({ date: eventDateStr, shift: shiftId, id: bookingId || gEvent.id });
-            return;
-          }
+          // Bloquea EXCLUSIVAMENTE su propio turno.
+          occupied.push({ date: eventDateStr, shift: shiftToBlock, id: bookingId || gEvent.id });
+          return;
+        }
 
-          // 2. Por solapamiento (Si es un evento de Neverland/Bloqueo sin turno específico)
+        Object.entries(SHIFTS).forEach(([shiftId, time]) => {
+          // 2. Por solapamiento (Si es un evento genérico de Google Calendar/Bloqueo SIN turno específico)
           const shiftStart = new Date(eventDateStr);
           shiftStart.setHours(time.start[0], time.start[1], 0, 0);
 

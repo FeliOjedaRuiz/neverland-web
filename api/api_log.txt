@@ -56,3 +56,8 @@ Emitted 'error' event on Server instance at:
 
 Node.js v24.12.0
 [31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node app.js`[39m
+aplication is running at port 8080
+Google Calendar Service initialized successfully
+Successfully connect to the database

@@ -1,7 +1,7 @@
 
 ¿Que pasa al cambiar cantidad de una ración que cambio el precio?
 
-Campo de observaciones en el formulario de reserva 
+Tenemos que implementar un nuevo campo de observaciones en el formulario de reserva, habría que ponerlo luego de la piñata, debe tener de titulo "Observaciones" y debe ser un textarea. Y un subtitulo con algo como
 
 Completar mensaje de whatsapp al solicitar reserva
 
