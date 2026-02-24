@@ -21,6 +21,7 @@ import {
 	CheckCircle,
 	Pizza,
 	Mail,
+	MessageSquare,
 } from 'lucide-react';
 import {
 	updateReservation,
@@ -1282,6 +1283,26 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 					className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${formData.pinata ? 'border-energy-orange bg-energy-orange text-white' : 'border-gray-200 bg-white text-transparent'}`}
 				>
 					<Check size={18} />
+				</div>
+			</div>
+
+			{/* Observaciones Edit */}
+			<div className="space-y-3">
+				<label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1">
+					Observaciones / Notas del Cliente
+				</label>
+				<div className="relative">
+					<div className="absolute top-4 left-4 text-blue-400">
+						<MessageSquare size={18} />
+					</div>
+					<textarea
+						value={formData.observaciones || ''}
+						onChange={(e) =>
+							setFormData({ ...formData, observaciones: e.target.value })
+						}
+						className="w-full bg-gray-50 border border-gray-100 rounded-3xl pl-12 pr-4 py-4 text-sm font-bold text-text-black focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all resize-y min-h-[100px]"
+						placeholder="Alergias, peticiones especiales..."
+					/>
 				</div>
 			</div>
 

@@ -105,6 +105,9 @@ module.exports.createCalendarEvent = async (booking) => {
 - **Piñata**: ${detalles?.extras?.pinata ? 'Sí' : 'No'}
 - **Extensión**: ${booking.horario?.extensionMinutos || 0} min (+${booking.horario?.costoExtension || 0}€)
 
+**📝 OBSERVACIONES**:
+- ${detalles?.extras?.observaciones || 'Ninguna'}
+
 **💰 TOTAL RESERVA**: ${booking.precioTotal}€
 **🆔 ID**: ${booking.publicId || _id}
       `.trim();

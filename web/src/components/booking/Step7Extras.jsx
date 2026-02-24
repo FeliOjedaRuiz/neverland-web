@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, CheckCircle } from 'lucide-react';
+import { Clock, CheckCircle, MessageSquare } from 'lucide-react';
 
 const Step7Extras = ({ formData, setFormData, getExtendedTime, prices }) => {
 	const getPriceForExtension = (mins) => {
@@ -233,6 +233,35 @@ const Step7Extras = ({ formData, setFormData, getExtendedTime, prices }) => {
 					>
 						{formData.extras.pinata && <CheckCircle size={16} />}
 					</div>
+				</div>
+
+				{/* Observaciones */}
+				<div className="p-4 rounded-3xl border-2 border-white bg-white shadow-sm mt-3">
+					<div className="flex items-center gap-3 mb-3">
+						<div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+							<MessageSquare size={20} />
+						</div>
+						<div>
+							<p className="font-bold text-gray-800">Observaciones</p>
+							<p className="text-xs text-gray-500">
+								¿Algo extra que debamos saber?
+							</p>
+						</div>
+					</div>
+					<textarea
+						value={formData.extras.observaciones || ''}
+						onChange={(e) =>
+							setFormData({
+								...formData,
+								extras: {
+									...formData.extras,
+									observaciones: e.target.value,
+								},
+							})
+						}
+						placeholder="Aquí puedes agregar alergias u otras cosas que quieras comentarnos..."
+						className="w-full min-h-[100px] p-3 rounded-2xl border-2 border-gray-100 bg-gray-50 text-sm resize-none focus:outline-none focus:border-blue-300 focus:bg-white transition-all text-gray-700"
+					/>
 				</div>
 			</div>
 		</div>

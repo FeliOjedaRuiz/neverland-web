@@ -131,6 +131,14 @@ const Step8Summary = ({
 							</span>
 						</div>
 					)}
+					{formData.extras.observaciones && (
+						<div className="text-gray-600 text-xs pt-2 border-t border-gray-100 mt-2">
+							<span className="font-bold block mb-1">Notas:</span>
+							<p className="italic bg-gray-50 rounded-lg p-2 max-h-24 overflow-y-auto w-full break-words">
+								{formData.extras.observaciones}
+							</p>
+						</div>
+					)}
 				</div>
 
 				{/* Total */}

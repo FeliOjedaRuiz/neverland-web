@@ -10,6 +10,7 @@ import {
 	Smile,
 	Package,
 	ChevronRight,
+	MessageSquare,
 } from 'lucide-react';
 
 const ReservationDetailModal = ({ reservation, onClose }) => {
@@ -222,6 +223,20 @@ const ReservationDetailModal = ({ reservation, onClose }) => {
 								</span>
 							</div>
 						</div>
+						{/* Observaciones */}
+						{reservation.detalles?.extras?.observaciones && (
+							<div className="mt-3 p-4 px-6 rounded-2xl border bg-gray-50 border-gray-100 flex flex-col gap-2 relative w-full">
+								<div className="flex items-center gap-2">
+									<MessageSquare size={16} className="text-blue-500" />
+									<span className="text-[10px] font-black uppercase tracking-widest text-blue-500">
+										Observaciones
+									</span>
+								</div>
+								<p className="text-sm font-medium text-gray-700 italic">
+									"{reservation.detalles.extras.observaciones}"
+								</p>
+							</div>
+						)}
 					</section>
 				</div>
 

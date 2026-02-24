@@ -53,7 +53,8 @@ const eventSchema = new mongoose.Schema({
       personaje: { type: String, default: 'ninguno' },
       precioPersonajeApplied: { type: Number }, // [NEW] Snapshot
       pinata: { type: Boolean, default: false },
-      precioPinataApplied: { type: Number } // [NEW] Snapshot
+      precioPinataApplied: { type: Number }, // [NEW] Snapshot
+      observaciones: { type: String, default: '' }
     }
   },
 
