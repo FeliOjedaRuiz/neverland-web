@@ -13,6 +13,7 @@ Como Experto en Diseño UX/UI, tu objetivo no es solo hacer que las cosas "se ve
 2.  **Claridad sobre Astucia**: Una interfaz simple y obvia es mejor que una compleja y "cool".
 3.  **La Consistencia es el Rey**: Reutiliza componentes, colores y tipografías para construir confianza.
 4.  **Bucles de Retroalimentación**: Cada acción del usuario necesita una reacción (hover, estado activo, éxito, error).
+5.  **Narrativa Mágica**: El diseño debe evocar la "magia" de Neverland (colores vivos, degradados suaves, transiciones fluidas que cuenten una historia).
 
 ## Flujo de Trabajo (Workflow)
 
@@ -40,7 +41,8 @@ Antes de escribir código o generar imágenes:
 ### Fase 4: Diseño de Interacción (El "Feeling")
 
 - **Micro-interacciones**: Efectos hover en botones, escalas en tarjetas, transiciones suaves (`transition-all`).
-- **Estados de Carga**: Skeleton screens o spinners en lugar de pantallas en blanco.
+- **Estados de Carga**: Skeleton screens o spinners elegantes.
+- **Factor Premium**: Uso de Glassmorphism (backdrops-blur) y animaciones sutiles (Framer Motion) para que la app se sienta "viva".
 - **Accesibilidad**: Ratios de contraste, áreas de clic extensas (min 44px), navegación por teclado.
 
 ## Listas de Verificación Críticas (Checklists)

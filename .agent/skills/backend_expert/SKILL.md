@@ -14,6 +14,8 @@ This skill provides expertise in the specific backend architecture of the Neverl
 - **Database**: MongoDB (via Mongoose)
 - **Authentication**: JWT (JSON Web Tokens)
 - **Security**: Helmet, CORS, xss-clean, express-mongo-sanitize, express-rate-limit
+- **Validation**: Joi or Zod (for strict input validation)
+- **Monitoring**: Morgan (logging)
 
 ## 2. Project Structure (`/api`)
 
@@ -42,6 +44,8 @@ This skill provides expertise in the specific backend architecture of the Neverl
 - Use standard Express middleware signature: `(req, res, next)`.
 - Return JSON responses: `res.json(data)` or `res.status(201).json(data)`.
 - Use Mongoose promises: `.then().catch(next)`.
+- **Optimization**: ALWAYS ensure indexes are created for frequently queried fields (e.g., `date` in events).
+- **Cleanup**: Controllers should be thin; move complex logic to Services if needed.
 
 ### Authentication
 
