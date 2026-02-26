@@ -27,6 +27,10 @@ import Step6Characters from '../components/booking/Step6Characters';
 import Step7Extras from '../components/booking/Step7Extras';
 import Step8Summary from '../components/booking/Step8Summary';
 import BookingSuccess from '../components/booking/BookingSuccess';
+import {
+	calculateBookingTotal,
+	validateBookingStep,
+} from '../utils/bookingUtils';
 
 // --- Constants & Data ---
 
@@ -218,80 +222,10 @@ const BookingPage = () => {
 		}
 	};
 
-	const validateStep = () => {
-		if (step === 1) return formData.fecha && formData.turno;
-		if (step === 2) {
-			const { nombreNiño, edadNiño, nombrePadre, telefono, email } =
-				formData.cliente;
-			let isPhoneValid = telefono.length >= 9;
-			if (telefono.startsWith('+')) isPhoneValid = telefono.length >= 11;
-			const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-			return (
-				nombreNiño &&
-				edadNiño &&
-				parseInt(edadNiño) > 0 &&
-				nombrePadre &&
-				isPhoneValid &&
-				isEmailValid
-			);
-		}
-		if (step === 4) return formData.adultos.cantidad > 0;
-		return true;
-	};
+	const validateStep = () => validateBookingStep(step, formData);
 
-	const calculateTotal = () => {
-		let total = 0;
-		const menu = childrenMenusWithPrices.find(
-			(m) => String(m.id) === String(formData.niños.menuId),
-		);
-		const childPrice = Number(menu ? menu.price : 0) || 0;
-		let subTotalNiños = childPrice * (Number(formData.niños.cantidad) || 0);
-
-		if (formData.fecha) {
-			const date = new Date(formData.fecha);
-			if (!isNaN(date.getTime())) {
-				const day = date.getDay();
-				if (day === 0 || day === 5 || day === 6) {
-					subTotalNiños +=
-						(prices.plusFinDeSemana || 1.5) * formData.niños.cantidad;
-				}
-			}
-		}
-		total += subTotalNiños;
-
-		formData.adultos.comida.forEach((item) => {
-			total += (item.precioUnitario || 0) * item.cantidad;
-		});
-
-		if (formData.extras.taller !== 'ninguno') {
-			const workshop = prices.workshops?.find(
-				(w) =>
-					String(w.name).toLowerCase() ===
-					String(formData.extras.taller).toLowerCase(),
-			);
-			if (workshop) {
-				total +=
-					formData.niños.cantidad > 15
-						? workshop.pricePlus || 0
-						: workshop.priceBase || 0;
-			} else {
-				total +=
-					formData.niños.cantidad > 15
-						? prices.preciosExtras.tallerPlus || 30
-						: prices.preciosExtras.tallerBase || 25;
-			}
-		}
-
-		if (formData.extras.personaje !== 'ninguno')
-			total += prices.preciosExtras.personaje || 40;
-		if (formData.extras.pinata) total += prices.preciosExtras.pinata || 15;
-		if (formData.extras.extension === 30)
-			total += prices.preciosExtras.extension30 || 30;
-		if (formData.extras.extension === 60)
-			total += prices.preciosExtras.extension60 || 50;
-
-		return total;
-	};
+	const calculateTotal = () =>
+		calculateBookingTotal(formData, prices, childrenMenusWithPrices);
 
 	const getTurnoLabel = (t) => {
 		const labels = {
