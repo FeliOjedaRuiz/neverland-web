@@ -10,7 +10,9 @@ const xss = require('xss-clean');
 const { apiLimiter } = require('./config/security.config');
 
 //** Load configuration */
-require('./config/db.config');
+if (process.env.NODE_ENV !== 'test') {
+	require('./config/db.config');
+}
 const app = express();
 app.set('trust proxy', 1); // trust first proxy
 
@@ -86,7 +88,11 @@ app.use((error, req, res, next) => {
 	res.status(error.status).json(data);
 });
 
-const port = process.env.PORT || 8080;
-app.listen(port, '0.0.0.0', () => {
-	console.info(`aplication is running at port ${port}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+	const port = process.env.PORT || 8080;
+	app.listen(port, '0.0.0.0', () => {
+		console.info(`aplication is running at port ${port}`);
+	});
+}
+
+module.exports = app;

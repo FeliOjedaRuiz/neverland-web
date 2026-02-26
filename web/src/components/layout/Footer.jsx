@@ -31,7 +31,7 @@ const Footer = () => {
 							<div className="flex items-center gap-4">
 								<Phone className="text-energy-orange flex-shrink-0" size={20} />
 								<a
-									href="https://wa.me/34651707985"
+									href="https://wa.me/34651707985?text=Hola%2C%20me%20gustar%C3%ADa%20m%C3%A1s%20informaci%C3%B3n%20para%20reservar%20en%20Neverland%20Cullar%20Vega."
 									className="text-gray-300 text-sm hover:text-white transition-colors"
 								>
 									651 70 79 85

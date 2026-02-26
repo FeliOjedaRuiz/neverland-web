@@ -235,7 +235,7 @@ const BookingPage = () => {
 				isEmailValid
 			);
 		}
-		if (step === 4) return formData.adultos.cantidad >= 0;
+		if (step === 4) return formData.adultos.cantidad > 0;
 		return true;
 	};
 
@@ -271,12 +271,12 @@ const BookingPage = () => {
 			);
 			if (workshop) {
 				total +=
-					formData.niños.cantidad >= 15
+					formData.niños.cantidad > 15
 						? workshop.pricePlus || 0
 						: workshop.priceBase || 0;
 			} else {
 				total +=
-					formData.niños.cantidad >= 15
+					formData.niños.cantidad > 15
 						? prices.preciosExtras.tallerPlus || 30
 						: prices.preciosExtras.tallerBase || 25;
 			}
@@ -360,7 +360,10 @@ const BookingPage = () => {
 		} catch (error) {
 			console.error(error);
 			setLoading(false);
-			alert('Error al reservar. Por favor intenta de nuevo.');
+			const errorMsg =
+				error.response?.data?.message ||
+				'Error al reservar. Por favor intenta de nuevo.';
+			alert(errorMsg);
 		}
 	};
 

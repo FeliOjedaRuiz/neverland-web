@@ -29,6 +29,7 @@ import {
 	getConfig,
 	checkAvailability,
 } from '../../services/api';
+import { formatSafeDate, formatLongSafeDate } from '../../utils/safeDate';
 
 const ReservationDetailView = ({
 	reservation: initialReservation,
@@ -107,19 +108,11 @@ const ReservationDetailView = ({
 	};
 
 	const formatDate = (dateString, format = 'long') => {
+		if (!dateString) return '';
 		if (format === 'short') {
-			const d = new Date(dateString);
-			return `${String(d.getDate()).padStart(2, '0')}/${String(
-				d.getMonth() + 1,
-			).padStart(2, '0')}/${String(d.getFullYear()).substring(2)}`;
+			return formatSafeDate(dateString);
 		}
-		const options = {
-			weekday: 'long',
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric',
-		};
-		return new Date(dateString).toLocaleDateString('es-ES', options);
+		return formatLongSafeDate(dateString);
 	};
 
 	const getTurnoLabel = (turnoId, horario) => {
@@ -146,7 +139,7 @@ const ReservationDetailView = ({
 		<div className="flex flex-col h-full bg-white animate-in slide-in-from-right duration-300 relative">
 			{/* Modal de Confirmación de Borrado */}
 			{showDeleteConfirm && (
-				<div className="absolute inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+				<div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all animate-in fade-in duration-200">
 					<div className="bg-white w-full max-w-sm rounded-[32px] p-8 shadow-2xl animate-in zoom-in-95 duration-200">
 						<div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
 							<AlertTriangle size={32} />
@@ -1142,7 +1135,7 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 						<h5 className="text-sm font-display font-black text-energy-orange uppercase tracking-wider">
 							Adultos y Comida
 						</h5>
-						<p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none">
+						<p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1 wrap-break-word">
 							Gestión de asistentes y menú
 						</p>
 					</div>

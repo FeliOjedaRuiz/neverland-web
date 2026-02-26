@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
 import { getConfig } from '../../services/api';
 
-const MenuCard = ({ name, mainCourse, items, delay }) => {
+const MenuCard = ({ name, mainCourse, price, items, delay }) => {
 	const { ref, controls } = useScrollReveal(0.1);
 
 	return (
@@ -25,9 +25,17 @@ const MenuCard = ({ name, mainCourse, items, delay }) => {
 			<div className="absolute top-0 right-0 w-32 h-32 bg-energy-orange/5 rounded-full -mr-16 -mt-16 group-hover:bg-energy-orange/10 transition-colors duration-500" />
 
 			<div className="relative mb-8">
-				<h3 className="text-3xl font-display font-black text-text-black mb-2 group-hover:text-neverland-green transition-colors">
+				<h3 className="text-3xl font-display font-black text-text-black mb-1 group-hover:text-neverland-green transition-colors">
 					{name}
 				</h3>
+				{price !== undefined && (
+					<div className="mb-3 flex items-baseline gap-1">
+						<span className="text-2xl font-black text-energy-orange">
+							{price}€
+						</span>
+						<span className="text-sm italic text-text-muted">x niño</span>
+					</div>
+				)}
 				<div className="inline-block px-3 py-1 bg-neverland-green/10 rounded-lg">
 					<span className="text-[10px] font-black text-neverland-green uppercase tracking-[0.2em]">
 						{mainCourse}
@@ -70,6 +78,7 @@ const MenusSection = () => {
 					const formattedMenus = res.data.menusNiños.map((m) => ({
 						name: m.nombre, // "Menú 1", "Menú 2", etc.
 						mainCourse: m.principal, // "Sándwiches", "Perrito caliente", etc.
+						price: m.precio, // Extraemos el precio del menú
 						items: m.resto ? m.resto.split('\n').filter((i) => i.trim()) : [],
 					}));
 					setMenus(formattedMenus);

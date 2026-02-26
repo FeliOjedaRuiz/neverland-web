@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
+import { formatSafeDate } from '../../utils/safeDate';
 
 const BookingSuccess = ({ formData, createdId, getExtendedTime }) => {
 	const whatsappNumber = '34651707985'; // Number from Footer
@@ -9,16 +10,7 @@ const BookingSuccess = ({ formData, createdId, getExtendedTime }) => {
 		typeof getExtendedTime === 'function' ? getExtendedTime() : '';
 	const clientName = formData?.cliente?.nombrePadre || 'Cliente';
 
-	// Format date to DD/MM/AA - Improved resilience
-	const formatDate = (dateStr) => {
-		if (!dateStr || typeof dateStr !== 'string') return '';
-		const parts = dateStr.split('-');
-		if (parts.length < 3) return dateStr;
-		const [year, month, day] = parts;
-		return `${day}/${month}/${year.slice(-2)}`;
-	};
-
-	const formattedDate = formatDate(reservationDate);
+	const formattedDate = formatSafeDate(reservationDate);
 
 	const whatsappMessage = encodeURIComponent(
 		`¡Hola! Soy ${clientName}. He enviado una solicitud de reserva en Neverland.\n\n` +
@@ -32,7 +24,7 @@ const BookingSuccess = ({ formData, createdId, getExtendedTime }) => {
 	const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
 	return (
-		<div className="flex flex-col items-center justify-center min-h-[400px] h-full text-center p-6 bg-white/50 rounded-3xl">
+		<div className="flex flex-col items-center justify-center min-h-[400px] h-full text-center p-6 bg-white/50 rounded-3xl pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
 			<motion.div
 				initial={{ scale: 0 }}
 				animate={{ scale: 1 }}

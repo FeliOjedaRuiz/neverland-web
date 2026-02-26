@@ -92,11 +92,16 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 								>
 									{menu.nombre}
 								</span>
-								<span
-									className={`font-black text-xl bg-white px-2 py-1 rounded-lg shadow-sm ${String(formData.niños.menuId) === String(menu.id || menu._id) ? 'text-energy-orange' : 'text-orange-300/80'}`}
-								>
-									{menu.precio}€
-								</span>
+								<div className="flex flex-col items-end">
+									<span
+										className={`font-black text-xl bg-white px-2 py-1 rounded-lg shadow-sm ${String(formData.niños.menuId) === String(menu.id || menu._id) ? 'text-energy-orange' : 'text-orange-300/80'}`}
+									>
+										{menu.precio}€
+									</span>
+									<span className="text-[11px] italic text-gray-400 mt-1 mr-1">
+										x niño
+									</span>
+								</div>
 							</div>
 							{formData.fecha &&
 								[0, 5, 6].includes(new Date(formData.fecha).getDay()) && (

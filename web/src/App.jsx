@@ -14,7 +14,8 @@ import HomePage from './pages/HomePage';
 import BookingPage from './pages/BookingPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
-import ErrorPage from './pages/ErrorPage';
+import NotFound from './pages/NotFound';
+import ServerError from './pages/ServerError';
 import RequireAuth from './components/admin/RequireAuth';
 import { Toaster } from 'react-hot-toast';
 
@@ -54,10 +55,10 @@ function Layout() {
 					/>
 
 					{/* Rutas de prueba para errores (puedes borrarlas luego) */}
-					<Route path="/test-404" element={<ErrorPage code={404} />} />
-					<Route path="/test-500" element={<ErrorPage code={500} />} />
+					<Route path="/test-404" element={<NotFound />} />
+					<Route path="/test-500" element={<ServerError />} />
 
-					<Route path="*" element={<ErrorPage code={404} />} />
+					<Route path="*" element={<NotFound />} />
 				</Routes>
 			</main>
 
@@ -78,7 +79,7 @@ class GlobalErrorBoundary extends React.Component {
 	}
 	render() {
 		if (this.state.hasError) {
-			return <ErrorPage code={500} />;
+			return <ServerError />;
 		}
 		return this.props.children;
 	}

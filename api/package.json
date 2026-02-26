@@ -6,12 +6,16 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "seeds": "node bin/seeds.js"
+    "seeds": "node bin/seeds.js",
+    "test": "jest --setupFilesAfterEnv=./tests/setup.js"
   },
   "author": "Feliciano Ojeda Ruiz",
   "license": "ISC",
   "devDependencies": {
-    "nodemon": "^2.0.22"
+    "jest": "^30.2.0",
+    "mongodb-memory-server": "^11.0.1",
+    "nodemon": "^2.0.22",
+    "supertest": "^7.2.2"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

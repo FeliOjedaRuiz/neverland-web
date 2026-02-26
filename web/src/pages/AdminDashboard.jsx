@@ -17,7 +17,7 @@ import ConfigurationPanel from '../components/admin/ConfigurationPanel';
 import CalendarView from '../components/admin/CalendarView';
 import DayDetailView from '../components/admin/DayDetailView';
 import ReservationDetailView from '../components/admin/ReservationDetailView';
-import ErrorPage from './ErrorPage';
+import ServerError from './ServerError';
 
 const SidebarContent = ({
 	activeTab,
@@ -306,10 +306,7 @@ class ErrorBoundary extends React.Component {
 		if (this.state.hasError) {
 			return (
 				<div className="h-full overflow-y-auto">
-					<ErrorPage
-						code={500}
-						message="Hubo un error crítico al cargar esta sección del panel."
-					/>
+					<ServerError />
 				</div>
 			);
 		}

@@ -13,6 +13,7 @@ import {
 	X,
 } from 'lucide-react';
 import { getReservations } from '../../services/api';
+import { formatSafeDate } from '../../utils/safeDate';
 
 const ReservationInbox = ({ onViewReservation }) => {
 	const [reservations, setReservations] = useState([]);
@@ -263,11 +264,7 @@ const ReservationInbox = ({ onViewReservation }) => {
 												size={12}
 												className="text-neverland-green"
 											/>
-											{new Date(item.fecha).toLocaleDateString('es-ES', {
-												day: '2-digit',
-												month: '2-digit',
-												year: '2-digit',
-											})}
+											{formatSafeDate(item.fecha)}
 										</div>
 										<div className="flex items-center gap-1.5 px-3 py-1 bg-orange-100/30 rounded-full text-[10px] font-black text-orange-600 uppercase border border-orange-100/50">
 											<Clock size={12} />
@@ -292,9 +289,7 @@ const ReservationInbox = ({ onViewReservation }) => {
 										</div>
 										<div className="flex items-center gap-1">
 											<span className="opacity-50">Solicitado:</span>
-											<span>
-												{new Date(item.createdAt).toLocaleDateString()}
-											</span>
+											<span>{formatSafeDate(item.createdAt)}</span>
 										</div>
 									</div>
 								</div>
