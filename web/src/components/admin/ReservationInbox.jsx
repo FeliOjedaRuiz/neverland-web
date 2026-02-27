@@ -12,10 +12,12 @@ import {
 	Search,
 	X,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { getReservations } from '../../services/api';
 import { formatSafeDate } from '../../utils/safeDate';
 
-const ReservationInbox = ({ onViewReservation }) => {
+const ReservationInbox = () => {
+	const navigate = useNavigate();
 	const [reservations, setReservations] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [filter, setFilter] = useState('pendiente'); // pendiente, confirmado, historial
@@ -236,7 +238,7 @@ const ReservationInbox = ({ onViewReservation }) => {
 							<div
 								key={item.id}
 								className="group flex items-center justify-between p-3.5 sm:p-5 hover:bg-neverland-green/5 transition-colors cursor-pointer border-l-4 border-l-transparent hover:border-l-neverland-green"
-								onClick={() => onViewReservation(item)}
+								onClick={() => navigate(`/admin/evento/${item.id}`)}
 							>
 								<div className="flex-1 min-w-0 pr-4">
 									{/* Principal Area: Name */}

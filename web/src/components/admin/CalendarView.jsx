@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, useMotionValue, animate } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
 	ChevronLeft,
 	ChevronRight,
@@ -9,7 +10,8 @@ import {
 import { getReservations } from '../../services/api';
 import { safeParseDate } from '../../utils/safeDate';
 
-const CalendarView = ({ onDayClick }) => {
+const CalendarView = () => {
+	const navigate = useNavigate();
 	const [currentDate, setCurrentDate] = useState(new Date());
 	const [headerDate, setHeaderDate] = useState(new Date());
 	const [reservations, setReservations] = useState([]);
@@ -86,8 +88,13 @@ const CalendarView = ({ onDayClick }) => {
 	};
 
 	const handleDayClick = (dateObj) => {
-		if (onDayClick && dateObj) {
-			onDayClick(dateObj);
+		if (dateObj) {
+			const dateStr = [
+				dateObj.getFullYear(),
+				String(dateObj.getMonth() + 1).padStart(2, '0'),
+				String(dateObj.getDate()).padStart(2, '0'),
+			].join('-');
+			navigate(`/admin/calendario/${dateStr}`);
 		}
 	};
 

@@ -14,6 +14,7 @@ import {
 	Users,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useOutletContext } from 'react-router-dom';
 import { getConfig, updateConfig } from '../../services/api';
 
 const ToggleSwitch = ({ active, onChange, title }) => {
@@ -90,10 +91,12 @@ const AccordionSection = ({
 	);
 };
 
-const ConfigurationPanel = ({ initialConfig, onConfigChange }) => {
-	const [config, setConfig] = useState(initialConfig);
-	const [originalConfig, setOriginalConfig] = useState(initialConfig);
-	const [loading, setLoading] = useState(!initialConfig);
+const ConfigurationPanel = () => {
+	const { config: contextConfig, setConfig: setContextConfig } =
+		useOutletContext();
+	const [config, setConfig] = useState(contextConfig);
+	const [originalConfig, setOriginalConfig] = useState(contextConfig);
+	const [loading, setLoading] = useState(!contextConfig);
 	const [openSections, setOpenSections] = useState({
 		kids: false,
 		adults: false,
@@ -131,8 +134,8 @@ const ConfigurationPanel = ({ initialConfig, onConfigChange }) => {
 	};
 
 	const fetchData = React.useCallback(async () => {
-		if (initialConfig && Object.keys(initialConfig).length > 0) {
-			const data = transformConfig(JSON.parse(JSON.stringify(initialConfig)));
+		if (contextConfig && Object.keys(contextConfig).length > 0) {
+			const data = transformConfig(JSON.parse(JSON.stringify(contextConfig)));
 			setConfig(data);
 			setOriginalConfig(JSON.parse(JSON.stringify(data)));
 			setLoading(false);
@@ -145,12 +148,13 @@ const ConfigurationPanel = ({ initialConfig, onConfigChange }) => {
 			const data = transformConfig(res.data);
 			setConfig(data);
 			setOriginalConfig(JSON.parse(JSON.stringify(data)));
+			if (setContextConfig) setContextConfig(data);
 		} catch (err) {
 			console.error('Error fetching data:', err);
 		} finally {
 			setLoading(false);
 		}
-	}, [initialConfig]);
+	}, [contextConfig, setContextConfig]);
 
 	useEffect(() => {
 		fetchData();
@@ -162,7 +166,7 @@ const ConfigurationPanel = ({ initialConfig, onConfigChange }) => {
 			toast.success('Guardado correctamente');
 			const savedConfig = newConfig || config;
 			setOriginalConfig(JSON.parse(JSON.stringify(savedConfig)));
-			if (onConfigChange) onConfigChange(savedConfig);
+			if (setContextConfig) setContextConfig(savedConfig);
 		} catch (err) {
 			console.error('Error saving config:', err);
 			toast.error('Error al guardar');

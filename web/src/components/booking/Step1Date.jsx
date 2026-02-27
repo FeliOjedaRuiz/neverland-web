@@ -243,7 +243,7 @@ const Step1Date = ({
 														</span>
 
 														{!isPast && !isSel && (
-															<div className="w-full px-0.5 flex flex-col gap-[1px]">
+															<div className="w-full px-0.5 flex flex-col gap-px">
 																{['T1', 'T2', 'T3'].map((t) => {
 																	const isOcc = occupied.includes(t);
 																	return (

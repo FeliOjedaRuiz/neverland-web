@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { safeParseDate } from '../../utils/safeDate';
 import {
 	X,
@@ -24,7 +24,9 @@ import {
 	Mail,
 	MessageSquare,
 } from 'lucide-react';
+import { useNavigate, useParams, useOutletContext } from 'react-router-dom';
 import {
+	getReservationById,
 	updateReservation,
 	deleteReservation,
 	getConfig,
@@ -32,42 +34,96 @@ import {
 } from '../../services/api';
 import { formatSafeDate, formatLongSafeDate } from '../../utils/safeDate';
 
-const ReservationDetailView = ({
-	reservation: initialReservation,
-	onBack,
-	initialConfig,
-}) => {
-	const [reservation, setReservation] = useState(initialReservation);
+const ReservationDetailView = ({ reservation: propReservation }) => {
+	const navigate = useNavigate();
+	const { id } = useParams();
+	const { config: contextConfig, setConfig: setContextConfig } =
+		useOutletContext();
+	const [reservation, setReservation] = useState(propReservation);
 	const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
 	const [isUpdating, setIsUpdating] = useState(false);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [activeModal, setActiveModal] = useState(null); // 'client', 'datetime', 'menus', 'extras'
-	const [config, setConfig] = useState(initialConfig);
+	const [config, setConfig] = useState(contextConfig);
+	const [loading, setLoading] = useState(!propReservation);
 
-	React.useEffect(() => {
-		if (initialConfig) {
-			setConfig(initialConfig);
-			return;
-		}
+	const onBack = () => navigate(-1);
 
-		const fetchConfig = async () => {
-			try {
-				const res = await getConfig();
-				const data = res.data;
-				// Normalización básica de IDs para asegurar el matching de nombres
-				if (data.menusNiños) {
-					data.menusNiños = data.menusNiños.map((m) => ({
-						...m,
-						id: String(m.id || m._id || ''),
-					}));
-				}
-				setConfig(data);
-			} catch (err) {
-				console.error('Error fetching config:', err);
+	// --- Modal Navigation Handling (Back button to close modal) ---
+	useEffect(() => {
+		const handlePopState = () => {
+			if (activeModal || showDeleteConfirm) {
+				// Don't call history.back() here as we are ALREADY going back
+				setActiveModal(null);
+				setShowDeleteConfirm(false);
 			}
 		};
-		fetchConfig();
-	}, [initialConfig]);
+
+		if (activeModal || showDeleteConfirm) {
+			window.history.pushState({ isModal: true }, '');
+			window.addEventListener('popstate', handlePopState);
+		}
+
+		return () => window.removeEventListener('popstate', handlePopState);
+	}, [activeModal, showDeleteConfirm]);
+
+	const closeModals = () => {
+		if (activeModal || showDeleteConfirm) {
+			setActiveModal(null);
+			setShowDeleteConfirm(false);
+			// If we manually close and the current state is the modal state, go back to clean up history
+			if (window.history.state?.isModal) {
+				window.history.back();
+			}
+		}
+	};
+
+	useEffect(() => {
+		if (contextConfig) {
+			setConfig(contextConfig);
+		}
+	}, [contextConfig]);
+
+	useEffect(() => {
+		const fetchInitialData = async () => {
+			try {
+				if (!reservation && id) {
+					const res = await getReservationById(id);
+					setReservation(res.data);
+				}
+
+				if (!config) {
+					const res = await getConfig();
+					const data = res.data;
+					if (data.menusNiños) {
+						data.menusNiños = data.menusNiños.map((m) => ({
+							...m,
+							id: String(m.id || m._id || ''),
+						}));
+					}
+					setConfig(data);
+					if (setContextConfig) setContextConfig(data);
+				}
+			} catch (err) {
+				console.error('Error fetching data:', err);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchInitialData();
+	}, [id, reservation, config, setContextConfig]);
+
+	if (loading) {
+		return (
+			<div className="flex flex-col items-center justify-center h-full py-20 text-gray-300 gap-4">
+				<Loader2 className="animate-spin text-neverland-green/40" size={48} />
+				<p className="font-display font-black uppercase tracking-widest text-[10px]">
+					Cargando detalle de reserva...
+				</p>
+			</div>
+		);
+	}
 
 	if (!reservation) return null;
 
@@ -170,7 +226,7 @@ const ReservationDetailView = ({
 								{isUpdating ? 'Eliminando...' : 'Sí, eliminar reserva'}
 							</button>
 							<button
-								onClick={() => setShowDeleteConfirm(false)}
+								onClick={closeModals}
 								className="w-full py-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl font-black text-sm transition-all active:scale-95"
 							>
 								No, mantenerla
@@ -646,7 +702,7 @@ const ReservationDetailView = ({
 								{activeModal === 'observations' && 'Editar Observaciones'}
 							</h3>
 							<button
-								onClick={() => setActiveModal(null)}
+								onClick={closeModals}
 								className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
 							>
 								<X size={20} />
@@ -657,7 +713,7 @@ const ReservationDetailView = ({
 							{activeModal === 'client' && (
 								<ClientInfoEdit
 									current={reservation.cliente}
-									onCancel={() => setActiveModal(null)}
+									onCancel={closeModals}
 									onSave={async (newData) => {
 										setIsUpdating(true);
 										try {
@@ -665,7 +721,7 @@ const ReservationDetailView = ({
 												cliente: newData,
 											});
 											setReservation(res.data); // Use server response
-											setActiveModal(null);
+											closeModals();
 										} catch (err) {
 											console.error(err);
 											alert('Error al guardar');
@@ -680,7 +736,7 @@ const ReservationDetailView = ({
 								<MenusEdit
 									current={reservation.detalles}
 									config={config}
-									onCancel={() => setActiveModal(null)}
+									onCancel={closeModals}
 									onSave={async (newDetalles) => {
 										setIsUpdating(true);
 										try {
@@ -688,7 +744,7 @@ const ReservationDetailView = ({
 												detalles: newDetalles,
 											});
 											setReservation(res.data); // Update with returned reservation (includes price)
-											setActiveModal(null);
+											closeModals();
 										} catch (err) {
 											console.error(err);
 											alert('Error al guardar');
@@ -703,7 +759,7 @@ const ReservationDetailView = ({
 								<ExtrasEdit
 									current={reservation.detalles.extras}
 									config={config}
-									onCancel={() => setActiveModal(null)}
+									onCancel={closeModals}
 									onSave={async (newExtras) => {
 										setIsUpdating(true);
 										try {
@@ -714,7 +770,7 @@ const ReservationDetailView = ({
 												},
 											});
 											setReservation(res.data);
-											setActiveModal(null);
+											closeModals();
 										} catch (err) {
 											console.error(err);
 											alert('Error al guardar');
@@ -728,7 +784,7 @@ const ReservationDetailView = ({
 							{activeModal === 'observations' && (
 								<ObservationsEdit
 									current={reservation.detalles.extras.observaciones}
-									onCancel={() => setActiveModal(null)}
+									onCancel={closeModals}
 									onSave={async (newObs) => {
 										setIsUpdating(true);
 										try {
@@ -742,7 +798,7 @@ const ReservationDetailView = ({
 												},
 											});
 											setReservation(res.data);
-											setActiveModal(null);
+											closeModals();
 										} catch (err) {
 											console.error(err);
 											alert('Error al guardar');
@@ -756,7 +812,7 @@ const ReservationDetailView = ({
 							{activeModal === 'datetime' && (
 								<DateTimeEdit
 									reservation={reservation}
-									onCancel={() => setActiveModal(null)}
+									onCancel={closeModals}
 									onSave={async (newDate, newTurno) => {
 										setIsUpdating(true);
 										try {
@@ -765,7 +821,7 @@ const ReservationDetailView = ({
 												turno: newTurno,
 											});
 											setReservation(res.data);
-											setActiveModal(null);
+											closeModals();
 										} catch (err) {
 											console.error(err);
 											alert('Error al guardar');

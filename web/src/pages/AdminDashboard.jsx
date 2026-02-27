@@ -9,23 +9,15 @@ import {
 	Menu,
 	X,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { getConfig } from '../services/api';
-import ReservationInbox from '../components/admin/ReservationInbox';
-import ConfigurationPanel from '../components/admin/ConfigurationPanel';
-
-import CalendarView from '../components/admin/CalendarView';
-import DayDetailView from '../components/admin/DayDetailView';
-import ReservationDetailView from '../components/admin/ReservationDetailView';
 import ServerError from './ServerError';
 
 const SidebarContent = ({
-	activeTab,
-	setActiveTab,
-	setIsMobileMenuOpen,
 	sidebarItems,
 	navigate,
 	handleLogout,
+	currentPath,
 }) => (
 	<>
 		<div className="p-6">
@@ -39,23 +31,25 @@ const SidebarContent = ({
 		</div>
 
 		<nav className="flex-1 px-4 space-y-2 mt-4">
-			{sidebarItems.map((item) => (
-				<button
-					key={item.id}
-					onClick={() => {
-						setActiveTab(item.id);
-						setIsMobileMenuOpen(false);
-					}}
-					className={`w-full flex items-center gap-3 px-4 py-3 rounded-full font-medium transition-all font-display ${
-						activeTab === item.id
-							? 'bg-neverland-green text-white shadow-md'
-							: 'text-gray-600 hover:bg-gray-50'
-					}`}
-				>
-					<item.icon size={20} />
-					{item.label}
-				</button>
-			))}
+			{sidebarItems.map((item) => {
+				const isActive = currentPath.includes(item.id);
+				return (
+					<button
+						key={item.id}
+						onClick={() => {
+							navigate(`/admin/${item.id}`);
+						}}
+						className={`w-full flex items-center gap-3 px-4 py-3 rounded-full font-medium transition-all font-display ${
+							isActive
+								? 'bg-neverland-green text-white shadow-md'
+								: 'text-gray-600 hover:bg-gray-50'
+						}`}
+					>
+						<item.icon size={20} />
+						{item.label}
+					</button>
+				);
+			})}
 		</nav>
 
 		<div className="p-4 border-t border-gray-100 space-y-1">
@@ -81,55 +75,10 @@ const SidebarContent = ({
 );
 
 const AdminDashboard = () => {
-	const [activeTab, setActiveTab] = useState(
-		() => localStorage.getItem('adminActiveTab') || 'reservas',
-	);
-	const [selectedDate, setSelectedDate] = useState(null);
-	const [selectedReservation, setSelectedReservation] = useState(null);
-	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const navigate = useNavigate();
-
-	// Reset details when changing tab
-	React.useEffect(() => {
-		setSelectedDate(null);
-		setSelectedReservation(null);
-	}, [activeTab]);
-
-	// Handle browser back button
-	React.useEffect(() => {
-		const handlePopState = () => {
-			if (selectedReservation) {
-				setSelectedReservation(null);
-			} else if (selectedDate) {
-				setSelectedDate(null);
-			}
-		};
-
-		window.addEventListener('popstate', handlePopState);
-		return () => window.removeEventListener('popstate', handlePopState);
-	}, [selectedDate, selectedReservation]);
-
-	const handleDateSelect = (date) => {
-		setSelectedDate(date);
-		window.history.pushState(
-			{ view: 'dayDetail' },
-			'',
-			window.location.pathname,
-		);
-	};
-
-	const handleReservationSelect = (res) => {
-		setSelectedReservation(res);
-		window.history.pushState(
-			{ view: 'resDetail' },
-			'',
-			window.location.pathname,
-		);
-	};
-
-	const handleBack = () => {
-		window.history.back();
-	};
+	const location = useLocation();
+	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+	const [config, setConfig] = useState(null);
 
 	const sidebarItems = [
 		{ id: 'reservas', label: 'Bandeja de Entrada', icon: Inbox },
@@ -137,15 +86,11 @@ const AdminDashboard = () => {
 		{ id: 'config', label: 'Configuración', icon: Settings },
 	];
 
-	const [config, setConfig] = useState(null);
-
 	React.useEffect(() => {
 		const fetchConfig = async () => {
 			try {
 				const res = await getConfig();
 				const data = res.data;
-
-				// Normalización simplificada: id siempre es string
 				const normalizeList = (list) =>
 					(list || []).map((item) => ({
 						...item,
@@ -165,24 +110,21 @@ const AdminDashboard = () => {
 		fetchConfig();
 	}, []);
 
-	const handleTabChange = (tabId) => {
-		setActiveTab(tabId);
-		localStorage.setItem('adminActiveTab', tabId);
-	};
-
 	const handleLogout = () => {
 		localStorage.removeItem('token');
 		navigate('/admin/login');
 	};
 
+	const activeItem = sidebarItems.find((item) =>
+		location.pathname.includes(item.id),
+	);
+	const isEventDetail = location.pathname.includes('/evento/');
+
 	const commonProps = {
-		activeTab,
-		setActiveTab: handleTabChange,
-		setIsMobileMenuOpen,
 		sidebarItems,
 		navigate,
 		handleLogout,
-		config,
+		currentPath: location.pathname,
 	};
 
 	return (
@@ -210,7 +152,10 @@ const AdminDashboard = () => {
 								<X size={24} />
 							</button>
 						</div>
-						<SidebarContent {...commonProps} />
+						<SidebarContent
+							{...commonProps}
+							setIsMobileMenuOpen={setIsMobileMenuOpen}
+						/>
 					</aside>
 				</div>
 			)}
@@ -219,32 +164,28 @@ const AdminDashboard = () => {
 			<main className="flex-1 flex flex-col overflow-hidden">
 				{/* Header Content */}
 				<header className="bg-white border-b border-gray-100 p-4 flex justify-between items-center shadow-soft relative z-10">
-					{activeTab && (
-						<div className="flex items-center gap-3">
-							<div className="p-2.5 bg-neverland-green/5 text-neverland-green rounded-2xl">
-								{React.createElement(
-									sidebarItems.find((i) => i.id === activeTab)?.icon || Inbox,
-									{ size: 24 },
-								)}
-							</div>
-							<div>
-								<h3 className="text-xl font-display font-black text-text-black leading-tight">
-									{selectedReservation
-										? 'Detalle de Reserva'
-										: sidebarItems.find((i) => i.id === activeTab)?.label}
-								</h3>
-								<p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
-									{selectedReservation
-										? 'Información Completa'
-										: activeTab === 'reservas'
-											? 'Gestión de Reservas'
-											: activeTab === 'calendario'
-												? 'Vista Mensual y Agenda'
-												: 'Precios, Menús y Catálogo'}
-								</p>
-							</div>
+					<div className="flex items-center gap-3">
+						<div className="p-2.5 bg-neverland-green/5 text-neverland-green rounded-2xl">
+							{React.createElement(
+								isEventDetail ? Search : activeItem?.icon || Inbox,
+								{ size: 24 },
+							)}
 						</div>
-					)}
+						<div>
+							<h3 className="text-xl font-display font-black text-text-black leading-tight">
+								{isEventDetail ? 'Detalle de Reserva' : activeItem?.label}
+							</h3>
+							<p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
+								{isEventDetail
+									? 'Información Completa'
+									: activeItem?.id === 'reservas'
+										? 'Gestión de Reservas'
+										: activeItem?.id === 'calendario'
+											? 'Vista Mensual y Agenda'
+											: 'Precios, Menús y Catálogo'}
+							</p>
+						</div>
+					</div>
 					<button
 						onClick={() => setIsMobileMenuOpen(true)}
 						className="p-2 text-gray-600 hover:text-neverland-green md:hidden"
@@ -255,38 +196,9 @@ const AdminDashboard = () => {
 
 				{/* Scrollable Content Area */}
 				<div className="flex-1 overflow-y-auto p-0">
-					{selectedReservation ? (
-						<ErrorBoundary>
-							<ReservationDetailView
-								reservation={selectedReservation}
-								onBack={handleBack}
-								initialConfig={config}
-							/>
-						</ErrorBoundary>
-					) : activeTab === 'reservas' ? (
-						<ErrorBoundary>
-							<ReservationInbox onViewReservation={handleReservationSelect} />
-						</ErrorBoundary>
-					) : activeTab === 'config' ? (
-						<ErrorBoundary>
-							<ConfigurationPanel
-								initialConfig={config}
-								onConfigChange={setConfig}
-							/>
-						</ErrorBoundary>
-					) : activeTab === 'calendario' ? (
-						<ErrorBoundary>
-							{selectedDate ? (
-								<DayDetailView
-									date={selectedDate}
-									onBack={handleBack}
-									onViewReservation={handleReservationSelect}
-								/>
-							) : (
-								<CalendarView onDayClick={handleDateSelect} />
-							)}
-						</ErrorBoundary>
-					) : null}
+					<ErrorBoundary>
+						<Outlet context={{ config, setConfig }} />
+					</ErrorBoundary>
 				</div>
 			</main>
 		</div>

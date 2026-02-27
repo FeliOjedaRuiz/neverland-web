@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, Mail, ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { login } from '../services/api';
 
 const LoginPage = () => {
@@ -9,6 +9,7 @@ const LoginPage = () => {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
 	const navigate = useNavigate();
+	const location = useLocation();
 
 	const handleLogin = async (e) => {
 		e.preventDefault();
@@ -19,7 +20,10 @@ const LoginPage = () => {
 			const res = await login(email, password);
 			localStorage.setItem('token', res.data.token);
 			localStorage.setItem('user', JSON.stringify(res.data));
-			navigate('/admin/dashboard');
+
+			// Redirect back to the page they were trying to access, or to /admin
+			const from = location.state?.from?.pathname || '/admin';
+			navigate(from, { replace: true });
 		} catch (err) {
 			console.error(err);
 			setError(

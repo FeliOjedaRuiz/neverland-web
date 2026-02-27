@@ -3,6 +3,7 @@ import {
 	Routes,
 	Route,
 	useLocation,
+	Navigate,
 } from 'react-router-dom';
 import React, { useEffect } from 'react';
 import Navbar from './components/layout/Navbar';
@@ -18,6 +19,13 @@ import NotFound from './pages/NotFound';
 import ServerError from './pages/ServerError';
 import RequireAuth from './components/admin/RequireAuth';
 import { Toaster } from 'react-hot-toast';
+
+// Admin Components
+import ReservationInbox from './components/admin/ReservationInbox';
+import CalendarView from './components/admin/CalendarView';
+import DayDetailView from './components/admin/DayDetailView';
+import ReservationDetailView from './components/admin/ReservationDetailView';
+import ConfigurationPanel from './components/admin/ConfigurationPanel';
 
 function Layout() {
 	const location = useLocation();
@@ -47,12 +55,23 @@ function Layout() {
 					<Route path="/admin/login" element={<LoginPage />} />
 					<Route
 						path="/admin/dashboard"
+						element={<Navigate to="/admin" replace />}
+					/>
+					<Route
+						path="/admin"
 						element={
 							<RequireAuth>
 								<AdminDashboard />
 							</RequireAuth>
 						}
-					/>
+					>
+						<Route index element={<ReservationInbox />} />
+						<Route path="reservas" element={<ReservationInbox />} />
+						<Route path="calendario" element={<CalendarView />} />
+						<Route path="calendario/:date" element={<DayDetailView />} />
+						<Route path="evento/:id" element={<ReservationDetailView />} />
+						<Route path="config" element={<ConfigurationPanel />} />
+					</Route>
 
 					{/* Rutas de prueba para errores (puedes borrarlas luego) */}
 					<Route path="/test-404" element={<NotFound />} />

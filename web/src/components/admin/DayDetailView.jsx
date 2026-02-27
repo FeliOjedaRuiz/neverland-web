@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
 	ChevronLeft,
 	Clock,
@@ -15,23 +16,20 @@ import {
 	deleteReservation,
 } from '../../services/api';
 
-const DayDetailView = ({ date, onBack, onViewReservation }) => {
+const DayDetailView = () => {
+	const navigate = useNavigate();
+	const { date: dateParam } = useParams();
+	const date = new Date(dateParam + 'T00:00:00');
 	const [dayEvents, setDayEvents] = useState([]);
 	const [loading, setLoading] = useState(true);
-	const [blockingTurn, setBlockingTurn] = useState(null); // 'T1' | 'T2' | 'T3' | 'ALL' | null
+	const [blockingTurn, setBlockingTurn] = useState(null);
 
-	// Format date for display and API
-	const dateStr = [
-		date.getFullYear(),
-		String(date.getMonth() + 1).padStart(2, '0'),
-		String(date.getDate()).padStart(2, '0'),
-	].join('-');
+	const dateStr = dateParam;
 
-	const fetchDayEvents = React.useCallback(async () => {
+	const fetchDayEvents = useCallback(async () => {
 		setLoading(true);
 		try {
 			const res = await getReservations();
-			// Filter for this specific day
 			const events = res.data.filter((r) => r.fecha.split('T')[0] === dateStr);
 			setDayEvents(events);
 		} catch (err) {
@@ -155,7 +153,7 @@ const DayDetailView = ({ date, onBack, onViewReservation }) => {
 			<div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
 				<div className="flex items-center gap-3">
 					<button
-						onClick={onBack}
+						onClick={() => navigate(-1)}
 						className="p-1.5 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"
 					>
 						<ChevronLeft size={20} />
@@ -288,7 +286,9 @@ const DayDetailView = ({ date, onBack, onViewReservation }) => {
 												<div className="flex gap-1">
 													{status !== 'cancelled' && (
 														<button
-															onClick={() => onViewReservation(event)}
+															onClick={() =>
+																navigate(`/admin/evento/${event.id}`)
+															}
 															className="p-2 bg-neverland-green text-white rounded-lg shadow-sm hover:scale-105 transition-transform"
 															title="Ver Detalle"
 														>

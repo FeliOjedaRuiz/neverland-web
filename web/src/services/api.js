@@ -1,8 +1,21 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.PROD
-  ? '/api/v1'
-  : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1');
+const getApiBaseUrl = () => {
+  if (import.meta.env.PROD) return '/api/v1';
+
+  const envUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+  const currentHost = window.location.hostname;
+
+  // If we are accessing via IP (mobile testing) and the URL points to localhost,
+  // replace localhost with the current IP so the phone connects to the PC API.
+  if (currentHost !== 'localhost' && currentHost !== '127.0.0.1' && envUrl.includes('localhost')) {
+    return envUrl.replace('localhost', currentHost);
+  }
+
+  return envUrl;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -37,6 +50,7 @@ export const createBooking = (data) => api.post('/events', data);
 export const getAvailability = (fecha) => api.get('/events/availability', { params: { fecha } });
 export const getMonthlyAvailability = (year, month) => api.get('/events/availability', { params: { year, month } });
 export const getReservations = (params) => api.get('/events', { params });
+export const getReservationById = (id) => api.get(`/events/${id}`);
 export const updateReservation = (id, data) => api.patch(`/events/${id}`, data);
 export const deleteReservation = (id) => api.delete(`/events/${id}`);
 export const checkAvailability = (params) => api.get('/events/availability', { params });
