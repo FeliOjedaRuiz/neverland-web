@@ -328,92 +328,95 @@ const BookingPage = () => {
 						ref={scrollContainerRef}
 						className={`flex-1 min-h-0 relative ${step === 1 && view === 'calendar' ? 'overflow-hidden pt-0 pb-2' : 'overflow-y-auto overflow-x-hidden pb-8 pt-4'} px-4 sm:p-6 no-scrollbar`}
 					>
-						<AnimatePresence mode="wait">
-							<motion.div
-								key={`${step}-${view}`}
-								initial={{ opacity: 0, x: 20 }}
-								animate={{ opacity: 1, x: 0 }}
-								exit={{ opacity: 0, x: -20 }}
-								transition={{ duration: 0.3 }}
-								className="flex flex-col min-h-full"
-							>
-								{step === 1 && (
-									<Step1Date
-										formData={formData}
-										setFormData={setFormData}
-										currentMonth={currentMonth}
-										setCurrentMonth={setCurrentMonth}
-										view={view}
-										setView={setView}
-										monthlyOccupied={monthlyOccupied}
-										availabilityError={availabilityError}
-										availabilityLoading={availabilityLoading}
-										availabilityCache={availabilityCache}
-									/>
-								)}
-								{step === 2 && (
-									<Step2Responsible
-										formData={formData}
-										setFormData={setFormData}
-									/>
-								)}
-								{step === 3 && (
-									<Step3Kids
-										formData={formData}
-										setFormData={setFormData}
-										CHILDREN_MENUS={childrenMenusWithPrices}
-									/>
-								)}
-								{step === 4 && (
-									<Step4Adults
-										formData={formData}
-										setFormData={setFormData}
-										ADULT_MENU_OPTIONS={prices.preciosAdultos}
-									/>
-								)}
-								{step === 5 && (
-									<Step5Workshops
-										formData={formData}
-										setFormData={setFormData}
-										WORKSHOPS={prices.workshops}
-									/>
-								)}
-								{step === 6 && (
-									<Step6Characters
-										formData={formData}
-										setFormData={setFormData}
-										CHARACTERS={prices.characters}
-										charSearch={charSearch}
-										setCharSearch={setCharSearch}
-									/>
-								)}
-								{step === 7 && (
-									<Step7Extras
-										formData={formData}
-										setFormData={setFormData}
-										getExtendedTime={getExtendedTime}
-										prices={prices}
-									/>
-								)}
-								{step === 8 && (
-									<Step8Summary
-										formData={formData}
-										prices={prices}
-										calculateTotal={calculateTotal}
-										getExtendedTime={getExtendedTime}
-										childrenMenusWithPrices={childrenMenusWithPrices}
-										workshops={prices.workshops}
-									/>
-								)}
-								{step === 9 && (
-									<BookingSuccess
-										formData={formData}
-										createdId={createdEventId}
-										getExtendedTime={getExtendedTime}
-									/>
-								)}
-							</motion.div>
-						</AnimatePresence>
+						{step === 9 ? (
+							<div className="flex flex-col min-h-full">
+								<BookingSuccess
+									formData={formData}
+									createdId={createdEventId}
+									getExtendedTime={getExtendedTime}
+								/>
+							</div>
+						) : (
+							<AnimatePresence mode="wait">
+								<motion.div
+									key={`${step}-${view}`}
+									initial={{ opacity: 0, x: 20 }}
+									animate={{ opacity: 1, x: 0 }}
+									exit={{ opacity: 0, x: -20 }}
+									transition={{ duration: 0.3 }}
+									className="flex flex-col min-h-full"
+								>
+									{step === 1 && (
+										<Step1Date
+											formData={formData}
+											setFormData={setFormData}
+											currentMonth={currentMonth}
+											setCurrentMonth={setCurrentMonth}
+											view={view}
+											setView={setView}
+											monthlyOccupied={monthlyOccupied}
+											availabilityError={availabilityError}
+											availabilityLoading={availabilityLoading}
+											availabilityCache={availabilityCache}
+										/>
+									)}
+									{step === 2 && (
+										<Step2Responsible
+											formData={formData}
+											setFormData={setFormData}
+										/>
+									)}
+									{step === 3 && (
+										<Step3Kids
+											formData={formData}
+											setFormData={setFormData}
+											CHILDREN_MENUS={childrenMenusWithPrices}
+										/>
+									)}
+									{step === 4 && (
+										<Step4Adults
+											formData={formData}
+											setFormData={setFormData}
+											ADULT_MENU_OPTIONS={prices.preciosAdultos}
+										/>
+									)}
+									{step === 5 && (
+										<Step5Workshops
+											formData={formData}
+											setFormData={setFormData}
+											WORKSHOPS={prices.workshops}
+										/>
+									)}
+									{step === 6 && (
+										<Step6Characters
+											formData={formData}
+											setFormData={setFormData}
+											CHARACTERS={prices.characters}
+											charSearch={charSearch}
+											setCharSearch={setCharSearch}
+										/>
+									)}
+									{step === 7 && (
+										<Step7Extras
+											formData={formData}
+											setFormData={setFormData}
+											getExtendedTime={getExtendedTime}
+											prices={prices}
+										/>
+									)}
+									{step === 8 && (
+										<Step8Summary
+											formData={formData}
+											prices={prices}
+											calculateTotal={calculateTotal}
+											getExtendedTime={getExtendedTime}
+											childrenMenusWithPrices={childrenMenusWithPrices}
+											workshops={prices.workshops}
+										/>
+									)}
+								</motion.div>
+							</AnimatePresence>
+						)}
 					</div>
 					<div className="z-50 shrink-0 pb-[env(safe-area-inset-bottom)] bg-white sm:rounded-b-3xl w-full">
 						<BookingNavigation

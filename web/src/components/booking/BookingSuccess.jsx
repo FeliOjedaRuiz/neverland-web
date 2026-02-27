@@ -1,16 +1,25 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
 import { formatSafeDate } from '../../utils/safeDate';
 
 const BookingSuccess = ({ formData, createdId, getExtendedTime }) => {
 	const whatsappNumber = '34651707985'; // Number from Footer
 	const reservationDate = formData?.fecha || '';
-	const reservationTime =
-		typeof getExtendedTime === 'function' ? getExtendedTime() : '';
+	let reservationTime = '';
+	try {
+		reservationTime =
+			typeof getExtendedTime === 'function' ? getExtendedTime() : '';
+	} catch {
+		reservationTime = '';
+	}
 	const clientName = formData?.cliente?.nombrePadre || 'Cliente';
 
-	const formattedDate = formatSafeDate(reservationDate);
+	let formattedDate = '';
+	try {
+		formattedDate = formatSafeDate(reservationDate);
+	} catch {
+		formattedDate = reservationDate;
+	}
 
 	const whatsappMessage = encodeURIComponent(
 		`¡Hola! Soy ${clientName}. He enviado una solicitud de reserva en Neverland.\n\n` +
@@ -25,14 +34,22 @@ const BookingSuccess = ({ formData, createdId, getExtendedTime }) => {
 
 	return (
 		<div className="flex flex-col items-center justify-center min-h-[400px] h-full text-center p-6 bg-white/50 rounded-3xl pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
-			<motion.div
-				initial={{ scale: 0 }}
-				animate={{ scale: 1 }}
-				transition={{ type: 'spring', damping: 12 }}
+			<div
 				className="w-20 h-20 sm:w-24 sm:h-24 bg-neverland-green text-white rounded-full flex items-center justify-center mb-6 shadow-xl shrink-0"
+				style={{
+					animation:
+						'successBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+				}}
 			>
 				<CheckCircle className="w-10 h-10 sm:w-12 sm:h-12" />
-			</motion.div>
+			</div>
+			<style>{`
+				@keyframes successBounce {
+					0% { transform: scale(0); opacity: 0; }
+					60% { transform: scale(1.15); opacity: 1; }
+					100% { transform: scale(1); opacity: 1; }
+				}
+			`}</style>
 			<h2 className="text-2xl sm:text-3xl font-display font-bold text-text-black mb-2">
 				¡Solicitud Enviada!
 			</h2>

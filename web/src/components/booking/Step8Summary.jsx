@@ -1,4 +1,5 @@
 import React from 'react';
+import { safeParseDate } from '../../utils/safeDate';
 
 const Step8Summary = ({
 	formData,
@@ -52,7 +53,10 @@ const Step8Summary = ({
 						</span>
 					</div>
 					{formData.fecha &&
-						[0, 5, 6].includes(new Date(formData.fecha).getDay()) && (
+						(() => {
+							const d = safeParseDate(formData.fecha);
+							return d && !isNaN(d.getTime()) && [0, 5, 6].includes(d.getDay());
+						})() && (
 							<div className="flex justify-between text-neverland-green italic text-xs bg-green-50/50 p-2 rounded-lg">
 								<span>Plus Fin de Semana (Vie-Dom)</span>
 								<span className="font-bold">
