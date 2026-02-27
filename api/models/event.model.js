@@ -54,7 +54,8 @@ const eventSchema = new mongoose.Schema({
       precioPersonajeApplied: { type: Number }, // [NEW] Snapshot
       pinata: { type: Boolean, default: false },
       precioPinataApplied: { type: Number }, // [NEW] Snapshot
-      observaciones: { type: String, default: '', maxlength: 500 }
+      observaciones: { type: String, default: '', maxlength: 500 },
+      alergenos: { type: String, default: '', maxlength: 500 }
     }
   },
 

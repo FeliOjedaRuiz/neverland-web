@@ -131,10 +131,20 @@ const Step8Summary = ({
 							</span>
 						</div>
 					)}
+					{formData.extras.alergenos && (
+						<div className="text-energy-orange text-xs pt-2 border-t border-orange-100 mt-2">
+							<span className="font-bold flex items-center gap-1 mb-1">
+								<span className="text-[10px]">⚠️</span> Alérgenos:
+							</span>
+							<p className="italic bg-orange-50 rounded-lg p-2 max-h-24 overflow-y-auto w-full wrap-break-word">
+								{formData.extras.alergenos}
+							</p>
+						</div>
+					)}
 					{formData.extras.observaciones && (
 						<div className="text-gray-600 text-xs pt-2 border-t border-gray-100 mt-2">
 							<span className="font-bold block mb-1">Notas:</span>
-							<p className="italic bg-gray-50 rounded-lg p-2 max-h-24 overflow-y-auto w-full break-words">
+							<p className="italic bg-gray-50 rounded-lg p-2 max-h-24 overflow-y-auto w-full wrap-break-word">
 								{formData.extras.observaciones}
 							</p>
 						</div>

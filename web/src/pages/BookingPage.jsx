@@ -91,6 +91,7 @@ const BookingPage = () => {
 			personaje: 'ninguno',
 			pinata: false,
 			observaciones: '',
+			alergenos: '',
 			extension: 0,
 			extensionType: 'default',
 		},

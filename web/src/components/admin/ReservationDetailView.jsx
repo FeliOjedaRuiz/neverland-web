@@ -450,6 +450,33 @@ const ReservationDetailView = ({
 							</span>
 						</div>
 
+						{/* Alergenos */}
+						<div
+							className={`p-4 rounded-3xl border ${reservation.detalles?.extras?.alergenos ? 'bg-orange-50 border-orange-100 shadow-sm' : 'bg-white border-gray-100 shadow-sm'}`}
+						>
+							<div className="flex items-center gap-3">
+								<AlertTriangle
+									className={
+										reservation.detalles?.extras?.alergenos
+											? 'text-energy-orange'
+											: 'text-gray-300'
+									}
+									size={20}
+								/>
+								<div className="flex flex-col">
+									<span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">
+										Alérgenos / Intolerancias
+									</span>
+									<p
+										className={`text-sm font-bold ${reservation.detalles?.extras?.alergenos ? 'text-text-black' : 'text-gray-300 italic'}`}
+									>
+										{reservation.detalles?.extras?.alergenos ||
+											'Sin alérgenos reportados'}
+									</p>
+								</div>
+							</div>
+						</div>
+
 						<div className="p-4 bg-white rounded-3xl border border-gray-100 shadow-sm space-y-4">
 							<div className="flex items-center gap-3 border-b border-gray-50 pb-3">
 								<Utensils className="text-energy-orange" size={20} />
@@ -1008,6 +1035,7 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 // Sub-component for Menus Edit
 const MenusEdit = ({ current, config, onCancel, onSave }) => {
 	const [niñosExt, setNiñosExt] = useState({ ...current.niños });
+	const [alergenos, setAlergenos] = useState(current.extras?.alergenos || '');
 	const [adultosQty, setAdultosQty] = useState(current.adultos?.cantidad || 0);
 	// Flatten/Normalize adultos for editing
 	const [adultosList, setAdultosList] = useState(() => {
@@ -1126,6 +1154,20 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 						</select>
 					</div>
 				</div>
+
+				{/* Alérgenos Edit */}
+				<div className="space-y-2 pt-2">
+					<label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">
+						Alérgenos / Intolerancias
+					</label>
+					<textarea
+						value={alergenos}
+						onChange={(e) => setAlergenos(e.target.value.substring(0, 500))}
+						maxLength={500}
+						className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm font-bold text-text-black focus:outline-none focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green focus:bg-white transition-all resize-none min-h-[100px]"
+						placeholder="Indica alergias o intolerancias alimentarias..."
+					/>
+				</div>
 			</div>
 
 			{/* Adultos */}
@@ -1238,6 +1280,10 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 							adultos: {
 								cantidad: adultosQty,
 								comida: adultosList,
+							},
+							extras: {
+								...current.extras,
+								alergenos: alergenos,
 							},
 						})
 					}

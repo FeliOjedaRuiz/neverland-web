@@ -60,6 +60,35 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 				</div>
 			</motion.div>
 
+			{/* Alérgenos - NUEVO CAMPO */}
+			<motion.div
+				initial={{ y: 5, opacity: 0 }}
+				animate={{ y: 0, opacity: 1 }}
+				transition={{ duration: 0.3, delay: 0.1 }}
+				className="mb-6 px-1"
+			>
+				<label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2 pl-1">
+					<span className="flex items-center justify-center w-5 h-5 bg-orange-100 text-energy-orange rounded-full text-[10px]">
+						⚠️
+					</span>
+					¿Algún alérgeno o intolerancia?
+				</label>
+				<textarea
+					value={formData.extras?.alergenos || ''}
+					onChange={(e) =>
+						setFormData({
+							...formData,
+							extras: {
+								...formData.extras,
+								alergenos: e.target.value,
+							},
+						})
+					}
+					placeholder="Ej: Celíacos, alergia al huevo, frutos secos... (Si no hay, dejar en blanco)"
+					className="w-full p-4 bg-white border-2 border-gray-100 rounded-2xl text-sm font-medium focus:border-energy-orange focus:ring-4 focus:ring-energy-orange/5 outline-none transition-all resize-none min-h-[80px] placeholder:text-gray-300 shadow-sm shadow-black/5"
+				/>
+			</motion.div>
+
 			<p className="text-sm font-bold text-gray-400 mb-2 px-2 flex justify-between items-center">
 				<span>Elige el Menú Infantil:</span>
 				{formData.fecha &&
