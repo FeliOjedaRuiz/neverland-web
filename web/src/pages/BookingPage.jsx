@@ -144,6 +144,60 @@ const BookingPage = () => {
 			.catch((err) => console.log('Error loading config:', err));
 	}, []);
 
+	// --- Navigation & Browser Back Button Handling ---
+	useEffect(() => {
+		// Set initial state if not present
+		if (!window.history.state || window.history.state.step === undefined) {
+			window.history.replaceState({ step: 1 }, 'Paso 1');
+		}
+
+		const handlePopState = (event) => {
+			if (event.state && typeof event.state.step === 'number') {
+				// Prevent default setStep to handle view logic if needed
+				setStep(event.state.step);
+			}
+		};
+
+		window.addEventListener('popstate', handlePopState);
+		return () => window.removeEventListener('popstate', handlePopState);
+	}, []);
+
+	const nextStep = () => {
+		const targetStep = step + 1;
+		window.history.pushState({ step: targetStep }, `Paso ${targetStep}`);
+		setStep(targetStep);
+	};
+
+	const prevStep = () => {
+		if (step > 1) {
+			window.history.back();
+		}
+	};
+
+	// --- Exit Guard (Prevent accidental data loss) ---
+	useEffect(() => {
+		const isDirty =
+			step > 1 ||
+			(formData.cliente.nombreNiño && formData.cliente.nombreNiño.length > 0) ||
+			(formData.cliente.telefono && formData.cliente.telefono.length > 0);
+
+		const handleBeforeUnload = (e) => {
+			if (isDirty && !createdEventId) {
+				e.preventDefault();
+				e.returnValue = '';
+				return '';
+			}
+		};
+
+		window.addEventListener('beforeunload', handleBeforeUnload);
+		return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+	}, [
+		step,
+		formData.cliente.nombreNiño,
+		formData.cliente.telefono,
+		createdEventId,
+	]);
+
 	const [availabilityCache, setAvailabilityCache] = useState({});
 
 	const preloadAdjacentMonths = useCallback(
@@ -211,9 +265,6 @@ const BookingPage = () => {
 				price: menu.precio || 0,
 			}),
 		) || [];
-
-	const nextStep = () => setStep((s) => s + 1);
-	const prevStep = () => setStep((s) => s - 1);
 
 	const handleBack = () => {
 		if (step === 1 && view === 'dayDetails') {
