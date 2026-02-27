@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, useMotionValue, animate } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Calendar, CheckCircle } from 'lucide-react';
+import { safeParseDate } from '../../utils/safeDate';
 
 const Step1Date = ({
 	formData,
@@ -281,11 +282,16 @@ const Step1Date = ({
 								Día Seleccionado
 							</p>
 							<p className="font-display font-black text-neverland-green capitalize">
-								{new Date(formData.fecha).toLocaleDateString('es-ES', {
-									weekday: 'long',
-									day: 'numeric',
-									month: 'long',
-								})}
+								{(() => {
+									const d = safeParseDate(formData.fecha);
+									return d && !isNaN(d.getTime())
+										? d.toLocaleDateString('es-ES', {
+												weekday: 'long',
+												day: 'numeric',
+												month: 'long',
+											})
+										: formData.fecha;
+								})()}
 							</p>
 						</div>
 						<button
@@ -300,9 +306,9 @@ const Step1Date = ({
 						{ id: 'T2', l: 'Turno 2', t: '18:00 - 20:00' },
 						{ id: 'T3', l: 'Turno 3', t: '19:15 - 21:15' },
 					].map((turn) => {
-						const isOcc = getOccupiedForDate(new Date(formData.fecha)).includes(
-							turn.id,
-						);
+						const isOcc = getOccupiedForDate(
+							safeParseDate(formData.fecha) || new Date(),
+						).includes(turn.id);
 						return (
 							<button
 								key={turn.id}

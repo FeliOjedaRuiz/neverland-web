@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
+import { safeParseDate } from '../../utils/safeDate';
 
 const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 	return (
@@ -92,7 +93,10 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 			<p className="text-sm font-bold text-gray-400 mb-2 px-2 flex justify-between items-center">
 				<span>Elige el Menú Infantil:</span>
 				{formData.fecha &&
-					[0, 5, 6].includes(new Date(formData.fecha).getDay()) && (
+					(() => {
+						const d = safeParseDate(formData.fecha);
+						return d && !isNaN(d.getTime()) && [0, 5, 6].includes(d.getDay());
+					})() && (
 						<span className="text-[10px] text-energy-orange bg-orange-50 px-2 py-1 rounded-lg animate-pulse">
 							+1.50€ Vie a Dom
 						</span>
@@ -133,7 +137,12 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 								</div>
 							</div>
 							{formData.fecha &&
-								[0, 5, 6].includes(new Date(formData.fecha).getDay()) && (
+								(() => {
+									const d = safeParseDate(formData.fecha);
+									return (
+										d && !isNaN(d.getTime()) && [0, 5, 6].includes(d.getDay())
+									);
+								})() && (
 									<div className="flex justify-end mb-2 -mt-1">
 										<span className="text-[10px] font-bold text-energy-orange bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100/50">
 											+1.50€ Vie a Dom
