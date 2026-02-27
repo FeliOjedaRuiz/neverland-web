@@ -1,7 +1,7 @@
 {
-  "name": "un-detallico-tarjetas-api",
+  "name": "neverland-api",
   "version": "1.0.0",
-  "description": "Aplicación web para creación de tarjetas digitales personalizadas",
+  "description": "API backend para gestión de reservas de Neverland Cúllar Vega",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
