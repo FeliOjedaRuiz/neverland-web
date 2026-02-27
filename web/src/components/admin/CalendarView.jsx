@@ -7,6 +7,7 @@ import {
 	Loader2,
 } from 'lucide-react';
 import { getReservations } from '../../services/api';
+import { safeParseDate } from '../../utils/safeDate';
 
 const CalendarView = ({ onDayClick }) => {
 	const [currentDate, setCurrentDate] = useState(new Date());
@@ -65,7 +66,7 @@ const CalendarView = ({ onDayClick }) => {
 	const getEventsForDate = (dateObj) => {
 		if (!dateObj) return [];
 		return reservations.filter((r) => {
-			const eventDate = new Date(r.fecha);
+			const eventDate = safeParseDate(r.fecha);
 			return (
 				eventDate.getFullYear() === dateObj.getFullYear() &&
 				eventDate.getMonth() === dateObj.getMonth() &&

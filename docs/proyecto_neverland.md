@@ -64,7 +64,9 @@ Es el núcleo del sistema. Centraliza tanto la actividad comercial como el contr
       personaje: String,         // "ninguno" o nombre del personaje
       precioPersonajeApplied: Number,
       pinata: Boolean,
-      precioPinataApplied: Number
+      precioPinataApplied: Number,
+      observaciones: String,     // Notas generales añadidas por el usuario o administrador
+      alergenos: String          // Notas específicas sobre alergias o intolerancias alimentarias
     }
   },
   horario: {
@@ -110,7 +112,9 @@ Es el núcleo del sistema. Centraliza tanto la actividad comercial como el contr
 			"personaje": "Mickey",
 			"precioPersonajeApplied": 40,
 			"pinata": true,
-			"precioPinataApplied": 15
+			"precioPinataApplied": 15,
+			"observaciones": "Cumpleañero vestido de pirata",
+			"alergenos": "Un niño con alergia al huevo"
 		}
 	},
 	"horario": {
@@ -326,7 +330,7 @@ El cliente atraviesa un proceso de 8 pasos diseñado para la conversión:
 
 1.  **Fecha y Turno**: Calendario que consulta disponibilidad en tiempo real (DB + Google Calendar).
 2.  **Responsable**: Datos del padre/madre (Teléfono y Email obligatorios).
-3.  **Niño/a y Menú**: Nombre, edad y elección del menú infantil (1, 2, 3 o 4).
+3.  **Niño/a y Menú**: Nombre, edad, elección del menú infantil y advertencias de alérgenos/intolerancias.
 4.  **Adultos**: Cantidad de adultos y selección de raciones de comida.
 5.  **Talleres**: Selección de actividad especial (Magia, Slime, etc.).
 6.  **Personajes**: Buscador de personajes favoritos.
@@ -442,7 +446,7 @@ El API implementa niveles de protección claros:
 
 ### Observaciones y Mejoras en Proceso
 
-- **Campo de Observaciones**: Se ha detectado la necesidad de añadir un campo de "Notas del Cliente" para peticiones especiales (alergias, detalles del cumple).
+- **Campos de Observaciones y Alérgenos**: Se han implementado con éxito campos específicos de texto libre para recopilar "Notas del Cliente" (peticiones especiales) y "Alérgenos/Intolerancias" de forma independiente para mayor seguridad y claridad comercial.
 - **Mensaje de WhatsApp**: Se planea enriquecer el mensaje automático con detalles de ubicación (Google Maps).
 
 ---

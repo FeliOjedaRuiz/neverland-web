@@ -12,6 +12,7 @@ import {
 	ChevronRight,
 	MessageSquare,
 } from 'lucide-react';
+import { safeParseDate } from '../../utils/safeDate';
 
 const ReservationDetailModal = ({ reservation, onClose }) => {
 	if (!reservation) return null;
@@ -23,7 +24,9 @@ const ReservationDetailModal = ({ reservation, onClose }) => {
 			month: 'long',
 			day: 'numeric',
 		};
-		return new Date(dateString).toLocaleDateString('es-ES', options);
+		const date = safeParseDate(dateString);
+		if (!date || isNaN(date.getTime())) return '';
+		return date.toLocaleDateString('es-ES', options);
 	};
 
 	const getTurnoLabel = (reservation) => {

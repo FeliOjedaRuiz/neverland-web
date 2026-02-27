@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { safeParseDate } from '../../utils/safeDate';
 import {
 	X,
 	User,
@@ -154,7 +155,9 @@ const ReservationDetailView = ({
 							</span>{' '}
 							del día{' '}
 							<span className="font-bold text-text-black">
-								{new Date(reservation.fecha).toLocaleDateString('es-ES')}
+								{(
+									safeParseDate(reservation.fecha) || new Date()
+								).toLocaleDateString('es-ES')}
 							</span>
 							.
 						</p>
@@ -785,7 +788,9 @@ const ReservationDetailView = ({
 // Sub-component for Date and Time Edit
 const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 	const [view, setView] = useState('calendar'); // 'calendar' | 'shifts'
-	const [currentMonth, setCurrentMonth] = useState(new Date(reservation.fecha));
+	const [currentMonth, setCurrentMonth] = useState(
+		safeParseDate(reservation.fecha) || new Date(),
+	);
 	const [selectedDate, setSelectedDate] = useState(
 		reservation.fecha.split('T')[0],
 	);
@@ -945,7 +950,7 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 								Dia Seleccionado
 							</p>
 							<p className="font-display font-black text-xl text-text-black capitalize">
-								{new Date(selectedDate + 'T00:00:00').toLocaleDateString(
+								{(safeParseDate(selectedDate) || new Date()).toLocaleDateString(
 									'es-ES',
 									{
 										weekday: 'long',
