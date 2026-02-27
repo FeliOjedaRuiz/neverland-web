@@ -37,7 +37,6 @@ jobs:
       - name: Run Backend Tests (Jest)
         working-directory: api
         run: npm test
-        continue-on-error: true
 
   deploy:
     name: Despliegue en Fly.io
