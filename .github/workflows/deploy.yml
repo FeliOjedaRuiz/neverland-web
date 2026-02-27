@@ -10,6 +10,8 @@ jobs:
   test:
     name: Verificación (Tests & iPhone Compatibility)
     runs-on: ubuntu-latest
+    env:
+      TZ: Europe/Madrid
     steps:
       - uses: actions/checkout@v4
 
