@@ -27,7 +27,7 @@ describe('BookingSuccess Component', () => {
 		expect(screen.getByText(/NAV-12345/i)).toBeDefined();
 	});
 
-	it('debería generar un enlace de WhatsApp con los parámetros correctos', () => {
+	it('debería mostrar el mensaje de confirmación por correo', () => {
 		render(
 			<BookingSuccess
 				formData={mockFormData}
@@ -36,14 +36,10 @@ describe('BookingSuccess Component', () => {
 			/>,
 		);
 
-		const whatsappLink = screen.getByRole('link', {
-			name: /Avisar por WhatsApp/i,
-		});
-		const href = whatsappLink.getAttribute('href');
-
-		expect(href).toContain('wa.me');
-		expect(href).toContain('NAV-12345');
-		expect(href).toContain('15%2F05%2F26'); // '/' encoded
+		expect(screen.getByText(/Revisa tu correo/i)).toBeDefined();
+		expect(
+			screen.getByText(/Te hemos enviado un mail con todos los detalles/i),
+		).toBeDefined();
 	});
 
 	it('debería manejar casos donde los datos de entrada son parciales', () => {
