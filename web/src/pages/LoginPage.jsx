@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Lock, Mail, ArrowRight } from 'lucide-react';
+import { Lock, Mail, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { login } from '../services/api';
 
 const LoginPage = () => {
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
+	const [showPassword, setShowPassword] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
 	const navigate = useNavigate();
@@ -84,13 +85,20 @@ const LoginPage = () => {
 								<Lock className="text-text-muted" size={20} />
 							</div>
 							<input
-								type="password"
+								type={showPassword ? 'text' : 'password'}
 								required
-								className="block w-full pl-11 pr-4 py-4 bg-white border border-gray-200 rounded-2xl focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all font-sans text-text-black placeholder-gray-400"
+								className="block w-full pl-11 pr-12 py-4 bg-white border border-gray-200 rounded-2xl focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all font-sans text-text-black placeholder-gray-400"
 								placeholder="••••••••"
 								value={password}
 								onChange={(e) => setPassword(e.target.value)}
 							/>
+							<button
+								type="button"
+								onClick={() => setShowPassword(!showPassword)}
+								className="absolute inset-y-0 right-0 pr-4 flex items-center text-text-muted hover:text-neverland-green transition-colors"
+							>
+								{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+							</button>
 						</div>
 					</div>
 

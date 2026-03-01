@@ -1,0 +1,7 @@
+{
+  "name": "neverland-web-root",
+  "version": "1.0.0",
+  "scripts": {
+    "ship": "node scripts/ship.js"
+  }
+}
