@@ -985,8 +985,10 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 	);
 	const [selectedTurno, setSelectedTurno] = useState(reservation.turno);
 	const [occupied, setOccupied] = useState([]);
+	const [loading, setLoading] = useState(true);
 
 	const fetchAvailability = React.useCallback(async () => {
+		setLoading(true);
 		try {
 			const res = await checkAvailability({
 				year: currentMonth.getFullYear(),
@@ -1005,6 +1007,8 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 			setOccupied(filtered);
 		} catch (err) {
 			console.error(err);
+		} finally {
+			setLoading(false);
 		}
 	}, [
 		currentMonth,
@@ -1030,7 +1034,15 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 	return (
 		<div className="space-y-6 flex flex-col h-full min-h-[400px]">
 			{view === 'calendar' ? (
-				<div className="flex flex-col h-full">
+				<div className="flex flex-col h-full relative">
+					{loading && (
+						<div className="absolute inset-0 z-10 bg-cream-bg/80 backdrop-blur-[2px] flex flex-col items-center justify-center rounded-3xl animate-in fade-in duration-300">
+							<div className="w-10 h-10 border-4 border-neverland-green/20 border-t-neverland-green rounded-full animate-spin mb-4"></div>
+							<p className="font-display font-black text-neverland-green/60 text-sm uppercase tracking-widest">
+								Cargando disponibilidad...
+							</p>
+						</div>
+					)}
 					<div className="flex justify-between items-center mb-4 px-2">
 						<button
 							onClick={() => changeMonth(-1)}
@@ -1082,7 +1094,6 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 							const isPast = date < today;
 							const isSel = selectedDate === dateStr;
 							const dayOccupied = getOccupiedForDate(dateStr);
-							const isFullyOccupied = dayOccupied.length >= 3;
 
 							return (
 								<button
@@ -1098,9 +1109,7 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 											: isPast
 												? 'bg-gray-50 text-gray-200 border-transparent opacity-40 cursor-not-allowed'
 												: isCur
-													? isFullyOccupied
-														? 'bg-red-50 text-red-300 border-red-100 hover:bg-red-100/50'
-														: 'bg-white text-text-black border-gray-100 hover:border-neverland-green/50 hover:shadow-soft'
+													? 'bg-white text-text-black border-gray-100 hover:border-neverland-green/50 hover:shadow-soft'
 													: 'bg-surface/50 text-gray-300 border-transparent'
 									}`}
 								>
