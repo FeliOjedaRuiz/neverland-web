@@ -3,6 +3,9 @@
 app = "neverland-app"
 primary_region = "cdg"
 
+[env]
+  WEB_URL = "https://neverland-app.fly.dev"
+
 [http_service]
   internal_port = 8080
   force_https = true
