@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Lock, Mail, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { login } from '../services/api';
@@ -11,6 +11,14 @@ const LoginPage = () => {
 	const [error, setError] = useState('');
 	const navigate = useNavigate();
 	const location = useLocation();
+
+	useEffect(() => {
+		const token = localStorage.getItem('token');
+		if (token) {
+			const from = location.state?.from?.pathname || '/admin';
+			navigate(from, { replace: true });
+		}
+	}, [navigate, location]);
 
 	const handleLogin = async (e) => {
 		e.preventDefault();

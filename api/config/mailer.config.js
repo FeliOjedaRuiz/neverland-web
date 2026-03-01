@@ -40,6 +40,12 @@ const formatDate = (date) => {
 };
 
 module.exports.sendBookingConfirmationEmail = async (event) => {
+  // Prevent sending real emails during automated tests
+  if (process.env.NODE_ENV === 'test') {
+    console.log('Test mode: Skipping real email send for', event.cliente.email);
+    return { messageId: 'test-mode-mock-id' };
+  }
+
   const { publicId, fecha, turno, cliente, detalles, horario, precioTotal } = event;
   const formattedDate = formatDate(fecha);
   const shiftHours = getHorarioFinal(turno, horario.extensionMinutos);

@@ -80,6 +80,12 @@ const Step1Date = ({
 		const y = dateObj.getFullYear();
 		const m = dateObj.getMonth() + 1;
 		const key = `${y}-${m}`;
+
+		// If the data is not in cache, return null to indicate loading/missing
+		if (availabilityCache[key] === undefined) {
+			return null;
+		}
+
 		const monthData = availabilityCache[key] || [];
 
 		const dateStr = [
@@ -185,8 +191,8 @@ const Step1Date = ({
 										{/* Grid */}
 										<div className="grid grid-cols-7 grid-rows-6 gap-px h-full relative touch-pan-y select-none pb-2">
 											{availabilityLoading && (
-												<div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-2xl pointer-events-none">
-													<div className="w-6 h-6 border-2 border-neverland-green/20 border-t-neverland-green rounded-full animate-spin"></div>
+												<div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center rounded-2xl">
+													<div className="w-8 h-8 border-4 border-neverland-green/20 border-t-neverland-green rounded-full animate-spin"></div>
 												</div>
 											)}
 
@@ -207,12 +213,13 @@ const Step1Date = ({
 												const isPast = date < today;
 												const isSel = formData.fecha === dateStr;
 												const occupied = getOccupiedForDate(date);
+												const isLoadingData = occupied === null;
 
 												return (
 													<div
 														key={i}
 														onClick={() => {
-															if (isPast) return;
+															if (isPast || isLoadingData) return;
 															if (!isCur) {
 																const newM = new Date(date);
 																newM.setDate(1);
@@ -234,7 +241,7 @@ const Step1Date = ({
 																	: isCur
 																		? 'bg-white text-gray-700 border-gray-100 hover:border-green-200 cursor-pointer'
 																		: 'bg-gray-50/50 text-gray-400 border-transparent hover:bg-white hover:border-green-100 cursor-pointer'
-														}`}
+														} ${isLoadingData ? 'opacity-40 animate-pulse' : ''}`}
 													>
 														<span
 															className={`text-[10px] mb-0.5 ${isSel ? 'font-black' : ''}`}
@@ -242,7 +249,7 @@ const Step1Date = ({
 															{date.getDate()}
 														</span>
 
-														{!isPast && !isSel && (
+														{!isPast && !isSel && !isLoadingData && (
 															<div className="w-full px-0.5 flex flex-col gap-px">
 																{['T1', 'T2', 'T3'].map((t) => {
 																	const isOcc = occupied.includes(t);
@@ -261,6 +268,13 @@ const Step1Date = ({
 																		</div>
 																	);
 																})}
+															</div>
+														)}
+														{isLoadingData && !isPast && (
+															<div className="w-full px-1 flex flex-col gap-1 opacity-20">
+																<div className="h-1 bg-gray-300 rounded-full w-full"></div>
+																<div className="h-1 bg-gray-300 rounded-full w-full"></div>
+																<div className="h-1 bg-gray-300 rounded-full w-full"></div>
 															</div>
 														)}
 													</div>

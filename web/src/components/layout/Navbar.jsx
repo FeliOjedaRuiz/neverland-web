@@ -12,6 +12,13 @@ const Navbar = () => {
 
 	const menuRef = React.useRef(null);
 	const buttonRef = React.useRef(null);
+	const [isLoggedIn, setIsLoggedIn] = React.useState(
+		!!localStorage.getItem('token'),
+	);
+
+	React.useEffect(() => {
+		setIsLoggedIn(!!localStorage.getItem('token'));
+	}, [location]);
 
 	React.useEffect(() => {
 		const handleClickOutside = (event) => {
@@ -75,10 +82,10 @@ const Navbar = () => {
 							FAQ
 						</Link>
 						<Link
-							to="/admin/login"
+							to={isLoggedIn ? '/admin' : '/admin/login'}
 							className="text-gray-500 hover:text-neverland-green transition-colors font-sans font-medium text-sm"
 						>
-							Acceso Admin
+							{isLoggedIn ? 'Panel Control' : 'Acceso Admin'}
 						</Link>
 						<Link
 							to="/booking"
@@ -145,11 +152,11 @@ const Navbar = () => {
 							Reservar
 						</Link>
 						<Link
-							to="/admin/login"
+							to={isLoggedIn ? '/admin' : '/admin/login'}
 							onClick={() => setIsOpen(false)}
 							className="mt-2 block w-full text-center text-gray-400 hover:text-neverland-green py-2 text-sm font-medium"
 						>
-							Acceso Admin
+							{isLoggedIn ? 'Panel Control' : 'Acceso Admin'}
 						</Link>
 					</div>
 				</div>
