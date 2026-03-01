@@ -102,9 +102,9 @@ const ReservationInbox = () => {
 	};
 
 	return (
-		<div className="flex flex-col h-full bg-white animate-in fade-in duration-300">
+		<div className="flex flex-col h-full bg-transparent animate-in fade-in duration-300">
 			{/* Filters Header - Compacted for Mobile */}
-			<div className="px-3 py-2.5 sm:px-6 sm:py-4 bg-gray-50/50 border-b border-gray-100 flex flex-col xl:flex-row justify-between items-center shrink-0 gap-3 sm:gap-4">
+			<div className="px-3 py-2.5 sm:px-6 sm:py-4 bg-calendar-bg backdrop-blur-md border-b border-gray-100 flex flex-col xl:flex-row justify-between items-center shrink-0 gap-3 sm:gap-4 shadow-sm">
 				<div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full xl:w-auto">
 					<div className="flex gap-1 bg-gray-200/50 p-1 rounded-2xl w-full sm:w-auto shadow-inner">
 						<button
@@ -214,7 +214,7 @@ const ReservationInbox = () => {
 			</div>
 
 			{/* List Area */}
-			<div className="flex-1 overflow-y-auto min-h-0 bg-white">
+			<div className="flex-1 overflow-y-auto min-h-0">
 				{loading ? (
 					<div className="flex flex-col items-center justify-center h-full py-20 text-gray-300 gap-4">
 						<Loader2
@@ -233,11 +233,11 @@ const ReservationInbox = () => {
 						</p>
 					</div>
 				) : (
-					<div className="divide-y divide-gray-50">
+					<div className="flex flex-col gap-3 p-4">
 						{reservations.map((item) => (
 							<div
 								key={item.id}
-								className="group flex items-center justify-between p-3.5 sm:p-5 hover:bg-neverland-green/5 transition-colors cursor-pointer border-l-4 border-l-transparent hover:border-l-neverland-green"
+								className="group flex items-center justify-between p-3.5 sm:p-5 bg-surface hover:bg-neverland-green/5 transition-all cursor-pointer border border-gray-100 rounded-3xl shadow-sm hover:shadow-md border-l-4 border-l-transparent hover:border-l-neverland-green"
 								onClick={() => navigate(`/admin/evento/${item.id}`)}
 							>
 								<div className="flex-1 min-w-0 pr-4">

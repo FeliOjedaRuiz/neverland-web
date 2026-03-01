@@ -35,8 +35,21 @@ router.get('/users', secure.isAdmin, users.list);
 router.get('/events/availability', events.checkAvailability);
 router.post('/events', events.create); // Clients can create reservations
 router.get('/events', secure.isAdmin, events.list);
-router.get('/events/:id', secure.isAdmin, events.detail); // Protected for privacy
-router.patch('/events/:id', secure.isAdmin, events.update); // Only admin can edit for now
+router.get('/events/:id/public', events.publicDetail); // NEW: Public-safe detail
+router.get('/events/:id', secure.isAdmin, events.detail); // Sensitive full detail
+router.patch('/events/:id', (req, res, next) => {
+	// Attempt authentication but don't fail if token is missing
+	const token = req.headers.authorization?.split(" ")?.[1];
+	if (token) {
+		return secure.auth(req, res, () => {
+			// After auth, if role is admin, let it pass. 
+			// If it's a "user" role, the controller will handle the restriction.
+			next();
+		});
+	}
+	// No token? Proceed as anonymous/customer
+	next();
+}, events.update);
 router.delete('/events/:id', secure.isAdmin, events.delete);
 
 // CONFIG

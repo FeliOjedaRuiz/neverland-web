@@ -10,18 +10,19 @@
 
 Hemos unificado la paleta para garantizar contraste y armonía.
 
-| Token                  | Nombre Original   | Hex       | Uso Principal                                          |
-| ---------------------- | ----------------- | --------- | ------------------------------------------------------ |
-| `primary`              | Energy Orange     | `#F07D3E` | Botones CTA (Reservar), Destacados vibrantes           |
-| `primary-foreground`   | White             | `#FFFFFF` | Texto sobre botones naranjas                           |
-| `secondary`            | Neverland Green   | `#24635A` | Bordes sutiles, Textos de encabezado, Hovers           |
-| `secondary-foreground` | White             | `#FFFFFF` | Texto sobre fondos verdes oscuros                      |
-| `accent`               | Sun Yellow        | `#F9C835` | Detalles, Iconos, Elementos decorativos                |
-| `background`           | Cream BG          | `#FDEBD0` | Fondo general de la página (evita blanco puro)         |
-| `surface`              | White/Cream Light | `#FFF9F0` | Tarjetas, Modales, Menús desplegables                  |
-| `text-main`            | Text Black        | `#1A1A1A` | Texto de lectura principal                             |
-| `text-muted`           | Silhouette Green  | `#2D5A4C` | Texto secundario o descriptivo                         |
-| `success`              | (New) Soft Green  | `#45B18D` | Mensajes de éxito, Checks (El verde original del logo) |
+| `background` | Cream BG | `#FDEBD0` | Fondo general (capa base más oscura) |
+| `calendar-bg` | Calendar/Sidebar | `#FEF1DF` | Superficies intermedias (sidebars, headers, cals) |
+| `surface` | White/Cream Light | `#FFF9F0` | Tarjetas elevadas, Secciones, Modales (más clara) |
+| `text-main` | Text Black | `#1A1A1A` | Texto de lectura principal |
+| `text-muted` | Silhouette Green | `#2D5A4C` | Texto secundario o descriptivo |
+| `success` | (New) Soft Green | `#45B18D` | Mensajes de éxito, Checks (El verde original del logo) |
+
+**Jerarquía Crema (Contraste):**
+Para crear profundidad en el Dashboard, se utilizan tres capas de crema:
+
+- **Nivel 1 (Fondo):** `bg-cream-bg` (#FDEBD0) para el fondo general del layout.
+- **Nivel 2 (Superficie):** `bg-calendar-bg` (#FEF1DF) para áreas intermedias (sidebars, headers).
+- **Nivel 3 (Elevación):** `bg-surface` (#FFF9F0) para tarjetas y contenido que debe resaltar sobre el fondo.
 
 **Regla de Oro:** No usar negro puro (`#000`). Usar `#1A1A1A` para textos.
 

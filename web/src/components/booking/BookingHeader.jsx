@@ -4,7 +4,7 @@ const BookingHeader = ({ stage, stepsList }) => {
 	if (stage >= 6) return null;
 
 	return (
-		<div className="shrink-0 px-4 pt-1 pb-1 z-10 bg-surface sm:bg-transparent transition-all">
+		<div className="shrink-0 px-4 pt-1 pb-1 z-10 sm:bg-transparent transition-all">
 			<h1 className="text-lg sm:text-2xl font-display font-black text-neverland-green text-center leading-tight">
 				Reserva tu Fiesta
 			</h1>

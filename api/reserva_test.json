@@ -1,0 +1,27 @@
+{
+  "tipo": "reserva",
+  "fecha": "2027-06-15T00:00:00.000Z",
+  "turno": "T2",
+  "cliente": {
+    "nombreNiño": "Gumer",
+    "edadNiño": 8,
+    "nombrePadre": "USER (Test Email)",
+    "telefono": "612345678",
+    "email": "feliojedaruiz@gmail.com"
+  },
+  "detalles": {
+    "niños": { 
+      "cantidad": 15,
+      "menuId": "normal"
+    },
+    "adultos": { 
+      "cantidad": 20
+    },
+    "extras": {
+      "taller": "Masterchef Kid",
+      "personaje": "ninguno",
+      "pinata": true,
+      "observaciones": "Esto es una prueba automática para verificar el enlace en el email. No me ignores Antigravity!"
+    }
+  }
+}

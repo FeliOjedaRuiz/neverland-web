@@ -148,7 +148,7 @@ const DayDetailView = () => {
 	);
 
 	return (
-		<div className="flex flex-col h-full bg-white animate-in slide-in-from-right duration-300">
+		<div className="flex flex-col h-full animate-in slide-in-from-right duration-300">
 			{/* Header Compacto */}
 			<div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
 				<div className="flex items-center gap-3">
@@ -195,13 +195,13 @@ const DayDetailView = () => {
 					<div className="flex flex-col h-full gap-2">
 						{SHIFTS.map((shift) => {
 							const { status, event } = getTurnStatus(shift.id);
-							let cardStyles = 'bg-white border-gray-200';
+							let cardStyles = 'bg-surface border-gray-200';
 							let statusColor = 'text-gray-500 bg-gray-100';
 							let statusText = 'Disponible';
 
 							if (status === 'available') {
 								cardStyles =
-									'bg-white border-dashed border-gray-300 hover:border-gray-400';
+									'bg-surface border-dashed border-gray-300 hover:border-gray-400';
 								statusColor = 'text-gray-500 bg-gray-100';
 								statusText = 'Disponible';
 							} else if (status === 'blocked') {

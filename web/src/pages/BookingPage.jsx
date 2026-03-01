@@ -371,10 +371,10 @@ const BookingPage = () => {
 	})();
 
 	return (
-		<div className="pt-16 sm:pt-20 pb-0 flex flex-col bg-surface sm:bg-cream-bg overflow-hidden fixed inset-0 w-full">
+		<div className="pt-16 sm:pt-20 pb-0 flex flex-col bg-calendar-bg sm:bg-cream-bg overflow-hidden fixed inset-0 w-full">
 			<BookingHeader stage={currentStage} stepsList={stepsList} />
 			<div className="flex-1 px-0 sm:px-4 pb-0 min-h-0 relative flex flex-col">
-				<div className="bg-surface sm:rounded-3xl sm:shadow-soft h-full flex flex-col relative overflow-hidden sm:border-t sm:border-x sm:border-white/50">
+				<div className="bg-calendar-bg sm:rounded-3xl sm:shadow-soft h-full flex flex-col relative overflow-hidden sm:border-t sm:border-x sm:border-white/50">
 					<div
 						ref={scrollContainerRef}
 						className={`flex-1 min-h-0 relative ${step === 1 && view === 'calendar' ? 'overflow-hidden pt-0 pb-2' : 'overflow-y-auto overflow-x-hidden pb-8 pt-4'} px-4 sm:p-6 no-scrollbar`}

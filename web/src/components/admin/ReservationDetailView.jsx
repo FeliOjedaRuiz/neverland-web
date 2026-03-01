@@ -27,6 +27,7 @@ import {
 import { useNavigate, useParams, useOutletContext } from 'react-router-dom';
 import {
 	getReservationById,
+	getPublicReservationById,
 	updateReservation,
 	deleteReservation,
 	getConfig,
@@ -38,7 +39,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 	const navigate = useNavigate();
 	const { id } = useParams();
 	const { config: contextConfig, setConfig: setContextConfig } =
-		useOutletContext();
+		useOutletContext() || {}; // Handle cases where context is not available
 	const [reservation, setReservation] = useState(propReservation);
 	const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
 	const [isUpdating, setIsUpdating] = useState(false);
@@ -47,7 +48,21 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 	const [config, setConfig] = useState(contextConfig);
 	const [loading, setLoading] = useState(!propReservation);
 
-	const onBack = () => navigate(-1);
+	const isAdmin = React.useMemo(
+		() =>
+			!!localStorage.getItem('token') &&
+			(window.location.pathname.startsWith('/admin') ||
+				window.location.pathname.startsWith('/dashboard')),
+		[],
+	);
+
+	const onBack = () => {
+		if (isAdmin) {
+			navigate(-1);
+		} else {
+			navigate('/');
+		}
+	};
 
 	// --- Modal Navigation Handling (Back button to close modal) ---
 	useEffect(() => {
@@ -85,14 +100,17 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 	}, [contextConfig]);
 
 	useEffect(() => {
+		let isMounted = true;
 		const fetchInitialData = async () => {
 			try {
 				if (!reservation && id) {
-					const res = await getReservationById(id);
-					setReservation(res.data);
+					const res = isAdmin
+						? await getReservationById(id)
+						: await getPublicReservationById(id);
+					if (isMounted) setReservation(res.data);
 				}
 
-				if (!config) {
+				if (!config && !contextConfig) {
 					const res = await getConfig();
 					const data = res.data;
 					if (data.menusNiños) {
@@ -101,18 +119,23 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 							id: String(m.id || m._id || ''),
 						}));
 					}
-					setConfig(data);
-					if (setContextConfig) setContextConfig(data);
+					if (isMounted) {
+						setConfig(data);
+						if (setContextConfig) setContextConfig(data);
+					}
 				}
 			} catch (err) {
 				console.error('Error fetching data:', err);
 			} finally {
-				setLoading(false);
+				if (isMounted) setLoading(false);
 			}
 		};
 
 		fetchInitialData();
-	}, [id, reservation, config, setContextConfig]);
+		return () => {
+			isMounted = false;
+		};
+	}, [id, isAdmin, reservation, config, contextConfig, setContextConfig]); // Added back necessary dependencies safely
 
 	if (loading) {
 		return (
@@ -187,656 +210,766 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 
 		const base = baseTimes[turnoId] || turnoId;
 
-		// If there is an extension but no explicit inicio/fin, we should ideally calculate it,
-		// but since the backend/frontend now send it, the first if should catch it.
 		return base;
 	};
 
+	const isEditable = () => {
+		if (isAdmin) return true;
+		if (!reservation?.fecha) return false;
+		const eventDate = safeParseDate(reservation.fecha);
+		const now = new Date();
+		const diffHours = (eventDate - now) / (1000 * 60 * 60);
+		return diffHours > 72;
+	};
+
 	return (
-		<div className="flex flex-col h-full bg-white animate-in slide-in-from-right duration-300 relative">
-			{/* Modal de Confirmación de Borrado */}
-			{showDeleteConfirm && (
-				<div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all animate-in fade-in duration-200">
-					<div className="bg-white w-full max-w-sm rounded-[32px] p-8 shadow-2xl animate-in zoom-in-95 duration-200">
-						<div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-							<AlertTriangle size={32} />
-						</div>
-						<h3 className="text-xl font-display font-black text-text-black text-center mb-2">
-							¿Eliminar reserva?
-						</h3>
-						<p className="text-gray-500 text-sm text-center mb-8 px-2">
-							Esta acción no se puede deshacer. Se liberará el turno{' '}
-							<span className="font-bold text-text-black">
-								{reservation.turno}
-							</span>{' '}
-							del día{' '}
-							<span className="font-bold text-text-black">
-								{(
-									safeParseDate(reservation.fecha) || new Date()
-								).toLocaleDateString('es-ES')}
-							</span>
-							.
-						</p>
-						<div className="flex flex-col gap-3">
-							<button
-								onClick={handleDelete}
-								disabled={isUpdating}
-								className="w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-red-200 transition-all active:scale-95"
-							>
-								{isUpdating ? 'Eliminando...' : 'Sí, eliminar reserva'}
-							</button>
-							<button
-								onClick={closeModals}
-								className="w-full py-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl font-black text-sm transition-all active:scale-95"
-							>
-								No, mantenerla
-							</button>
-						</div>
-					</div>
-				</div>
-			)}
-
-			{/* Header con fondo verde */}
-			<div className="flex items-center gap-3 p-4 bg-neverland-green text-white shrink-0 shadow-md relative z-20">
-				<button
-					onClick={onBack}
-					className="p-1 -ml-1 hover:bg-white/20 rounded-full text-white transition-colors"
-				>
-					<ChevronLeft size={22} />
-				</button>
-
-				<div className="flex-1 min-w-0">
-					{/* Fila 1: Nombre y Edad */}
-					<h2 className="text-xl font-display font-black leading-tight break-words">
-						{reservation.cliente?.nombreNiño}
-						{reservation.cliente?.edadNiño
-							? `, ${reservation.cliente.edadNiño} años`
-							: ''}
-					</h2>
-
-					{/* Fila 2: ID */}
-					<p className="text-white/60 text-[9px] font-black uppercase tracking-tight truncate mb-2">
-						ID: {reservation.publicId}
-					</p>
-
-					{/* Fila 3: Fecha + Turno + Horario + Boton Estado */}
-					<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-						<div className="flex items-center gap-2 text-[11px] font-black">
-							<span className="opacity-90">
-								{formatDate(reservation.fecha, 'short')}
-							</span>
-							<span className="text-white/40 bg-white/10 px-1 rounded text-[9px]">
-								{reservation.turno}
-							</span>
-							<span className="opacity-95 text-[11px]">
-								{getTurnoLabel(reservation.turno, reservation.horario)}
-							</span>
-						</div>
-
-						<div className="relative">
-							<button
-								onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
-								disabled={isUpdating}
-								className={`px-3 py-1 rounded-2xl text-[9px] font-black uppercase flex items-center gap-1.5 transition-all active:scale-95 border-none shadow-none ${
-									reservation.estado === 'confirmado' ||
-									reservation.estado === 'confirmada'
-										? 'bg-white/20 text-white'
-										: reservation.estado === 'pendiente' ||
-											  reservation.estado === 'solicitado'
-											? 'bg-yellow-400 text-yellow-900 shadow-sm'
-											: 'bg-white/10 text-white'
-								}`}
-							>
-								{isUpdating ? (
-									<Loader2 size={10} className="animate-spin" />
-								) : (
-									reservation.estado
-								)}
-								<ChevronDown
-									size={12}
-									className={`transition-transform duration-200 ${isStatusMenuOpen ? 'rotate-180' : ''}`}
-								/>
-							</button>
-
-							{isStatusMenuOpen && (
-								<div className="absolute right-0 mt-2 w-48 bg-white rounded-3xl shadow-2xl border border-gray-100 py-2 animate-in fade-in zoom-in-95 duration-200 overflow-hidden z-30 shadow-neverland-green/10">
-									<p className="px-5 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-1">
-										Estado
-									</p>
-									<button
-										onClick={() => handleStatusChange('confirmado')}
-										className="w-full text-left px-5 py-4 text-sm font-bold text-neverland-green hover:bg-neverland-green/5 flex items-center justify-between group"
-									>
-										Confirmar
-										<Check
-											size={16}
-											className="opacity-0 group-hover:opacity-100 transition-opacity"
-										/>
-									</button>
-									<button
-										onClick={() => handleStatusChange('pendiente')}
-										className="w-full text-left px-5 py-4 text-sm font-bold text-yellow-600 hover:bg-yellow-50 flex items-center justify-between group"
-									>
-										Pendiente
-										<Clock
-											size={16}
-											className="opacity-0 group-hover:opacity-100 transition-opacity"
-										/>
-									</button>
-									<button
-										onClick={() => handleStatusChange('cancelado')}
-										className="w-full text-left px-5 py-4 text-sm font-bold text-red-500 hover:bg-red-50 flex items-center justify-between group"
-									>
-										Cancelar
-										<X
-											size={16}
-											className="opacity-0 group-hover:opacity-100 transition-opacity"
-										/>
-									</button>
-								</div>
-							)}
-						</div>
-					</div>
-				</div>
-			</div>
-
-			{/* Content */}
-			<div className="flex-1 overflow-y-auto p-6 space-y-8 bg-gray-50/30">
-				{/* Client Info */}
-				<section className="space-y-4 max-w-3xl mx-auto">
-					<div className="flex justify-between items-center">
-						<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-							<User size={14} /> Información del Cliente
-						</h4>
-						<button
-							onClick={() => setActiveModal('client')}
-							className="p-1.5 hover:bg-neverland-green/10 text-neverland-green rounded-lg transition-colors"
-						>
-							<Pencil size={14} />
-						</button>
-					</div>
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+		<div className="min-h-full bg-cream-bg">
+			<div
+				className={`flex flex-col h-full animate-in slide-in-from-right duration-300 relative ${
+					!isAdmin
+						? 'bg-white mt-16 md:mt-20 max-w-xl mx-auto shadow-2xl md:my-8 md:rounded-[40px] overflow-hidden min-h-[calc(100dvh-150px)]'
+						: 'bg-cream-bg'
+				}`}
+			>
+				{/* Barra de título opcional para el visitante */}
+				{!isAdmin && (
+					<div className="bg-calendar-bg px-6 py-4 border-b border-gray-100 flex items-center justify-between">
 						<div>
-							<p className="text-[10px] text-gray-400 font-bold uppercase mb-1">
-								Niño/a del cumple
+							<h1 className="text-xl font-display font-black text-text-black leading-tight">
+								Mi Reserva
+							</h1>
+							<p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
+								Estado y Detalles
 							</p>
-							<p className="font-display font-black text-xl text-text-black">
-								{reservation.cliente?.nombreNiño}
-							</p>
-							<span className="text-sm font-bold text-neverland-green bg-neverland-green/5 px-2 py-0.5 rounded">
-								{reservation.cliente?.edadNiño} años
-							</span>
 						</div>
-						<div>
-							<p className="text-[10px] text-gray-400 font-bold uppercase mb-1">
-								Responsable
-							</p>
-							<p className="font-bold text-text-black">
-								{reservation.cliente?.nombrePadre}
-							</p>
-							<a
-								href={`https://wa.me/${reservation.cliente?.telefono?.replace(/\s/g, '')}`}
-								target="_blank"
-								rel="noreferrer"
-								className="text-neverland-green hover:underline flex items-center gap-1 text-sm font-bold mt-2 bg-neverland-green/10 w-fit px-3 py-1 rounded-full"
-							>
-								<Phone size={14} /> {reservation.cliente?.telefono}
-							</a>
-							{reservation.cliente?.email && (
-								<p className="flex items-center gap-1 text-sm font-bold mt-2 text-gray-500 bg-gray-100 w-fit px-3 py-1 rounded-full">
-									<Mail size={14} /> {reservation.cliente.email}
-								</p>
-							)}
+						<div className="p-2 bg-neverland-green/5 text-neverland-green rounded-2xl">
+							<Package size={24} />
 						</div>
 					</div>
-				</section>
+				)}
 
-				{/* Date & Time */}
-				<section className="space-y-4 max-w-3xl mx-auto">
-					<div className="flex justify-between items-center">
-						<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-							<Calendar size={14} /> Fecha y Horario
-						</h4>
-						<button
-							onClick={() => setActiveModal('datetime')}
-							className="p-1.5 hover:bg-neverland-green/10 text-neverland-green rounded-lg transition-colors"
-						>
-							<Pencil size={14} />
-						</button>
-					</div>
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-						<div className="flex items-center gap-4 bg-white p-4 rounded-3xl border border-gray-100 shadow-sm transition-transform hover:scale-[1.02]">
-							<div className="w-12 h-12 bg-energy-orange/10 text-energy-orange rounded-2xl flex items-center justify-center">
-								<Calendar size={24} />
+				{/* Modal de Confirmación de Borrado */}
+				{showDeleteConfirm && (
+					<div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all animate-in fade-in duration-200">
+						<div className="bg-white w-full max-w-sm rounded-[32px] p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+							<div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+								<AlertTriangle size={32} />
 							</div>
-							<div>
-								<p className="text-[10px] text-gray-400 font-black uppercase">
-									Fecha
-								</p>
-								<p className="font-bold text-text-black capitalize">
-									{formatDate(reservation.fecha)}
-								</p>
-							</div>
-						</div>
-						<div className="flex items-center gap-4 bg-white p-4 rounded-3xl border border-gray-100 shadow-sm transition-transform hover:scale-[1.02]">
-							<div className="w-12 h-12 bg-blue-400/10 text-blue-400 rounded-2xl flex items-center justify-center">
-								<Clock size={24} />
-							</div>
-							<div>
-								<p className="text-[10px] text-gray-400 font-black uppercase">
-									Turno / Horario
-								</p>
-								<p className="font-bold text-text-black">
-									{reservation.turno} (
-									{getTurnoLabel(reservation.turno, reservation.horario)})
-								</p>
-								{reservation.horario?.extensionMinutos > 0 && (
-									<p className="text-xs text-blue-500 font-bold">
-										+ {reservation.horario.extensionMinutos} min extra
-									</p>
-								)}
-							</div>
-						</div>
-					</div>
-				</section>
-
-				{/* Observaciones - Moved between Date/Time and Menus */}
-				<section className="space-y-4 max-w-3xl mx-auto">
-					<div className="flex justify-between items-center">
-						<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-							<MessageSquare size={14} /> Observaciones
-						</h4>
-						<button
-							onClick={() => setActiveModal('observations')}
-							className="p-1.5 hover:bg-neverland-green/10 text-neverland-green rounded-lg transition-colors"
-						>
-							<Pencil size={14} />
-						</button>
-					</div>
-					<div className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden group">
-						<div className="absolute top-0 left-0 w-1 h-full bg-blue-400 opacity-20"></div>
-						{reservation.detalles?.extras?.observaciones ? (
-							<p className="text-sm font-medium text-gray-700 italic leading-relaxed">
-								"{reservation.detalles.extras.observaciones}"
-							</p>
-						) : (
-							<p className="text-xs text-gray-400 italic">
-								No hay observaciones para esta reserva
-							</p>
-						)}
-					</div>
-				</section>
-
-				{/* Menus */}
-				<section className="space-y-4 max-w-3xl mx-auto">
-					<div className="flex justify-between items-center">
-						<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-							<Utensils size={14} /> Menús y Asistencia
-						</h4>
-						<button
-							onClick={() => setActiveModal('menus')}
-							className="p-1.5 hover:bg-neverland-green/10 text-neverland-green rounded-lg transition-colors"
-						>
-							<Pencil size={14} />
-						</button>
-					</div>
-					<div className="space-y-3">
-						<div className="flex justify-between items-center p-4 bg-white rounded-3xl border border-gray-100 shadow-sm">
-							<div className="flex items-center gap-3">
-								<Smile className="text-neverland-green" size={20} />
-								<span className="font-bold text-text-black">
-									Niños ({reservation.detalles?.niños?.cantidad})
-								</span>
-							</div>
-							<span className="bg-neverland-green/10 text-neverland-green px-4 py-1.5 rounded-full text-xs font-black uppercase">
-								{(() => {
-									if (!config)
-										return <span className="animate-pulse">Cargando...</span>;
-
-									const currentMenuId = String(
-										reservation.detalles?.niños?.menuId || '',
-									);
-
-									const menu = config.menusNiños?.find(
-										(m) => String(m.id) === currentMenuId,
-									);
-
-									if (menu) {
-										return `${menu.nombre}${menu.principal ? `, ${menu.principal}` : ''}`;
-									}
-									return `Menú ${reservation.detalles?.niños?.menuId}`;
-								})()}
-							</span>
-						</div>
-
-						{/* Alergenos */}
-						<div
-							className={`p-4 rounded-3xl border ${reservation.detalles?.extras?.alergenos ? 'bg-orange-50 border-orange-100 shadow-sm' : 'bg-white border-gray-100 shadow-sm'}`}
-						>
-							<div className="flex items-center gap-3">
-								<AlertTriangle
-									className={
-										reservation.detalles?.extras?.alergenos
-											? 'text-energy-orange'
-											: 'text-gray-300'
-									}
-									size={20}
-								/>
-								<div className="flex flex-col">
-									<span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">
-										Alérgenos / Intolerancias
-									</span>
-									<p
-										className={`text-sm font-bold ${reservation.detalles?.extras?.alergenos ? 'text-text-black' : 'text-gray-300 italic'}`}
-									>
-										{reservation.detalles?.extras?.alergenos ||
-											'Sin alérgenos reportados'}
-									</p>
-								</div>
-							</div>
-						</div>
-
-						<div className="p-4 bg-white rounded-3xl border border-gray-100 shadow-sm space-y-4">
-							<div className="flex items-center gap-3 border-b border-gray-50 pb-3">
-								<Utensils className="text-energy-orange" size={20} />
-								<span className="font-bold text-text-black">
-									Adultos ({reservation.detalles?.adultos?.cantidad || 0})
-								</span>
-							</div>
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-8">
-								{(() => {
-									const adultos = reservation.detalles?.adultos;
-									let normalized = [];
-
-									if (Array.isArray(adultos)) {
-										// Old Direct Array Format: [{item, cantidad}]
-										normalized = adultos;
-									} else if (adultos && typeof adultos === 'object') {
-										if (Array.isArray(adultos.comida)) {
-											// New Unified Format: { cantidad, comida: [{item, cantidad}] }
-											normalized = adultos.comida;
-										} else if (
-											adultos.comida &&
-											typeof adultos.comida === 'object'
-										) {
-											// Legacy Client Format: { cantidad, comida: { name: qty } }
-											normalized = Object.entries(adultos.comida)
-												.filter(([, qty]) => qty > 0)
-												.map(([name, qty]) => ({
-													item: name,
-													cantidad: qty,
-												}));
-										}
-									}
-
-									const itemsToDisplay = normalized.filter(
-										(i) => i.item && String(i.item).trim(),
-									);
-
-									if (itemsToDisplay.length > 0) {
-										return itemsToDisplay.map((item, idx) => (
-											<div
-												key={idx}
-												className="flex justify-between p-2 bg-gray-50 rounded-xl text-sm text-gray-600 font-medium"
-											>
-												<span className="truncate mr-2">{item.item}</span>
-												<span className="font-black text-text-black shrink-0">
-													x{item.cantidad}
-												</span>
-											</div>
-										));
-									}
-
-									return (
-										<p className="text-xs text-gray-400 italic">
-											No se solicitó comida de adultos
-										</p>
-									);
-								})()}
-							</div>
-						</div>
-					</div>
-				</section>
-
-				{/* Extras */}
-				<section className="space-y-4 max-w-3xl mx-auto">
-					<div className="flex justify-between items-center">
-						<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-							<Sparkles size={14} /> Extras y Actividades
-						</h4>
-						<button
-							onClick={() => setActiveModal('extras')}
-							className="p-1.5 hover:bg-neverland-green/10 text-neverland-green rounded-lg transition-colors"
-						>
-							<Pencil size={14} />
-						</button>
-					</div>
-					<div className="grid grid-cols-1 gap-3">
-						{/* Actividad */}
-						<div
-							className={`p-4 px-6 rounded-3xl border flex items-center justify-between transition-all ${
-								reservation.detalles?.extras?.taller !== 'ninguno'
-									? 'bg-blue-50 border-blue-100 text-blue-600'
-									: 'bg-gray-50 border-gray-100 text-gray-300 opacity-60'
-							}`}
-						>
-							<div className="flex items-center gap-3">
-								<Sparkles size={18} />
-								<span className="text-[10px] font-black uppercase tracking-widest">
-									Actividad
-								</span>
-							</div>
-							<span className="text-sm font-black capitalize">
-								{reservation.detalles?.extras?.taller === 'ninguno'
-									? 'Sin actividad'
-									: reservation.detalles?.extras?.taller}
-							</span>
-						</div>
-
-						{/* Personaje */}
-						<div
-							className={`p-4 px-6 rounded-3xl border flex items-center justify-between transition-all ${
-								reservation.detalles?.extras?.personaje !== 'ninguno'
-									? 'bg-purple-50 border-purple-100 text-purple-600'
-									: 'bg-gray-50 border-gray-100 text-gray-300 opacity-60'
-							}`}
-						>
-							<div className="flex items-center gap-3">
-								<Smile size={18} />
-								<span className="text-[10px] font-black uppercase tracking-widest">
-									Personaje
-								</span>
-							</div>
-							<span className="text-sm font-black capitalize">
-								{reservation.detalles?.extras?.personaje === 'ninguno'
-									? 'Sin personaje'
-									: reservation.detalles?.extras?.personaje}
-							</span>
-						</div>
-
-						{/* Piñata */}
-						<div
-							className={`p-4 px-6 rounded-3xl border flex items-center justify-between transition-all ${
-								reservation.detalles?.extras?.pinata
-									? 'bg-energy-orange/5 border-energy-orange/20 text-energy-orange shadow-sm'
-									: 'bg-gray-50 border-gray-100 text-gray-300 opacity-60'
-							}`}
-						>
-							<div className="flex items-center gap-3">
-								<Package size={18} />
-								<span className="text-[10px] font-black uppercase tracking-widest">
-									Piñata
-								</span>
-							</div>
-							<span className="text-sm font-black">
-								{reservation.detalles?.extras?.pinata ? 'Incluida' : 'No'}
-							</span>
-						</div>
-					</div>
-				</section>
-			</div>
-
-			{/* Sticky Price Box */}
-			<div className="p-6 bg-white border-t border-gray-100 shrink-0 flex justify-between items-center shadow-[0_-10px_30px_rgba(0,0,0,0.03)] pb-8">
-				<div>
-					<p className="text-[10px] text-gray-400 font-black uppercase">
-						Ingreso Previsto
-					</p>
-					<p className="text-4xl font-display font-black text-neverland-green">
-						{reservation.precioTotal}€
-					</p>
-				</div>
-				<div className="flex gap-2"></div>
-			</div>
-
-			{/* Modal Overlay System */}
-			{activeModal && (
-				<div className="fixed inset-0 z-110 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-					<div className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[90vh]">
-						<div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-							<h3 className="text-lg font-display font-black text-text-black uppercase tracking-tight">
-								{activeModal === 'client' && 'Editar Información Cliente'}
-								{activeModal === 'datetime' && 'Editar Fecha y Horario'}
-								{activeModal === 'menus' && 'Editar Menús y Asistencia'}
-								{activeModal === 'extras' && 'Editar Extras y Actividades'}
-								{activeModal === 'observations' && 'Editar Observaciones'}
+							<h3 className="text-xl font-display font-black text-text-black text-center mb-2">
+								¿Eliminar reserva?
 							</h3>
-							<button
-								onClick={closeModals}
-								className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
-							>
-								<X size={20} />
-							</button>
+							<p className="text-gray-500 text-sm text-center mb-8 px-2">
+								Esta acción no se puede deshacer. Se liberará el turno{' '}
+								<span className="font-bold text-text-black">
+									{reservation.turno}
+								</span>{' '}
+								del día{' '}
+								<span className="font-bold text-text-black">
+									{(
+										safeParseDate(reservation.fecha) || new Date()
+									).toLocaleDateString('es-ES')}
+								</span>
+								.
+							</p>
+							<div className="flex flex-col gap-3">
+								<button
+									onClick={handleDelete}
+									disabled={isUpdating}
+									className="w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-red-200 transition-all active:scale-95"
+								>
+									{isUpdating ? 'Eliminando...' : 'Sí, eliminar reserva'}
+								</button>
+								<button
+									onClick={closeModals}
+									className="w-full py-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl font-black text-sm transition-all active:scale-95"
+								>
+									No, mantenerla
+								</button>
+							</div>
 						</div>
+					</div>
+				)}
 
-						<div className="flex-1 overflow-y-auto p-6 sm:p-8">
-							{activeModal === 'client' && (
-								<ClientInfoEdit
-									current={reservation.cliente}
-									onCancel={closeModals}
-									onSave={async (newData) => {
-										setIsUpdating(true);
-										try {
-											const res = await updateReservation(reservation.id, {
-												cliente: newData,
-											});
-											setReservation(res.data); // Use server response
-											closeModals();
-										} catch (err) {
-											console.error(err);
-											alert('Error al guardar');
-										} finally {
-											setIsUpdating(false);
-										}
-									}}
-								/>
-							)}
+				{/* Header con fondo verde */}
+				<div className="flex items-center gap-3 p-4 bg-neverland-green text-white shrink-0 shadow-md relative z-20">
+					<div className="flex-1 min-w-0">
+						{/* Fila 1: Nombre y Edad */}
+						<h2 className="text-xl font-display font-black leading-tight break-words">
+							{reservation.cliente?.nombreNiño}
+							{reservation.cliente?.edadNiño
+								? `, ${reservation.cliente.edadNiño} años`
+								: ''}
+						</h2>
 
-							{activeModal === 'menus' && (
-								<MenusEdit
-									current={reservation.detalles}
-									config={config}
-									onCancel={closeModals}
-									onSave={async (newDetalles) => {
-										setIsUpdating(true);
-										try {
-											const res = await updateReservation(reservation.id, {
-												detalles: newDetalles,
-											});
-											setReservation(res.data); // Update with returned reservation (includes price)
-											closeModals();
-										} catch (err) {
-											console.error(err);
-											alert('Error al guardar');
-										} finally {
-											setIsUpdating(false);
-										}
-									}}
-								/>
-							)}
+						{/* Fila 2: ID */}
+						<p className="text-white/60 text-[9px] font-black uppercase tracking-tight truncate mb-2">
+							ID: {reservation.publicId}
+						</p>
 
-							{activeModal === 'extras' && (
-								<ExtrasEdit
-									current={reservation.detalles.extras}
-									config={config}
-									onCancel={closeModals}
-									onSave={async (newExtras) => {
-										setIsUpdating(true);
-										try {
-											const res = await updateReservation(reservation.id, {
-												detalles: {
-													...reservation.detalles,
-													extras: newExtras,
-												},
-											});
-											setReservation(res.data);
-											closeModals();
-										} catch (err) {
-											console.error(err);
-											alert('Error al guardar');
-										} finally {
-											setIsUpdating(false);
-										}
-									}}
-								/>
-							)}
+						{/* Fila 3: Fecha + Turno + Horario + Boton Estado */}
+						<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+							<div className="flex items-center gap-2 text-[11px] font-black">
+								<span className="opacity-90">
+									{formatDate(reservation.fecha, 'short')}
+								</span>
+								<span className="text-white/40 bg-white/10 px-1 rounded text-[9px]">
+									{reservation.turno}
+								</span>
+								<span className="opacity-95 text-[11px]">
+									{getTurnoLabel(reservation.turno, reservation.horario)}
+								</span>
+							</div>
 
-							{activeModal === 'observations' && (
-								<ObservationsEdit
-									current={reservation.detalles.extras.observaciones}
-									onCancel={closeModals}
-									onSave={async (newObs) => {
-										setIsUpdating(true);
-										try {
-											const res = await updateReservation(reservation.id, {
-												detalles: {
-													...reservation.detalles,
-													extras: {
-														...reservation.detalles.extras,
-														observaciones: newObs,
-													},
-												},
-											});
-											setReservation(res.data);
-											closeModals();
-										} catch (err) {
-											console.error(err);
-											alert('Error al guardar');
-										} finally {
-											setIsUpdating(false);
-										}
-									}}
-								/>
-							)}
+							<div className="relative">
+								{isAdmin ? (
+									<>
+										<button
+											onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
+											disabled={isUpdating}
+											className={`px-3 py-1 rounded-2xl text-[9px] font-black uppercase flex items-center gap-1.5 transition-all active:scale-95 border-none shadow-none ${
+												reservation.estado === 'confirmado' ||
+												reservation.estado === 'confirmada'
+													? 'bg-white/20 text-white'
+													: reservation.estado === 'pendiente' ||
+														  reservation.estado === 'solicitado'
+														? 'bg-yellow-400 text-yellow-900 shadow-sm'
+														: 'bg-white/10 text-white'
+											}`}
+										>
+											{isUpdating ? (
+												<Loader2 size={10} className="animate-spin" />
+											) : (
+												reservation.estado
+											)}
+											<ChevronDown
+												size={12}
+												className={`transition-transform duration-200 ${isStatusMenuOpen ? 'rotate-180' : ''}`}
+											/>
+										</button>
 
-							{activeModal === 'datetime' && (
-								<DateTimeEdit
-									reservation={reservation}
-									onCancel={closeModals}
-									onSave={async (newDate, newTurno) => {
-										setIsUpdating(true);
-										try {
-											const res = await updateReservation(reservation.id, {
-												fecha: newDate,
-												turno: newTurno,
-											});
-											setReservation(res.data);
-											closeModals();
-										} catch (err) {
-											console.error(err);
-											alert('Error al guardar');
-										} finally {
-											setIsUpdating(false);
-										}
-									}}
-								/>
-							)}
-
-							{/* Other modals will go here */}
+										{isStatusMenuOpen && (
+											<div className="absolute right-0 mt-2 w-48 bg-white rounded-3xl shadow-2xl border border-gray-100 py-2 animate-in fade-in zoom-in-95 duration-200 overflow-hidden z-30 shadow-neverland-green/10">
+												<p className="px-5 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-1">
+													Estado
+												</p>
+												<button
+													onClick={() => handleStatusChange('confirmado')}
+													className="w-full text-left px-5 py-4 text-sm font-bold text-neverland-green hover:bg-neverland-green/5 flex items-center justify-between group"
+												>
+													Confirmar
+													<Check
+														size={16}
+														className="opacity-0 group-hover:opacity-100 transition-opacity"
+													/>
+												</button>
+												<button
+													onClick={() => handleStatusChange('pendiente')}
+													className="w-full text-left px-5 py-4 text-sm font-bold text-yellow-600 hover:bg-yellow-50 flex items-center justify-between group"
+												>
+													Pendiente
+													<Clock
+														size={16}
+														className="opacity-0 group-hover:opacity-100 transition-opacity"
+													/>
+												</button>
+												<button
+													onClick={() => handleStatusChange('cancelado')}
+													className="w-full text-left px-5 py-4 text-sm font-bold text-red-500 hover:bg-red-50 flex items-center justify-between group"
+												>
+													Cancelar
+													<X
+														size={16}
+														className="opacity-0 group-hover:opacity-100 transition-opacity"
+													/>
+												</button>
+											</div>
+										)}
+									</>
+								) : (
+									<div
+										className={`px-3 py-1 rounded-2xl text-[9px] font-black uppercase border-none shadow-none ${
+											reservation.estado === 'confirmado' ||
+											reservation.estado === 'confirmada'
+												? 'bg-white/20 text-white'
+												: reservation.estado === 'pendiente' ||
+													  reservation.estado === 'solicitado'
+													? 'bg-yellow-400 text-yellow-900 shadow-sm'
+													: 'bg-white/10 text-white'
+										}`}
+									>
+										{reservation.estado}
+									</div>
+								)}
+							</div>
 						</div>
 					</div>
 				</div>
-			)}
+
+				{/* Content */}
+				<div className="flex-1 overflow-y-auto p-6 space-y-8 bg-cream-bg">
+					{/* Client Info */}
+					<section className="max-w-3xl mx-auto">
+						<div className="bg-surface p-6 sm:p-8 rounded-[32px] border border-gray-100 shadow-sm relative">
+							<div className="flex justify-between items-center mb-6">
+								<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+									<User size={14} /> Información del Cliente
+								</h4>
+								{isEditable() && (
+									<button
+										onClick={() => setActiveModal('client')}
+										className="group flex items-center gap-1.5 px-3 py-1.5 bg-neverland-green/5 hover:bg-neverland-green/10 text-neverland-green rounded-xl transition-all border border-neverland-green/10"
+									>
+										<span className="text-[10px] font-black uppercase tracking-tight">
+											Editar
+										</span>
+										<Pencil
+											size={12}
+											className="transition-transform group-hover:scale-110"
+										/>
+									</button>
+								)}
+							</div>
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+								<div>
+									<p className="text-[10px] text-gray-400 font-bold uppercase mb-1">
+										Niño/a del cumple
+									</p>
+									<p className="font-display font-black text-2xl text-text-black mb-1">
+										{reservation.cliente?.nombreNiño}
+									</p>
+									<span className="text-sm font-bold text-neverland-green bg-neverland-green/5 px-3 py-1 rounded-full">
+										{reservation.cliente?.edadNiño} años
+									</span>
+								</div>
+								<div>
+									<p className="text-[10px] text-gray-400 font-bold uppercase mb-1">
+										Responsable
+									</p>
+									<p className="font-bold text-lg text-text-black mb-2">
+										{reservation.cliente?.nombrePadre}
+									</p>
+									<div className="flex flex-wrap gap-2">
+										<a
+											href={`https://wa.me/${reservation.cliente?.telefono?.replace(/\s/g, '')}`}
+											target="_blank"
+											rel="noreferrer"
+											className="text-neverland-green hover:bg-neverland-green/10 flex items-center gap-2 text-sm font-bold bg-neverland-green/5 px-4 py-2 rounded-2xl transition-colors"
+										>
+											<Phone size={14} /> {reservation.cliente?.telefono}
+										</a>
+										{reservation.cliente?.email && (
+											<div className="flex items-center gap-2 text-sm font-bold text-gray-500 bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100">
+												<Mail size={14} /> {reservation.cliente.email}
+											</div>
+										)}
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					{/* Date & Time */}
+					<section className="max-w-3xl mx-auto">
+						<div className="bg-surface p-6 sm:p-8 rounded-[32px] border border-gray-100 shadow-sm relative">
+							<div className="flex justify-between items-center mb-6">
+								<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+									<Calendar size={14} /> Fecha y Horario
+								</h4>
+								{(isAdmin || (isEditable() && false)) && (
+									<button
+										onClick={() => setActiveModal('datetime')}
+										className="group flex items-center gap-1.5 px-3 py-1.5 bg-neverland-green/5 hover:bg-neverland-green/10 text-neverland-green rounded-xl transition-all border border-neverland-green/10"
+									>
+										<span className="text-[10px] font-black uppercase tracking-tight">
+											Editar
+										</span>
+										<Pencil
+											size={12}
+											className="transition-transform group-hover:scale-110"
+										/>
+									</button>
+								)}
+							</div>
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+								<div className="flex items-center gap-4 p-3 bg-gray-50/50 rounded-2xl border border-gray-100/50">
+									<div className="w-10 h-10 bg-energy-orange/10 text-energy-orange rounded-xl flex items-center justify-center shrink-0">
+										<Calendar size={20} />
+									</div>
+									<div className="min-w-0">
+										<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
+											Fecha
+										</p>
+										<p className="font-display font-black text-lg text-text-black capitalize truncate">
+											{formatDate(reservation.fecha)}
+										</p>
+									</div>
+								</div>
+								<div className="flex items-center gap-4 p-3 bg-gray-50/50 rounded-2xl border border-gray-100/50">
+									<div className="w-10 h-10 bg-blue-400/10 text-blue-400 rounded-xl flex items-center justify-center shrink-0">
+										<Clock size={20} />
+									</div>
+									<div className="min-w-0">
+										<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
+											Turno / Horario
+										</p>
+										<p className="font-display font-black text-lg text-text-black truncate">
+											{reservation.turno} (
+											{getTurnoLabel(reservation.turno, reservation.horario)})
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					{/* Menus */}
+					<section className="max-w-3xl mx-auto">
+						<div className="bg-surface p-6 sm:p-8 rounded-[32px] border border-gray-100 shadow-sm relative">
+							<div className="flex justify-between items-center mb-6">
+								<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+									<Utensils size={14} /> Menús y Asistencia
+								</h4>
+								{isEditable() && (
+									<button
+										onClick={() => setActiveModal('menus')}
+										className="group flex items-center gap-1.5 px-3 py-1.5 bg-neverland-green/5 hover:bg-neverland-green/10 text-neverland-green rounded-xl transition-all border border-neverland-green/10"
+									>
+										<span className="text-[10px] font-black uppercase tracking-tight">
+											Editar
+										</span>
+										<Pencil
+											size={12}
+											className="transition-transform group-hover:scale-110"
+										/>
+									</button>
+								)}
+							</div>
+
+							<div className="space-y-4">
+								{/* Niños */}
+								<div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100/50 gap-3">
+									<div className="flex items-center gap-3">
+										<div className="w-10 h-10 bg-neverland-green/10 text-neverland-green rounded-xl flex items-center justify-center shrink-0">
+											<Smile size={20} />
+										</div>
+										<div>
+											<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
+												Niños
+											</p>
+											<p className="font-display font-black text-lg text-text-black">
+												{reservation.detalles?.niños?.cantidad} invitados
+											</p>
+										</div>
+									</div>
+									<span className="bg-neverland-green text-white px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider text-center">
+										{reservation.detalles?.niños?.menuNombre ||
+											(() => {
+												if (!config) return 'Cargando...';
+												const currentMenuId = String(
+													reservation.detalles?.niños?.menuId || '',
+												);
+												const menu = config.menusNiños?.find(
+													(m) => String(m.id || m._id) === currentMenuId,
+												);
+												return menu
+													? `${menu.nombre}`
+													: `${reservation.detalles?.niños?.menuId}`;
+											})()}
+									</span>
+								</div>
+
+								{/* Alergenos */}
+								<div
+									className={`p-4 rounded-2xl border flex items-center gap-3 ${reservation.detalles?.extras?.alergenos ? 'bg-red-50/50 border-red-100' : 'bg-gray-50/50 border-gray-100/50'}`}
+								>
+									<div
+										className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.alergenos ? 'bg-red-100 text-red-500' : 'bg-gray-100 text-gray-300'}`}
+									>
+										<AlertTriangle size={20} />
+									</div>
+									<div className="min-w-0">
+										<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-widest">
+											Alérgenos e Intolerancias
+										</p>
+										<p
+											className={`text-xs font-bold truncate ${reservation.detalles?.extras?.alergenos ? 'text-red-700' : 'text-gray-400 italic'}`}
+										>
+											{reservation.detalles?.extras?.alergenos ||
+												'Ninguna reportada'}
+										</p>
+									</div>
+								</div>
+
+								{/* Adultos */}
+								<div className="p-5 bg-gray-50/30 rounded-2xl border border-gray-100/50">
+									<div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100/50">
+										<div className="w-10 h-10 bg-energy-orange/10 text-energy-orange rounded-xl flex items-center justify-center shrink-0">
+											<Utensils size={20} />
+										</div>
+										<div>
+											<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
+												Adultos
+											</p>
+											<p className="font-display font-black text-lg text-text-black">
+												{reservation.detalles?.adultos?.cantidad || 0}{' '}
+												asistentes
+											</p>
+										</div>
+									</div>
+
+									<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-2">
+										{(() => {
+											const adultos = reservation.detalles?.adultos;
+											let normalized = [];
+											if (Array.isArray(adultos)) normalized = adultos;
+											else if (adultos && typeof adultos === 'object') {
+												if (Array.isArray(adultos.comida))
+													normalized = adultos.comida;
+												else if (
+													adultos.comida &&
+													typeof adultos.comida === 'object'
+												) {
+													normalized = Object.entries(adultos.comida)
+														.filter(([, qty]) => qty > 0)
+														.map(([name, qty]) => ({
+															item: name,
+															cantidad: qty,
+														}));
+												}
+											}
+
+											const itemsToDisplay = normalized.filter(
+												(i) => i.item && String(i.item).trim(),
+											);
+
+											if (itemsToDisplay.length > 0) {
+												return itemsToDisplay.map((item, idx) => (
+													<div
+														key={idx}
+														className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100 text-sm shadow-sm"
+													>
+														<span className="font-bold text-gray-700 truncate mr-2">
+															{item.item}
+														</span>
+														<span className="bg-energy-orange/10 text-energy-orange px-2 py-0.5 rounded-lg font-black text-xs">
+															x{item.cantidad}
+														</span>
+													</div>
+												));
+											}
+											return (
+												<p className="text-xs text-gray-400 italic py-2">
+													Sin comida seleccionada para adultos
+												</p>
+											);
+										})()}
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					{/* Extras */}
+					<section className="max-w-3xl mx-auto">
+						<div className="bg-surface p-6 sm:p-8 rounded-[32px] border border-gray-100 shadow-sm relative">
+							<div className="flex justify-between items-center mb-6">
+								<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+									<Sparkles size={14} /> Extras y Actividades
+								</h4>
+								{isEditable() && (
+									<button
+										onClick={() => setActiveModal('extras')}
+										className="group flex items-center gap-1.5 px-3 py-1.5 bg-neverland-green/5 hover:bg-neverland-green/10 text-neverland-green rounded-xl transition-all border border-neverland-green/10"
+									>
+										<span className="text-[10px] font-black uppercase tracking-tight">
+											Editar
+										</span>
+										<Pencil
+											size={12}
+											className="transition-transform group-hover:scale-110"
+										/>
+									</button>
+								)}
+							</div>
+							<div className="grid grid-cols-1 gap-3">
+								{/* Actividad */}
+								<div
+									className={`p-3 rounded-2xl border flex items-center gap-4 transition-all ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-50/50 border-blue-100' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
+								>
+									<div
+										className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}
+									>
+										<Sparkles size={18} />
+									</div>
+									<div className="min-w-0 flex flex-1 justify-between items-center">
+										<p className="text-[9px] text-gray-400 font-black uppercase tracking-tight">
+											Actividad
+										</p>
+										<p className="text-sm font-black text-gray-800 truncate">
+											{reservation.detalles?.extras?.taller === 'ninguno'
+												? 'Sin actividad'
+												: reservation.detalles?.extras?.taller}
+										</p>
+									</div>
+								</div>
+
+								{/* Personaje */}
+								<div
+									className={`p-3 rounded-2xl border flex items-center gap-4 transition-all ${reservation.detalles?.extras?.personaje !== 'ninguno' ? 'bg-purple-50/50 border-purple-100' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
+								>
+									<div
+										className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.personaje !== 'ninguno' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}
+									>
+										<Smile size={18} />
+									</div>
+									<div className="min-w-0 flex flex-1 justify-between items-center">
+										<p className="text-[9px] text-gray-400 font-black uppercase tracking-tight">
+											Personaje
+										</p>
+										<p className="text-sm font-black text-gray-800 truncate">
+											{reservation.detalles?.extras?.personaje === 'ninguno'
+												? 'Sin personaje'
+												: reservation.detalles?.extras?.personaje}
+										</p>
+									</div>
+								</div>
+
+								{/* Piñata */}
+								<div
+									className={`p-3 rounded-2xl border flex items-center gap-4 transition-all ${reservation.detalles?.extras?.pinata ? 'bg-energy-orange/5 border-energy-orange/20 shadow-sm' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
+								>
+									<div
+										className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.pinata ? 'bg-energy-orange/10 text-energy-orange' : 'bg-gray-100 text-gray-400'}`}
+									>
+										<Package size={18} />
+									</div>
+									<div className="min-w-0 flex flex-1 justify-between items-center">
+										<p className="text-[9px] text-gray-400 font-black uppercase tracking-tight">
+											Piñata
+										</p>
+										<p className="text-sm font-black text-gray-800">
+											{reservation.detalles?.extras?.pinata
+												? 'Incluida'
+												: 'No incluida'}
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					{/* Observaciones (NOW LAST) */}
+					<section className="max-w-3xl mx-auto pb-4">
+						<div className="bg-surface p-6 sm:p-8 rounded-[32px] border border-gray-100 shadow-sm relative">
+							<div className="flex justify-between items-center mb-6">
+								<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+									<MessageSquare size={14} /> Observaciones
+								</h4>
+								{isEditable() && (
+									<button
+										onClick={() => setActiveModal('observations')}
+										className="group flex items-center gap-1.5 px-3 py-1.5 bg-neverland-green/5 hover:bg-neverland-green/10 text-neverland-green rounded-xl transition-all border border-neverland-green/10"
+									>
+										<span className="text-[10px] font-black uppercase tracking-tight">
+											Editar
+										</span>
+										<Pencil
+											size={12}
+											className="transition-transform group-hover:scale-110"
+										/>
+									</button>
+								)}
+							</div>
+							<div className="p-6 bg-blue-50/30 rounded-2xl border border-blue-100/50 relative overflow-hidden group">
+								<div className="absolute top-0 left-0 w-1.5 h-full bg-blue-400 opacity-20"></div>
+								{reservation.detalles?.extras?.observaciones ? (
+									<p className="text-sm font-medium text-gray-700 italic leading-relaxed">
+										"{reservation.detalles.extras.observaciones}"
+									</p>
+								) : (
+									<p className="text-xs text-gray-400 italic">
+										No hay observaciones para esta reserva
+									</p>
+								)}
+							</div>
+						</div>
+					</section>
+				</div>
+
+				{/* Sticky Price Box */}
+				<div className="p-6 bg-surface border-t border-gray-100 shrink-0 flex justify-between items-center shadow-[0_-10px_30px_rgba(0,0,0,0.03)] pb-8">
+					<div>
+						<p className="text-[10px] text-gray-400 font-black uppercase">
+							{isAdmin ? 'Ingreso Previsto' : 'Precio Estimado'}
+						</p>
+						<p className="text-4xl font-display font-black text-neverland-green">
+							{reservation.precioTotal}€
+						</p>
+					</div>
+					{!isAdmin && !isEditable() && (
+						<div className="flex-1 ml-6 bg-red-50 border border-red-100 p-4 rounded-2xl flex items-center gap-3">
+							<AlertTriangle className="text-red-500 shrink-0" size={20} />
+							<p className="text-[10px] font-bold text-red-600 leading-tight">
+								Reserva cerrada para edición.
+								<br />
+								Contáctanos para cambios urgentes.
+							</p>
+						</div>
+					)}
+					<div className="flex gap-2"></div>
+				</div>
+
+				{/* Modal Overlay System */}
+				{activeModal && (
+					<div className="fixed inset-0 z-110 bg-cream-bg flex flex-col animate-in slide-in-from-bottom duration-300 overflow-hidden">
+						<div className="w-full h-full flex flex-col">
+							<div className="px-6 py-5 border-b border-orange-100/50 flex justify-between items-center bg-calendar-bg sticky top-0 z-20">
+								<h3 className="text-lg font-display font-black text-text-black uppercase tracking-tight">
+									{activeModal === 'client' && 'Editar Información Cliente'}
+									{activeModal === 'datetime' && 'Editar Fecha y Horario'}
+									{activeModal === 'menus' && 'Editar Menús y Asistencia'}
+									{activeModal === 'extras' && 'Editar Extras y Actividades'}
+									{activeModal === 'observations' && 'Editar Observaciones'}
+								</h3>
+								<button
+									onClick={closeModals}
+									className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 rounded-full text-gray-400 transition-all active:scale-95"
+								>
+									<X size={20} />
+								</button>
+							</div>
+
+							<div
+								className={`flex-1 overflow-y-auto ${activeModal === 'datetime' ? 'p-2' : 'p-6 sm:p-8'}`}
+							>
+								{activeModal === 'client' && (
+									<ClientInfoEdit
+										current={reservation.cliente}
+										onCancel={closeModals}
+										onSave={async (newData) => {
+											setIsUpdating(true);
+											try {
+												const res = await updateReservation(reservation.id, {
+													cliente: newData,
+												});
+												setReservation(res.data); // Use server response
+												closeModals();
+											} catch (err) {
+												console.error(err);
+												alert('Error al guardar');
+											} finally {
+												setIsUpdating(false);
+											}
+										}}
+									/>
+								)}
+
+								{activeModal === 'menus' && (
+									<MenusEdit
+										current={reservation.detalles}
+										config={config}
+										onCancel={closeModals}
+										onSave={async (newDetalles) => {
+											setIsUpdating(true);
+											try {
+												const res = await updateReservation(reservation.id, {
+													detalles: newDetalles,
+												});
+												setReservation(res.data); // Update with returned reservation (includes price)
+												closeModals();
+											} catch (err) {
+												console.error(err);
+												alert('Error al guardar');
+											} finally {
+												setIsUpdating(false);
+											}
+										}}
+									/>
+								)}
+
+								{activeModal === 'extras' && (
+									<ExtrasEdit
+										current={reservation.detalles.extras}
+										config={config}
+										onCancel={closeModals}
+										onSave={async (newExtras) => {
+											setIsUpdating(true);
+											try {
+												const res = await updateReservation(reservation.id, {
+													detalles: {
+														...reservation.detalles,
+														extras: newExtras,
+													},
+												});
+												setReservation(res.data);
+												closeModals();
+											} catch (err) {
+												console.error(err);
+												alert('Error al guardar');
+											} finally {
+												setIsUpdating(false);
+											}
+										}}
+									/>
+								)}
+
+								{activeModal === 'observations' && (
+									<ObservationsEdit
+										current={reservation.detalles.extras.observaciones}
+										onCancel={closeModals}
+										onSave={async (newObs) => {
+											setIsUpdating(true);
+											try {
+												const res = await updateReservation(reservation.id, {
+													detalles: {
+														...reservation.detalles,
+														extras: {
+															...reservation.detalles.extras,
+															observaciones: newObs,
+														},
+													},
+												});
+												setReservation(res.data);
+												closeModals();
+											} catch (err) {
+												console.error(err);
+												alert('Error al guardar');
+											} finally {
+												setIsUpdating(false);
+											}
+										}}
+									/>
+								)}
+
+								{activeModal === 'datetime' && (
+									<DateTimeEdit
+										reservation={reservation}
+										onCancel={closeModals}
+										onSave={async (newDate, newTurno) => {
+											setIsUpdating(true);
+											try {
+												const res = await updateReservation(reservation.id, {
+													fecha: newDate,
+													turno: newTurno,
+												});
+												setReservation(res.data);
+												closeModals();
+											} catch (err) {
+												console.error(err);
+												alert('Error al guardar');
+											} finally {
+												setIsUpdating(false);
+											}
+										}}
+									/>
+								)}
+
+								{/* Other modals will go here */}
+							</div>
+						</div>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 };
@@ -898,7 +1031,7 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 		<div className="space-y-6 flex flex-col h-full min-h-[400px]">
 			{view === 'calendar' ? (
 				<div className="flex flex-col h-full">
-					<div className="flex justify-between items-center mb-6 bg-gray-50 p-2 rounded-2xl border border-gray-100">
+					<div className="flex justify-between items-center mb-4 px-2">
 						<button
 							onClick={() => changeMonth(-1)}
 							className="p-2 hover:bg-white rounded-full text-neverland-green transition-all"
@@ -919,18 +1052,18 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 						</button>
 					</div>
 
-					<div className="grid grid-cols-7 mb-4">
+					<div className="grid grid-cols-7 mb-2 border-b border-orange-100/30 pb-2">
 						{['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => (
 							<span
 								key={d}
-								className="text-[10px] font-black text-center text-gray-400 uppercase tracking-widest"
+								className="text-[10px] font-black text-center text-neverland-green/60 uppercase tracking-widest"
 							>
 								{d}
 							</span>
 						))}
 					</div>
 
-					<div className="grid grid-cols-7 gap-1 grow">
+					<div className="grid grid-cols-7 gap-1.5 grow">
 						{Array.from({ length: 42 }).map((_, i) => {
 							const year = currentMonth.getFullYear();
 							const month = currentMonth.getMonth();
@@ -959,7 +1092,7 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 										setSelectedDate(dateStr);
 										setView('shifts');
 									}}
-									className={`min-h-[60px] rounded-2xl flex flex-col items-center justify-center relative transition-all border ${
+									className={`min-h-[60px] rounded-lg flex flex-col items-center justify-center relative transition-all border ${
 										isSel
 											? 'bg-neverland-green text-white shadow-lg border-neverland-green'
 											: isPast
@@ -968,20 +1101,45 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 													? isFullyOccupied
 														? 'bg-red-50 text-red-300 border-red-100 hover:bg-red-100/50'
 														: 'bg-white text-text-black border-gray-100 hover:border-neverland-green/50 hover:shadow-soft'
-													: 'bg-transparent text-gray-200 border-transparent'
+													: 'bg-surface/50 text-gray-300 border-transparent'
 									}`}
 								>
-									<span className={`text-sm font-black ${isSel ? '' : ''}`}>
+									<span
+										className={`text-[11px] font-black ${isSel ? '' : 'text-gray-700'}`}
+									>
 										{date.getDate()}
 									</span>
-									{isCur && !isPast && !isSel && (
-										<div className="flex gap-0.5 mt-1">
-											{[1, 2, 3].map((s) => (
-												<div
-													key={s}
-													className={`w-1.5 h-1.5 rounded-full ${dayOccupied.includes(`T${s}`) ? 'bg-gray-200' : 'bg-neverland-green/40'}`}
-												/>
-											))}
+									{!isPast && (
+										<div className="w-full mt-1.5 flex flex-col gap-0.5 px-0.5 pb-0.5">
+											{[1, 2, 3].map((s) => {
+												const isOcc = dayOccupied.includes(`T${s}`);
+												return (
+													<div
+														key={s}
+														className={`h-[9px] w-full rounded-sm flex items-center justify-center transition-all ${
+															isOcc
+																? isSel
+																	? 'bg-white/20'
+																	: 'bg-gray-100'
+																: isSel
+																	? 'bg-white/40 shadow-sm'
+																	: 'bg-green-100 shadow-[inset_0_1px_rgba(255,255,255,0.4)]'
+														}`}
+													>
+														{!isOcc && (
+															<span
+																className={`text-[6.5px] font-black tracking-tighter leading-none ${
+																	isSel
+																		? 'text-white'
+																		: 'text-neverland-green/80'
+																}`}
+															>
+																LIBRE
+															</span>
+														)}
+													</div>
+												);
+											})}
 										</div>
 									)}
 								</button>
@@ -992,7 +1150,7 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 					<div className="mt-8 flex gap-3">
 						<button
 							onClick={onCancel}
-							className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-sm transition-all"
+							className="flex-1 py-4 bg-surface border border-gray-100 text-gray-500 rounded-2xl font-black text-sm transition-all hover:bg-cream-bg"
 						>
 							Cancelar
 						</button>
@@ -1043,7 +1201,7 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 											? 'border-neverland-green bg-neverland-green text-white shadow-xl scale-[1.02]'
 											: isOcc
 												? 'bg-gray-50 border-gray-100 opacity-40 cursor-not-allowed grayscale'
-												: 'bg-white border-gray-100 hover:border-neverland-green/30 hover:bg-gray-50/50'
+												: 'bg-surface border-gray-100 hover:border-neverland-green/30 hover:bg-calendar-bg'
 									}`}
 								>
 									<div className="flex items-center gap-4 text-left">
@@ -1082,7 +1240,7 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 						</button>
 						<button
 							onClick={() => setView('calendar')}
-							className="px-8 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-sm transition-all active:scale-95"
+							className="px-8 py-4 bg-surface border border-gray-100 text-gray-500 rounded-2xl font-black text-sm transition-all active:scale-95 hover:bg-cream-bg"
 						>
 							Volver
 						</button>
@@ -1337,7 +1495,13 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 					onClick={() =>
 						onSave({
 							...current,
-							niños: niñosExt,
+							niños: {
+								...niñosExt,
+								// [NEW] Capture the current name of the menu
+								menuNombre: config?.menusNiños?.find(
+									(m) => String(m.id || m._id) === String(niñosExt.menuId),
+								)?.nombre,
+							},
 							adultos: {
 								cantidad: adultosQty,
 								comida: adultosList,

@@ -35,6 +35,7 @@ const eventSchema = new mongoose.Schema({
     niños: {
       cantidad: { type: Number, min: 12 },
       menuId: { type: String },
+      menuNombre: { type: String }, // [NEW] Snapshot of the menu name
       precioApplied: { type: Number } // [NEW] Snapshot of the menu price per child
     },
     adultos: {

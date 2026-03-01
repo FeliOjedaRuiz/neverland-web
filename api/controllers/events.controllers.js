@@ -43,6 +43,9 @@ const calculateEventPrice = async (eventData, config) => {
       );
       childPrice = menu ? menu.precio : 0;
       detalles.niños.precioApplied = childPrice;
+      if (menu && !detalles.niños.menuNombre) {
+        detalles.niños.menuNombre = menu.nombre;
+      }
     }
 
     total += childPrice * (detalles.niños.cantidad || 0);
@@ -274,10 +277,73 @@ module.exports.detail = (req, res, next) => {
     .catch(next);
 };
 
+module.exports.publicDetail = (req, res, next) => {
+  Event.findById(req.params.id)
+    .then(event => {
+      if (!event) return next(createError(404, 'Reserva no encontrada'));
+      // We only return public-safe fields (matching what the frontend needs)
+      const publicData = {
+        id: event.id,
+        publicId: event.publicId,
+        fecha: event.fecha,
+        turno: event.turno,
+        estado: event.estado,
+        precioTotal: event.precioTotal,
+        horario: event.horario,
+        cliente: {
+          nombreNiño: event.cliente.nombreNiño,
+          edadNiño: event.cliente.edadNiño,
+        },
+        detalles: {
+          niños: {
+            cantidad: event.detalles.niños.cantidad,
+            menuId: event.detalles.niños.menuId,
+            menuNombre: event.detalles.niños.menuNombre
+          },
+          adultos: event.detalles.adultos,
+          extras: event.detalles.extras
+        }
+      };
+      res.json(publicData);
+    })
+    .catch(next);
+};
+
 module.exports.update = (req, res, next) => {
   Event.findById(req.params.id)
     .then(async (event) => {
       if (!event) throw createError(404, 'Evento no encontrado');
+
+      // --- PERMISSION & WINDOW CHECK ---
+      const isAdmin = req.user && req.user.role === 'admin';
+
+      if (!isAdmin) {
+        // 1. Clients cannot change status
+        if (req.body.estado && req.body.estado !== event.estado) {
+          throw createError(403, 'No tienes permiso para cambiar el estado de la reserva');
+        }
+
+        // 2. 72h window check
+        const eventDate = new Date(event.fecha);
+        const now = new Date();
+        const diffHours = (eventDate - now) / (1000 * 60 * 60);
+        if (diffHours < 72) {
+          throw createError(403, 'Las reservas solo pueden modificarse hasta 72 horas antes del evento');
+        }
+      }
+
+      // --- VALIDATION LAYER for updates ---
+      if (req.body.cliente) {
+        const { email, telefono } = req.body.cliente;
+        if (email) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(email)) throw createError(400, 'Email inválido');
+        }
+        if (telefono) {
+          const phoneDigits = (telefono.match(/\d/g) || []).length;
+          if (phoneDigits < 9) throw createError(400, 'Teléfono inválido (mínimo 9 dígitos)');
+        }
+      }
 
       // Update basic fields or merge details
       if (req.body.detalles) {
@@ -287,6 +353,7 @@ module.exports.update = (req, res, next) => {
         // Invalidate snapshots if crucial selections changed
         if (newDetalles.niños?.menuId && String(newDetalles.niños.menuId) !== String(oldDetalles.niños?.menuId)) {
           delete oldDetalles.niños.precioApplied;
+          delete oldDetalles.niños.menuNombre;
         }
         if (newDetalles.extras?.taller && newDetalles.extras.taller !== oldDetalles.extras?.taller) {
           delete oldDetalles.extras.precioTallerApplied;

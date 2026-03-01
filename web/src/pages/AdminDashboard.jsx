@@ -18,6 +18,7 @@ const SidebarContent = ({
 	navigate,
 	handleLogout,
 	currentPath,
+	onNavigate,
 }) => (
 	<>
 		<div className="p-6">
@@ -38,6 +39,7 @@ const SidebarContent = ({
 						key={item.id}
 						onClick={() => {
 							navigate(`/admin/${item.id}`);
+							if (onNavigate) onNavigate();
 						}}
 						className={`w-full flex items-center gap-3 px-4 py-3 rounded-full font-medium transition-all font-display ${
 							isActive
@@ -54,7 +56,10 @@ const SidebarContent = ({
 
 		<div className="p-4 border-t border-gray-100 space-y-1">
 			<button
-				onClick={() => navigate('/')}
+				onClick={() => {
+					navigate('/');
+					if (onNavigate) onNavigate();
+				}}
 				className="w-full flex items-center gap-3 px-4 py-3 rounded-full font-medium text-gray-400 hover:text-neverland-green hover:bg-gray-50 transition-all group font-display"
 			>
 				<LogOut
@@ -128,10 +133,13 @@ const AdminDashboard = () => {
 	};
 
 	return (
-		<div className="flex h-dvh bg-white overflow-hidden font-sans">
+		<div className="flex h-dvh bg-cream-bg overflow-hidden font-sans">
 			{/* Sidebar Desktop */}
-			<aside className="w-64 bg-white border-r border-gray-100 hidden md:flex flex-col">
-				<SidebarContent {...commonProps} />
+			<aside className="w-64 bg-calendar-bg border-r border-gray-100 hidden md:flex flex-col shadow-2xl shadow-black/2 z-20">
+				<SidebarContent
+					{...commonProps}
+					onNavigate={() => setIsMobileMenuOpen(false)}
+				/>
 			</aside>
 
 			{/* Sidebar Mobile Overlay */}
@@ -141,7 +149,7 @@ const AdminDashboard = () => {
 					onClick={() => setIsMobileMenuOpen(false)}
 				>
 					<aside
-						className="w-[280px] h-full bg-white flex flex-col shadow-2xl shadow-black/10 animate-in slide-in-from-right duration-300 ease-out rounded-l-[32px]"
+						className="w-[280px] h-full bg-calendar-bg flex flex-col shadow-2xl shadow-black/10 animate-in slide-in-from-right duration-300 ease-out rounded-l-[32px]"
 						onClick={(e) => e.stopPropagation()}
 					>
 						<div className="flex justify-end p-4">
@@ -161,9 +169,9 @@ const AdminDashboard = () => {
 			)}
 
 			{/* Main Content */}
-			<main className="flex-1 flex flex-col overflow-hidden">
+			<main className="flex-1 flex flex-col overflow-hidden relative bg-transparent">
 				{/* Header Content */}
-				<header className="bg-white border-b border-gray-100 p-4 flex justify-between items-center shadow-soft relative z-10">
+				<header className="bg-calendar-bg backdrop-blur-xl border-b border-gray-100 p-4 flex justify-between items-center shadow-soft z-10 sticky top-0">
 					<div className="flex items-center gap-3">
 						<div className="p-2.5 bg-neverland-green/5 text-neverland-green rounded-2xl">
 							{React.createElement(
@@ -195,10 +203,12 @@ const AdminDashboard = () => {
 				</header>
 
 				{/* Scrollable Content Area */}
-				<div className="flex-1 overflow-y-auto p-0">
-					<ErrorBoundary>
-						<Outlet context={{ config, setConfig }} />
-					</ErrorBoundary>
+				<div className="flex-1 overflow-y-auto p-0 bg-transparent flex flex-col">
+					<div className="flex-1 flex flex-col min-h-full">
+						<ErrorBoundary>
+							<Outlet context={{ config, setConfig }} />
+						</ErrorBoundary>
+					</div>
 				</div>
 			</main>
 		</div>

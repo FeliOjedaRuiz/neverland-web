@@ -39,6 +39,8 @@ const formatDate = (date) => {
   });
 };
 
+const WEB_URL = process.env.WEB_URL || 'http://localhost:5173';
+
 module.exports.sendBookingConfirmationEmail = async (event) => {
   // Prevent sending real emails during automated tests
   if (process.env.NODE_ENV === 'test') {
@@ -100,7 +102,7 @@ module.exports.sendBookingConfirmationEmail = async (event) => {
     <body>
       <div class="container">
         <div class="header" style="background-color: #ffffff; padding: 25px 20px; text-align: center;">
-          <a href="https://neverland-web.vercel.app" target="_blank" style="text-decoration: none;">
+          <a href="${WEB_URL}" target="_blank" style="text-decoration: none;">
             <img 
               src="https://res.cloudinary.com/duoshgr3h/image/upload/f_auto,q_auto/v1772317871/neverland/assets/neverland_logo_svg.png" 
               alt="Neverland Cúllar Vega" 
@@ -121,6 +123,16 @@ module.exports.sendBookingConfirmationEmail = async (event) => {
           <div class="booking-id-container">
             <div class="booking-id-label">ID DE TU SOLICITUD</div>
             <div class="booking-id">${publicId}</div>
+            <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.2); pt: 15px;">
+              <p style="font-size: 13px; color: #4B5563; margin-bottom: 12px;">Pudes consultar o modificar tu reserva aquí:</p>
+              <a href="${WEB_URL}/mi-reserva/${event.id}" 
+                 style="display: inline-block; background-color: #24635A; color: #ffffff; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: 800; font-size: 14px; box-shadow: 0 4px 12px rgba(36, 99, 90, 0.2);">
+                Ver detalles de mi reserva
+              </a>
+              <p style="font-size: 11px; color: #9CA3AF; margin-top: 10px; font-style: italic;">
+                * Podrás realizar cambios hasta 72h antes del evento.
+              </p>
+            </div>
           </div>
 
           <div class="summary-card">

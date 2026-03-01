@@ -47,7 +47,7 @@ const AccordionSection = ({
 }) => {
 	return (
 		<div
-			className={`border-l-4 ${color} bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 ${isOpen ? 'shadow-lg' : ''}`}
+			className={`border-l-4 ${color} bg-surface rounded-3xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 ${isOpen ? 'shadow-lg' : ''}`}
 		>
 			<div
 				onClick={onToggle}
@@ -281,7 +281,7 @@ const ConfigurationPanel = () => {
 	};
 
 	return (
-		<div className="flex flex-col h-full bg-white animate-in fade-in duration-300 relative">
+		<div className="flex flex-col h-full animate-in fade-in duration-300 relative">
 			{/* Scrollable Form Content */}
 			<div className="flex-1 overflow-y-auto pb-32">
 				{config && (

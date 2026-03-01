@@ -17,6 +17,7 @@ import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import ServerError from './pages/ServerError';
+// import CustomerReservationDetail from './pages/CustomerReservationDetail'; // Removed unified view
 import RequireAuth from './components/admin/RequireAuth';
 import { Toaster } from 'react-hot-toast';
 
@@ -53,6 +54,7 @@ function Layout() {
 					<Route path="/" element={<HomePage />} />
 					<Route path="/booking" element={<BookingPage />} />
 					<Route path="/admin/login" element={<LoginPage />} />
+					<Route path="/mi-reserva/:id" element={<ReservationDetailView />} />
 					<Route
 						path="/admin/dashboard"
 						element={<Navigate to="/admin" replace />}

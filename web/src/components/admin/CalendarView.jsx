@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { motion, useMotionValue, animate } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -40,24 +41,28 @@ const CalendarView = () => {
 
 	// Measure container width for carousel
 	useEffect(() => {
-		if (containerRef.current) {
-			const w = containerRef.current.offsetWidth;
-			if (w > 0) {
-				setWidth(w);
-				x.set(-w); // Start at middle (Current Month)
-			}
-		}
-		const handleResize = () => {
+		const measure = () => {
 			if (containerRef.current) {
-				const w = containerRef.current.offsetWidth;
-				if (w > 0) {
-					setWidth(w);
-					x.set(-w);
+				const rect = containerRef.current.getBoundingClientRect();
+				if (rect.width > 0) {
+					setWidth(rect.width);
+					x.set(-rect.width);
 				}
 			}
 		};
-		window.addEventListener('resize', handleResize);
-		return () => window.removeEventListener('resize', handleResize);
+
+		// Delay initial measure to ensure layout has settled
+		const t1 = setTimeout(measure, 50);
+		const t2 = setTimeout(measure, 200);
+		const t3 = setTimeout(measure, 500);
+
+		window.addEventListener('resize', measure);
+		return () => {
+			clearTimeout(t1);
+			clearTimeout(t2);
+			clearTimeout(t3);
+			window.removeEventListener('resize', measure);
+		};
 	}, [x, loading]);
 
 	const monthName = headerDate.toLocaleString('es-ES', { month: 'long' });
@@ -107,7 +112,7 @@ const CalendarView = () => {
 		nextDate.setMonth(nextDate.getMonth() + direction);
 		setHeaderDate(nextDate);
 
-		const targetX = direction === 1 ? -2 * width : 0; // 1 = Next (move to left), -1 = Prev (move to right)
+		const targetX = direction === 1 ? -2 * width : 0;
 
 		await animate(x, targetX, {
 			type: 'tween',
@@ -116,7 +121,7 @@ const CalendarView = () => {
 		});
 
 		setCurrentDate(nextDate);
-		x.set(-width); // Seamlessly reset to center
+		x.set(-width);
 	};
 
 	const handleDragEnd = async () => {
@@ -124,14 +129,12 @@ const CalendarView = () => {
 		const threshold = width * 0.25;
 
 		let direction = 0;
-		if (currentX < -width - threshold)
-			direction = 1; // Dragged left -> Go Next
-		else if (currentX > -width + threshold) direction = -1; // Dragged right -> Go Prev
+		if (currentX < -width - threshold) direction = 1;
+		else if (currentX > -width + threshold) direction = -1;
 
 		if (direction !== 0) {
 			await cycleMonth(direction);
 		} else {
-			// Snap back to center
 			animate(x, -width, { type: 'tween', duration: 0.3, ease: 'easeOut' });
 		}
 	};
@@ -155,13 +158,13 @@ const CalendarView = () => {
 	}
 
 	return (
-		<div className="flex flex-col h-full bg-white overflow-hidden">
+		<div className="flex flex-col h-full overflow-hidden bg-calendar-bg">
 			{/* Calendar Header */}
-			<div className="flex flex-col sm:flex-row justify-between items-center px-4 py-3 border-b border-gray-100 shrink-0 relative z-20 bg-white shadow-sm">
+			<div className="flex flex-col sm:flex-row justify-between items-center px-4 py-3 border-b border-orange-100/50 shrink-0 z-20 bg-calendar-bg">
 				<div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
 					<button
 						onClick={() => cycleMonth(-1)}
-						className="p-1.5 hover:bg-gray-50 rounded-lg border border-gray-200 transition-all text-gray-500 hover:text-neverland-green"
+						className="p-1.5 hover:bg-white/60 rounded-lg border border-orange-200/40 transition-all text-gray-500 hover:text-neverland-green"
 					>
 						<ChevronLeft size={20} />
 					</button>
@@ -177,7 +180,7 @@ const CalendarView = () => {
 
 					<button
 						onClick={() => cycleMonth(1)}
-						className="p-1.5 hover:bg-gray-50 rounded-lg border border-gray-200 transition-all text-gray-500 hover:text-neverland-green"
+						className="p-1.5 hover:bg-white/60 rounded-lg border border-orange-200/40 transition-all text-gray-500 hover:text-neverland-green"
 					>
 						<ChevronRight size={20} />
 					</button>
@@ -205,119 +208,126 @@ const CalendarView = () => {
 				</div>
 			</div>
 
+			{/* Weekday headers (fixed, not sliding) */}
+			<div className="grid grid-cols-7 border-b border-orange-100/30 shrink-0 bg-calendar-bg">
+				{['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => (
+					<div
+						key={d}
+						className="text-center text-[10px] font-black text-gray-400 py-2 uppercase tracking-widest"
+					>
+						{d}
+					</div>
+				))}
+			</div>
+
 			{/* Sliding Container */}
 			<div className="flex-1 relative overflow-hidden" ref={containerRef}>
-				<motion.div
-					className={`flex h-full absolute top-0 left-0 touch-pan-y cursor-grab active:cursor-grabbing ${width === 0 ? 'opacity-0' : 'opacity-100'}`}
-					style={{ x, width: width * 3 }}
-					drag="x"
-					dragConstraints={{ left: -2 * width, right: 0 }}
-					dragElastic={0.1}
-					onDragEnd={handleDragEnd}
-				>
-					{months.map((monthDate) => {
-						const mYear = monthDate.getFullYear();
-						const mMonth = monthDate.getMonth();
+				{width > 0 && (
+					<motion.div
+						key="calendar-track"
+						className="flex h-full absolute top-0 left-0 touch-pan-y cursor-grab active:cursor-grabbing"
+						style={{ x, width: width * 3 }}
+						drag="x"
+						dragConstraints={{ left: -2 * width, right: 0 }}
+						dragElastic={0.1}
+						onDragEnd={handleDragEnd}
+					>
+						{months.map((monthDate) => {
+							const mYear = monthDate.getFullYear();
+							const mMonth = monthDate.getMonth();
 
-						return (
-							<div
-								key={monthDate.toISOString()}
-								style={{ width: width }}
-								className="flex flex-col shrink-0 h-full bg-white"
-							>
-								{/* Weekdays Labels - Part of sliding block */}
-								<div className="grid grid-cols-7 border-b border-gray-100 shrink-0 bg-gray-50/50">
-									{['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => (
-										<div
-											key={d}
-											className="text-center text-xs font-black text-gray-400 py-2"
-										>
-											{d}
-										</div>
-									))}
-								</div>
+							return (
+								<div
+									key={monthDate.toISOString()}
+									style={{ width: width }}
+									className="flex flex-col shrink-0 h-full bg-calendar-bg"
+								>
+									{/* Calendar Grid */}
+									<div className="grid grid-cols-7 grid-rows-6 gap-1.5 p-3 grow auto-rows-fr overflow-hidden touch-pan-y">
+										{Array.from({ length: 42 }).map((_, i) => {
+											const firstDay = new Date(mYear, mMonth, 1);
+											const startDay = (firstDay.getDay() + 6) % 7;
+											const date = new Date(mYear, mMonth, 1 - startDay + i);
+											const isCur = date.getMonth() === mMonth;
 
-								{/* Calendar Grid */}
-								<div className="grid grid-cols-7 grid-rows-6 gap-2 p-4 bg-gray-50/30 grow auto-rows-fr overflow-hidden touch-pan-y">
-									{Array.from({ length: 42 }).map((_, i) => {
-										const firstDay = new Date(mYear, mMonth, 1);
-										const startDay = (firstDay.getDay() + 6) % 7;
-										const date = new Date(mYear, mMonth, 1 - startDay + i);
-										const isCur = date.getMonth() === mMonth;
+											const dayEvents = getEventsForDate(date);
+											const isToday =
+												date.getDate() === new Date().getDate() &&
+												date.getMonth() === new Date().getMonth() &&
+												date.getFullYear() === new Date().getFullYear();
 
-										const cellBg = isCur ? 'bg-white' : 'bg-gray-100/50';
-										const textOpacity = isCur ? 'text-black' : 'text-gray-300';
-										const hoverEffect = isCur
-											? 'hover:shadow-md hover:border-neverland-green/50 cursor-pointer'
-											: 'cursor-default';
-										const activeOpacity = isCur
-											? 'opacity-100'
-											: 'opacity-40 grayscale';
-
-										const dayEvents = getEventsForDate(date);
-										const isToday =
-											date.getDate() === new Date().getDate() &&
-											date.getMonth() === new Date().getMonth() &&
-											date.getFullYear() === new Date().getFullYear();
-
-										return (
-											<div
-												key={i}
-												onClick={() => isCur && handleDayClick(date)}
-												className={`rounded-xl border border-gray-100 p-1 lg:p-2 transition-all relative group flex flex-col justify-between select-none ${cellBg} ${hoverEffect} ${
-													!isCur ? 'pointer-events-none' : ''
-												}`}
-											>
-												<div className="flex justify-center mb-1">
+											return (
+												<div
+													key={i}
+													onClick={() => isCur && handleDayClick(date)}
+													className={`rounded-lg flex flex-col items-center justify-between pt-0.5 pb-0.5 relative transition-all border select-none ${
+														isCur
+															? 'bg-white text-gray-700 border-gray-100 hover:border-green-200 cursor-pointer'
+															: 'bg-gray-50/50 text-gray-400 border-transparent pointer-events-none'
+													}`}
+												>
 													<span
-														className={`text-xs lg:text-sm font-black w-6 h-6 flex items-center justify-center rounded-full ${
+														className={`text-[10px] sm:text-xs mb-0.5 font-black w-6 h-6 flex items-center justify-center rounded-full ${
 															isToday
 																? 'bg-neverland-green text-white'
-																: textOpacity
+																: isCur
+																	? 'text-gray-900'
+																	: 'text-gray-300'
 														}`}
 													>
 														{date.getDate()}
 													</span>
-												</div>
 
-												<div
-													className={`flex flex-col gap-1 w-full grow justify-center pb-1 ${activeOpacity}`}
-												>
-													{activeShifts.map((turno) => {
-														let event = dayEvents.find(
-															(e) =>
-																e.turno === turno && e.estado !== 'cancelada',
-														);
-														if (!event) {
-															event = dayEvents.find(
+													<div
+														className={`flex flex-col gap-0.5 w-full grow px-0.5 ${isCur ? 'opacity-100' : 'opacity-40 grayscale'}`}
+													>
+														{activeShifts.map((turno) => {
+															let event = dayEvents.find(
 																(e) =>
-																	e.turno === turno && e.estado === 'cancelada',
+																	e.turno === turno && e.estado !== 'cancelada',
 															);
-														}
-														const finalColor = event
-															? getStatusColor(event.estado, event.tipo)
-															: 'bg-white border-black';
-														return (
-															<div
-																key={turno}
-																className={`h-2 lg:h-3 w-full border ${finalColor} rounded-sm transition-opacity`}
-																title={
-																	event
-																		? `${event.estado} - ${event.cliente?.nombreNiño || 'N/A'}`
-																		: 'Disponible'
-																}
-															/>
-														);
-													})}
+															if (!event) {
+																event = dayEvents.find(
+																	(e) =>
+																		e.turno === turno &&
+																		e.estado === 'cancelada',
+																);
+															}
+
+															const isOcc =
+																!!event && event.estado !== 'cancelada';
+															const finalColor = isOcc
+																? getStatusColor(event.estado, event.tipo)
+																: 'bg-green-100';
+
+															return (
+																<div
+																	key={turno}
+																	className={`h-[9px] w-full rounded-sm flex items-center justify-center ${finalColor}`}
+																	title={
+																		event
+																			? `${event.estado} - ${event.cliente?.nombreNiño || 'N/A'}`
+																			: 'Disponible'
+																	}
+																>
+																	{!isOcc && isCur && (
+																		<span className="text-[6.5px] font-bold text-neverland-green tracking-tighter leading-none">
+																			LIBRE
+																		</span>
+																	)}
+																</div>
+															);
+														})}
+													</div>
 												</div>
-											</div>
-										);
-									})}
+											);
+										})}
+									</div>
 								</div>
-							</div>
-						);
-					})}
-				</motion.div>
+							);
+						})}
+					</motion.div>
+				)}
 			</div>
 		</div>
 	);

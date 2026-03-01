@@ -134,7 +134,7 @@ const Step1Date = ({
 			{view === 'calendar' && (
 				<div className="w-full flex-1 flex flex-col min-h-0">
 					{/* Navigation Overlay */}
-					<div className="flex justify-between items-center mb-1 px-2 shrink-0 bg-surface">
+					<div className="flex justify-between items-center mb-1 px-2 shrink-0">
 						<button
 							onClick={() => cycleMonth(-1)}
 							className="p-1.5 hover:bg-green-50 rounded-full text-neverland-green"
@@ -174,7 +174,7 @@ const Step1Date = ({
 									<div
 										key={monthDate.toISOString()}
 										style={{ width: width }}
-										className="flex flex-col shrink-0 h-full bg-surface border-r border-gray-100/50"
+										className="flex flex-col shrink-0 h-full border-r border-gray-100/50"
 									>
 										{/* Weekday Headers */}
 										<div className="grid grid-cols-7 mb-1 shrink-0">
@@ -189,7 +189,7 @@ const Step1Date = ({
 										</div>
 
 										{/* Grid */}
-										<div className="grid grid-cols-7 grid-rows-6 gap-px h-full relative touch-pan-y select-none pb-2">
+										<div className="grid grid-cols-7 grid-rows-6 gap-1.5 p-1.5 h-full relative touch-pan-y select-none">
 											{availabilityLoading && (
 												<div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center rounded-2xl">
 													<div className="w-8 h-8 border-4 border-neverland-green/20 border-t-neverland-green rounded-full animate-spin"></div>
