@@ -1,6 +1,7 @@
 const Event = require('../models/event.model');
 const createError = require('http-errors');
 const googleService = require('../services/google.service');
+const mailer = require('../config/mailer.config');
 
 const Config = require('../models/config.model');
 
@@ -187,6 +188,12 @@ module.exports.create = (req, res, next) => {
             event.googleEventId = gEvent.id;
             await event.save();
           }
+
+          // Send confirmation email
+          if (event.tipo === 'reserva' && event.cliente?.email) {
+            await mailer.sendBookingConfirmationEmail(event);
+          }
+
           return res.status(201).json(event);
         });
     })

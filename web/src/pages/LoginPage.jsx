@@ -68,7 +68,7 @@ const LoginPage = () => {
 								type="email"
 								required
 								className="block w-full pl-11 pr-4 py-4 bg-white border border-gray-200 rounded-2xl focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all font-sans text-text-black placeholder-gray-400"
-								placeholder="admin@neverland.com"
+								placeholder="tumail@mail.com"
 								value={email}
 								onChange={(e) => setEmail(e.target.value)}
 							/>

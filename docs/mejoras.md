@@ -1,7 +1,4 @@
 
-¿Que pasa al cambiar cantidad de una ración que cambio el precio?
-
-
 Completar mensaje de whatsapp al solicitar reserva
 
 Mejorar página de errores 404 y 500

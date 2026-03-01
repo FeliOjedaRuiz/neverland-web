@@ -14,7 +14,7 @@ import img3 from '../../assets/images/Captura de pantalla 2026-01-24 232919.png'
 import img4 from '../../assets/images/Captura de pantalla 2026-01-24 232942.png';
 
 import { motion } from 'framer-motion';
-import logo from '../../assets/logo.svg';
+import logo from '../../assets/neverland_logo.svg';
 
 const HeroSection = () => {
 	const images = [img1, img2, img3, img4];

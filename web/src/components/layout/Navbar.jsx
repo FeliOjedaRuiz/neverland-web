@@ -1,7 +1,7 @@
 import React from 'react';
 import { Menu, X } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-import logo from '../../assets/logo.svg';
+import logo from '../../assets/neverland_logo.svg';
 
 const Navbar = () => {
 	const [isOpen, setIsOpen] = React.useState(false);

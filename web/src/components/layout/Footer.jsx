@@ -1,7 +1,7 @@
 import React from 'react';
 import { MapPin, Phone, Instagram, Facebook, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import logo from '../../assets/logo.svg';
+import logo from '../../assets/neverland_logo.svg';
 
 const Footer = () => {
 	return (
@@ -19,7 +19,7 @@ const Footer = () => {
 						<div className="space-y-4">
 							<div className="flex items-start gap-4">
 								<MapPin
-									className="text-energy-orange mt-1 flex-shrink-0"
+									className="text-energy-orange mt-1 shrink-0"
 									size={20}
 								/>
 								<span className="text-gray-300 text-sm">
@@ -29,7 +29,7 @@ const Footer = () => {
 								</span>
 							</div>
 							<div className="flex items-center gap-4">
-								<Phone className="text-energy-orange flex-shrink-0" size={20} />
+								<Phone className="text-energy-orange shrink-0" size={20} />
 								<a
 									href="https://wa.me/34651707985?text=Hola%2C%20me%20gustar%C3%ADa%20m%C3%A1s%20informaci%C3%B3n%20para%20reservar%20en%20Neverland%20Cullar%20Vega."
 									className="text-gray-300 text-sm hover:text-white transition-colors"
@@ -38,7 +38,7 @@ const Footer = () => {
 								</a>
 							</div>
 							<div className="flex items-center gap-4">
-								<Clock className="text-energy-orange flex-shrink-0" size={20} />
+								<Clock className="text-energy-orange shrink-0" size={20} />
 								<span className="text-gray-300 text-sm">
 									L-V: 17:00 - 21:00 | S-D: 11:00 - 21:30
 								</span>
