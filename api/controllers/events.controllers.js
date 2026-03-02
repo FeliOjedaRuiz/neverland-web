@@ -12,6 +12,38 @@ const SHIFTS = {
   'T3': { start: [19, 15], end: [21, 15] }
 };
 
+const validateEventData = (data) => {
+  const { tipo, cliente, detalles } = data;
+  if (tipo === 'bloqueo') return;
+
+  if (cliente) {
+    if (cliente.nombreNiño && cliente.nombreNiño.length > 100) throw createError(400, 'Nombre del niño demasiado largo (máx 100)');
+    if (cliente.nombrePadre && cliente.nombrePadre.length > 100) throw createError(400, 'Nombre del padre demasiado largo (máx 100)');
+    if (cliente.email && cliente.email.length > 100) throw createError(400, 'Email demasiado largo (máx 100)');
+    if (cliente.telefono && (cliente.telefono.match(/\d/g) || []).length > 15) throw createError(400, 'Teléfono demasiado largo');
+    if (cliente.edadNiño > 99) throw createError(400, 'La edad debe ser de máximo 2 cifras');
+  }
+
+  if (detalles) {
+    if (detalles.niños?.cantidad > 50) throw createError(400, 'Máximo 50 niños permitidos');
+    if (detalles.niños?.cantidad !== undefined && detalles.niños.cantidad < 12) throw createError(400, 'Mínimo 12 niños requeridos');
+
+    if (detalles.adultos?.cantidad > 40) throw createError(400, 'Máximo 40 adultos permitidos');
+    if (detalles.adultos?.cantidad !== undefined && detalles.adultos.cantidad <= 0) {
+      throw createError(400, 'Se requiere al menos un adulto responsable');
+    }
+
+    if (detalles.adultos?.comida) {
+      detalles.adultos.comida.forEach(item => {
+        if (item.cantidad > 20) throw createError(400, `Máximo 20 unidades por ración (${item.item})`);
+      });
+    }
+
+    if (detalles.extras?.observaciones?.length > 500) throw createError(400, 'Observaciones demasiado largas (máx 500)');
+    if (detalles.extras?.alergenos?.length > 500) throw createError(400, 'Alérgenos demasiado largos (máx 500)');
+  }
+};
+
 // Helper to calculate price based on config and event data
 // NOW MUTATES eventData to add snapshots if they are missing!
 const calculateEventPrice = async (eventData, config) => {
@@ -144,30 +176,20 @@ module.exports.create = (req, res, next) => {
       throw createError(400, 'Datos del cliente incompletos (Nombre, Móvil, Email son obligatorios)');
     }
 
-    // Validate Email
+    // Validate Email format (strict)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(cliente.email)) {
       throw createError(400, 'Email inválido');
     }
-    // Validate Phone format
+
+    // Validate Phone format (min 9 digits)
     const phoneDigits = (cliente.telefono.match(/\d/g) || []).length;
     if (phoneDigits < 9) {
       throw createError(400, 'Teléfono inválido (mínimo 9 dígitos)');
     }
 
-    if (cliente?.edadNiño > 99) {
-      throw createError(400, 'La edad debe tener máximo 2 cifras');
-    }
-
-    if (detalles?.adultos?.cantidad !== undefined && detalles.adultos.cantidad < 0) {
-      throw createError(400, 'Cantidad de adultos inválida');
-    }
-    // Optional strict enforcement: if (detalles.adultos.cantidad === 0) throw ...
-    // For now, allow 0 if that's a valid use case (e.g. only kids party?), but UI enforces > 0. Let's align with UI request.
-    if (detalles?.adultos?.cantidad <= 0) {
-      throw createError(400, 'Se requiere al menos un adulto responsable');
-    }
-    if (detalles?.niños?.cantidad < 0) throw createError(400, 'Cantidad de niños inválida');
+    // Call unified validation for numeric limits and lengths
+    validateEventData(req.body);
   }
 
   // Basic availability check
@@ -371,7 +393,16 @@ module.exports.update = (req, res, next) => {
           adultos: { ...oldDetalles.adultos, ...(newDetalles.adultos || {}) },
           extras: { ...oldDetalles.extras, ...(newDetalles.extras || {}) }
         };
+
+        // Validate merged details
+        validateEventData(event.toObject());
+
         delete req.body.detalles;
+      }
+
+      if (req.body.cliente) {
+        // Validate client updates if any
+        validateEventData({ tipo: event.tipo, cliente: { ...event.cliente, ...req.body.cliente } });
       }
 
       event.set(req.body);

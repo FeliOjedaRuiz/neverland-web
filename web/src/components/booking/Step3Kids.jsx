@@ -50,11 +50,12 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 								...formData,
 								niños: {
 									...formData.niños,
-									cantidad: formData.niños.cantidad + 1,
+									cantidad: Math.min(50, formData.niños.cantidad + 1),
 								},
 							})
 						}
-						className="w-8 h-8 rounded-full bg-neverland-green text-white font-black shadow-md hover:scale-105 active:scale-90 transition-all flex items-center justify-center text-base"
+						disabled={formData.niños.cantidad >= 50}
+						className={`w-8 h-8 rounded-full font-black shadow-md hover:scale-105 active:scale-90 transition-all flex items-center justify-center text-base ${formData.niños.cantidad >= 50 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-neverland-green text-white'}`}
 					>
 						+
 					</button>
@@ -76,12 +77,13 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 				</label>
 				<textarea
 					value={formData.extras?.alergenos || ''}
+					maxLength={500}
 					onChange={(e) =>
 						setFormData({
 							...formData,
 							extras: {
 								...formData.extras,
-								alergenos: e.target.value,
+								alergenos: e.target.value.substring(0, 500),
 							},
 						})
 					}

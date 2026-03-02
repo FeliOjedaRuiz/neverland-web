@@ -23,8 +23,11 @@ import {
 	Pizza,
 	Mail,
 	MessageSquare,
+	TimerReset,
+	Receipt,
 } from 'lucide-react';
 import { useNavigate, useParams, useOutletContext } from 'react-router-dom';
+import GoogleCalendarButton from '../common/GoogleCalendarButton';
 import {
 	getReservationById,
 	getPublicReservationById,
@@ -213,6 +216,20 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 		return base;
 	};
 
+	const getExtendedTimeLabel = (base, ext, type) => {
+		if (!ext || ext === 0) return getTurnoLabel(base);
+		if (base === 'T1') return ext === 30 ? '16:30 - 19:00' : '16:00 - 19:00';
+		if (base === 'T2') {
+			if (ext === 30)
+				return type === 'before' ? '17:30 - 20:00' : '18:00 - 20:30';
+			if (type === 'before') return '17:00 - 20:00';
+			if (type === 'both') return '17:30 - 20:30';
+			return '18:00 - 21:00';
+		}
+		if (base === 'T3') return ext === 30 ? '19:15 - 21:45' : '19:15 - 22:15';
+		return getTurnoLabel(base);
+	};
+
 	const isEditable = () => {
 		if (isAdmin) return true;
 		if (!reservation?.fecha) return false;
@@ -387,21 +404,31 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 									</>
 								) : (
 									<div
-										className={`px-3 py-1 rounded-2xl text-[9px] font-black uppercase border-none shadow-none ${
+										className={`px-4 py-2 rounded-2xl text-[10px] sm:text-xs font-black uppercase shadow-lg border-2 ${
 											reservation.estado === 'confirmado' ||
 											reservation.estado === 'confirmada'
-												? 'bg-white/20 text-white'
+												? 'bg-neverland-green/20 text-white border-neverland-green/40'
 												: reservation.estado === 'pendiente' ||
 													  reservation.estado === 'solicitado'
-													? 'bg-yellow-400 text-yellow-900 shadow-sm'
-													: 'bg-white/10 text-white'
+													? 'bg-yellow-400 text-yellow-900 border-yellow-500 shadow-yellow-500/10'
+													: 'bg-white/10 text-white border-white/20'
 										}`}
 									>
-										{reservation.estado}
+										Estado: {reservation.estado}
 									</div>
 								)}
 							</div>
 						</div>
+
+						{/* Google Calendar for Customer Only */}
+						{!isAdmin && (
+							<div className="mt-6 flex justify-center">
+								<GoogleCalendarButton
+									reservation={reservation}
+									className="w-full sm:w-auto bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/30"
+								/>
+							</div>
+						)}
 					</div>
 				</div>
 
@@ -515,6 +542,29 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 										<p className="font-display font-black text-lg text-text-black truncate">
 											{reservation.turno} (
 											{getTurnoLabel(reservation.turno, reservation.horario)})
+										</p>
+									</div>
+								</div>
+							</div>
+
+							{/* Extension de tiempo */}
+							<div
+								className={`mt-4 flex items-center gap-4 p-3 rounded-2xl border transition-all ${reservation.horario?.extensionMinutos > 0 ? 'bg-purple-50/50 border-purple-100' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
+							>
+								<div
+									className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${reservation.horario?.extensionMinutos > 0 ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}
+								>
+									<TimerReset size={20} />
+								</div>
+								<div className="min-w-0 flex flex-1 justify-between items-center">
+									<div>
+										<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
+											Tiempo Extra
+										</p>
+										<p className="text-sm font-black text-gray-800">
+											{reservation.horario?.extensionMinutos > 0
+												? `+${reservation.horario.extensionMinutos} min (+${reservation.horario.costoExtension || 0}€)`
+												: 'Sin extensión'}
 										</p>
 									</div>
 								</div>
@@ -758,8 +808,8 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 						</div>
 					</section>
 
-					{/* Observaciones (NOW LAST) */}
-					<section className="max-w-3xl mx-auto pb-4">
+					{/* Observaciones */}
+					<section className="max-w-3xl mx-auto">
 						<div className="bg-surface p-6 sm:p-8 rounded-[32px] border border-gray-100 shadow-sm relative">
 							<div className="flex justify-between items-center mb-6">
 								<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
@@ -794,29 +844,132 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 							</div>
 						</div>
 					</section>
-				</div>
 
-				{/* Sticky Price Box */}
-				<div className="p-6 bg-surface border-t border-gray-100 shrink-0 flex justify-between items-center shadow-[0_-10px_30px_rgba(0,0,0,0.03)] pb-8">
-					<div>
-						<p className="text-[10px] text-gray-400 font-black uppercase">
-							{isAdmin ? 'Ingreso Previsto' : 'Precio Estimado'}
-						</p>
-						<p className="text-4xl font-display font-black text-neverland-green">
-							{reservation.precioTotal}€
-						</p>
-					</div>
-					{!isAdmin && !isEditable() && (
-						<div className="flex-1 ml-6 bg-red-50 border border-red-100 p-4 rounded-2xl flex items-center gap-3">
-							<AlertTriangle className="text-red-500 shrink-0" size={20} />
-							<p className="text-[10px] font-bold text-red-600 leading-tight">
-								Reserva cerrada para edición.
-								<br />
-								Contáctanos para cambios urgentes.
-							</p>
+					{/* Resumen de Precios (Card) */}
+					<section className="max-w-3xl mx-auto pb-8">
+						<div className="bg-surface p-6 sm:p-8 rounded-[32px] border border-gray-100 shadow-sm relative">
+							<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-5">
+								<Receipt size={14} />{' '}
+								{isAdmin ? 'Ingreso Previsto' : 'Resumen de Precios'}
+							</h4>
+
+							<div className="space-y-3">
+								{/* Niños */}
+								<div className="flex justify-between items-center text-sm">
+									<span className="text-gray-600 font-medium">
+										{reservation.detalles?.niños?.cantidad || 0} Niños ×{' '}
+										{reservation.detalles?.niños?.precioApplied || '?'}€
+									</span>
+									<span className="font-black text-text-black">
+										{(
+											(reservation.detalles?.niños?.cantidad || 0) *
+											(reservation.detalles?.niños?.precioApplied || 0)
+										).toFixed(0)}
+										€
+									</span>
+								</div>
+
+								{/* Adultos */}
+								{(() => {
+									const adultos = reservation.detalles?.adultos;
+									let items = [];
+									if (Array.isArray(adultos)) items = adultos;
+									else if (adultos?.comida && Array.isArray(adultos.comida))
+										items = adultos.comida;
+									const total = items.reduce(
+										(s, i) => s + (i.cantidad || 0) * (i.precioUnitario || 0),
+										0,
+									);
+									if (total > 0)
+										return (
+											<div className="flex justify-between items-center text-sm">
+												<span className="text-gray-600 font-medium">
+													Comida Adultos
+												</span>
+												<span className="font-black text-text-black">
+													{total}€
+												</span>
+											</div>
+										);
+									return null;
+								})()}
+
+								{/* Taller */}
+								{reservation.detalles?.extras?.taller !== 'ninguno' &&
+									reservation.detalles?.extras?.precioTallerApplied > 0 && (
+										<div className="flex justify-between items-center text-sm">
+											<span className="text-gray-600 font-medium">
+												Actividad ({reservation.detalles.extras.taller})
+											</span>
+											<span className="font-black text-text-black">
+												{reservation.detalles.extras.precioTallerApplied}€
+											</span>
+										</div>
+									)}
+
+								{/* Personaje */}
+								{reservation.detalles?.extras?.personaje !== 'ninguno' &&
+									reservation.detalles?.extras?.precioPersonajeApplied > 0 && (
+										<div className="flex justify-between items-center text-sm">
+											<span className="text-gray-600 font-medium">
+												Personaje ({reservation.detalles.extras.personaje})
+											</span>
+											<span className="font-black text-text-black">
+												{reservation.detalles.extras.precioPersonajeApplied}€
+											</span>
+										</div>
+									)}
+
+								{/* Piñata */}
+								{reservation.detalles?.extras?.pinata &&
+									reservation.detalles?.extras?.precioPinataApplied > 0 && (
+										<div className="flex justify-between items-center text-sm">
+											<span className="text-gray-600 font-medium">Piñata</span>
+											<span className="font-black text-text-black">
+												{reservation.detalles.extras.precioPinataApplied}€
+											</span>
+										</div>
+									)}
+
+								{/* Extensión */}
+								{reservation.horario?.extensionMinutos > 0 &&
+									reservation.horario?.costoExtension > 0 && (
+										<div className="flex justify-between items-center text-sm">
+											<span className="text-gray-600 font-medium">
+												Extensión (+{reservation.horario.extensionMinutos} min)
+											</span>
+											<span className="font-black text-text-black">
+												{reservation.horario.costoExtension}€
+											</span>
+										</div>
+									)}
+
+								{/* Divider */}
+								<div className="border-t-2 border-dashed border-gray-200 my-2"></div>
+
+								{/* Total */}
+								<div className="flex justify-between items-center">
+									<span className="text-lg font-display font-black text-text-black">
+										Total
+									</span>
+									<span className="text-3xl font-display font-black text-neverland-green">
+										{reservation.precioTotal}€
+									</span>
+								</div>
+							</div>
+
+							{!isAdmin && !isEditable() && (
+								<div className="mt-4 bg-red-50 border border-red-100 p-4 rounded-2xl flex items-center gap-3">
+									<AlertTriangle className="text-red-500 shrink-0" size={20} />
+									<p className="text-[10px] font-bold text-red-600 leading-tight">
+										Reserva cerrada para edición.
+										<br />
+										Contáctanos para cambios urgentes.
+									</p>
+								</div>
+							)}
 						</div>
-					)}
-					<div className="flex gap-2"></div>
+					</section>
 				</div>
 
 				{/* Modal Overlay System */}
@@ -944,14 +1097,42 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 								{activeModal === 'datetime' && (
 									<DateTimeEdit
 										reservation={reservation}
+										config={config}
 										onCancel={closeModals}
-										onSave={async (newDate, newTurno) => {
+										onSave={async (
+											newDate,
+											newTurno,
+											newExtension,
+											newExtType,
+										) => {
 											setIsUpdating(true);
 											try {
-												const res = await updateReservation(reservation.id, {
+												const updatePayload = {
 													fecha: newDate,
 													turno: newTurno,
-												});
+												};
+												// Include extension update (reset cost so backend recalculates)
+												if (newExtension !== undefined) {
+													const finalTime = getExtendedTimeLabel(
+														newTurno,
+														newExtension,
+														newExtType,
+													);
+													updatePayload.horario = {
+														...reservation.horario,
+														inicio: finalTime.split(' - ')[0],
+														fin: finalTime.split(' - ')[1],
+														extensionMinutos: newExtension,
+														extensionType:
+															newExtType ||
+															(newExtension > 0 ? 'after' : 'default'),
+														costoExtension: undefined, // force backend recalc
+													};
+												}
+												const res = await updateReservation(
+													reservation.id,
+													updatePayload,
+												);
 												setReservation(res.data);
 												closeModals();
 											} catch (err) {
@@ -975,7 +1156,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 };
 
 // Sub-component for Date and Time Edit
-const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
+const DateTimeEdit = ({ reservation, config, onCancel, onSave }) => {
 	const [view, setView] = useState('calendar'); // 'calendar' | 'shifts'
 	const [currentMonth, setCurrentMonth] = useState(
 		safeParseDate(reservation.fecha) || new Date(),
@@ -984,8 +1165,40 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 		reservation.fecha.split('T')[0],
 	);
 	const [selectedTurno, setSelectedTurno] = useState(reservation.turno);
+	const [selectedExtension, setSelectedExtension] = useState(
+		reservation.horario?.extensionMinutos || 0,
+	);
+	const [selectedExtensionType, setSelectedExtensionType] = useState(
+		reservation.horario?.extensionType ||
+			(reservation.horario?.extensionMinutos > 0 ? 'after' : 'default'),
+	);
 	const [occupied, setOccupied] = useState([]);
 	const [loading, setLoading] = useState(true);
+
+	// Reset extension when date or turn changes
+	const originalDate = reservation.fecha.split('T')[0];
+	const originalTurno = reservation.turno;
+
+	const handleDateSelect = (dateStr) => {
+		setSelectedDate(dateStr);
+		if (dateStr !== originalDate) {
+			setSelectedExtension(0);
+			setSelectedExtensionType('default');
+		}
+		setView('shifts');
+	};
+
+	const handleTurnoSelect = (turnoId) => {
+		setSelectedTurno(turnoId);
+		if (turnoId !== originalTurno || selectedDate !== originalDate) {
+			setSelectedExtension(0);
+			setSelectedExtensionType('default');
+		} else {
+			// Restore original extension type if returning to original settings
+			setSelectedExtension(reservation.horario?.extensionMinutos || 0);
+			setSelectedExtensionType(reservation.horario?.extensionType || 'after');
+		}
+	};
 
 	const fetchAvailability = React.useCallback(async () => {
 		setLoading(true);
@@ -1100,8 +1313,7 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 									key={i}
 									disabled={!isCur || isPast}
 									onClick={() => {
-										setSelectedDate(dateStr);
-										setView('shifts');
+										handleDateSelect(dateStr);
 									}}
 									className={`min-h-[60px] rounded-lg flex flex-col items-center justify-center relative transition-all border ${
 										isSel
@@ -1204,7 +1416,7 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 								<button
 									key={turn.id}
 									disabled={isOcc}
-									onClick={() => setSelectedTurno(turn.id)}
+									onClick={() => handleTurnoSelect(turn.id)}
 									className={`w-full p-5 rounded-[24px] border-2 flex justify-between items-center transition-all ${
 										isSelected
 											? 'border-neverland-green bg-neverland-green text-white shadow-xl scale-[1.02]'
@@ -1240,9 +1452,160 @@ const DateTimeEdit = ({ reservation, onCancel, onSave }) => {
 						})}
 					</div>
 
+					{/* Extension Selector */}
+					<div className="space-y-4">
+						<div>
+							<p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1 mb-2">
+								Tiempo Extra
+							</p>
+							<div className="grid grid-cols-3 gap-2">
+								{[
+									{ value: 0, label: 'Sin extra', price: null },
+									{
+										value: 30,
+										label: '+30 min',
+										price: config?.preciosExtras?.extension30 || 30,
+									},
+									{
+										value: 60,
+										label: '+60 min',
+										price: config?.preciosExtras?.extension60 || 50,
+									},
+								].map((ext) => {
+									const isSelected = selectedExtension === ext.value;
+									return (
+										<button
+											key={ext.value}
+											onClick={() => {
+												setSelectedExtension(ext.value);
+												if (ext.value === 0) {
+													setSelectedExtensionType('default');
+												} else if (selectedExtensionType === 'default') {
+													// Set a sane default type based on turn
+													if (selectedTurno === 'T1')
+														setSelectedExtensionType('before');
+													else setSelectedExtensionType('after');
+												}
+											}}
+											className={`p-3 rounded-2xl border-2 text-center transition-all ${
+												isSelected
+													? 'border-purple-400 bg-purple-50 shadow-md'
+													: 'border-gray-100 bg-surface hover:border-purple-200 hover:bg-purple-50/30'
+											}`}
+										>
+											<p
+												className={`text-sm font-black ${isSelected ? 'text-purple-700' : 'text-text-black'}`}
+											>
+												{ext.label}
+											</p>
+											{ext.price !== null && (
+												<p
+													className={`text-[10px] font-bold mt-0.5 ${isSelected ? 'text-purple-500' : 'text-gray-400'}`}
+												>
+													+{ext.price}€
+												</p>
+											)}
+										</button>
+									);
+								})}
+							</div>
+						</div>
+
+						{/* Type Selector (Conditional based on Turn) */}
+						{selectedExtension > 0 && (
+							<div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 animate-in fade-in slide-in-from-top-2">
+								<p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center mb-3">
+									¿Cómo aplicar el tiempo extra?
+								</p>
+								<div className="space-y-2">
+									{selectedTurno === 'T1' && (
+										<div className="flex justify-between items-center p-3 bg-white border-2 border-purple-400 rounded-xl shadow-sm">
+											<span className="text-xs font-black text-purple-700">
+												Empezar antes (Adelanto)
+											</span>
+											<span className="text-[10px] font-bold text-gray-400">
+												{selectedExtension === 30
+													? '16:30 - 19:00'
+													: '16:00 - 19:00'}
+											</span>
+										</div>
+									)}
+									{selectedTurno === 'T3' && (
+										<div className="flex justify-between items-center p-3 bg-white border-2 border-purple-400 rounded-xl shadow-sm">
+											<span className="text-xs font-black text-purple-700">
+												Terminar después (Alargue)
+											</span>
+											<span className="text-[10px] font-bold text-gray-400">
+												{selectedExtension === 30
+													? '19:15 - 21:45'
+													: '19:15 - 22:15'}
+											</span>
+										</div>
+									)}
+									{selectedTurno === 'T2' && (
+										<div className="grid grid-cols-1 gap-2">
+											<button
+												onClick={() => setSelectedExtensionType('before')}
+												className={`flex justify-between items-center p-3 rounded-xl border-2 transition-all ${selectedExtensionType === 'before' ? 'border-purple-400 bg-white shadow-sm' : 'border-transparent bg-white/50 hover:border-purple-200'}`}
+											>
+												<span
+													className={`text-xs font-black ${selectedExtensionType === 'before' ? 'text-purple-700' : 'text-gray-500'}`}
+												>
+													Empezar antes
+												</span>
+												<span className="text-[10px] font-bold text-gray-400">
+													{selectedExtension === 30
+														? '17:30 - 20:00'
+														: '17:00 - 20:00'}
+												</span>
+											</button>
+											<button
+												onClick={() => setSelectedExtensionType('after')}
+												className={`flex justify-between items-center p-3 rounded-xl border-2 transition-all ${selectedExtensionType === 'after' ? 'border-purple-400 bg-white shadow-sm' : 'border-transparent bg-white/50 hover:border-purple-200'}`}
+											>
+												<span
+													className={`text-xs font-black ${selectedExtensionType === 'after' ? 'text-purple-700' : 'text-gray-500'}`}
+												>
+													Terminar después
+												</span>
+												<span className="text-[10px] font-bold text-gray-400">
+													{selectedExtension === 30
+														? '18:00 - 20:30'
+														: '18:00 - 21:00'}
+												</span>
+											</button>
+											{selectedExtension === 60 && (
+												<button
+													onClick={() => setSelectedExtensionType('both')}
+													className={`flex justify-between items-center p-3 rounded-xl border-2 transition-all ${selectedExtensionType === 'both' ? 'border-purple-400 bg-white shadow-sm' : 'border-transparent bg-white/50 hover:border-purple-200'}`}
+												>
+													<span
+														className={`text-xs font-black ${selectedExtensionType === 'both' ? 'text-purple-700' : 'text-gray-500'}`}
+													>
+														30m antes y 30m después
+													</span>
+													<span className="text-[10px] font-bold text-gray-400">
+														17:30 - 20:30
+													</span>
+												</button>
+											)}
+										</div>
+									)}
+								</div>
+							</div>
+						)}
+					</div>
+
 					<div className="flex gap-3 pt-4 border-t border-gray-100">
 						<button
-							onClick={() => onSave(selectedDate, selectedTurno)}
+							onClick={() =>
+								onSave(
+									selectedDate,
+									selectedTurno,
+									selectedExtension,
+									selectedExtensionType,
+								)
+							}
 							className="flex-1 py-4 bg-neverland-green text-white rounded-2xl font-black text-sm shadow-lg shadow-neverland-green/20 transition-all active:scale-95"
 						>
 							Guardar
@@ -1289,12 +1652,13 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 	});
 
 	const addAdultItem = (item) => {
-		const existing = adultosList.findIndex((a) => a.item === item.nombre);
-		if (existing >= 0) {
+		const existingIdx = adultosList.findIndex((a) => a.item === item.nombre);
+		if (existingIdx >= 0) {
+			if (adultosList[existingIdx].cantidad >= 20) return; // Limit reached
 			const newList = [...adultosList];
-			newList[existing] = {
-				...newList[existing],
-				cantidad: newList[existing].cantidad + 1,
+			newList[existingIdx] = {
+				...newList[existingIdx],
+				cantidad: newList[existingIdx].cantidad + 1,
 			};
 			setAdultosList(newList);
 		} else {
@@ -1313,7 +1677,7 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 
 	const updateAdultQty = (idx, qty) => {
 		const newList = [...adultosList];
-		newList[idx].cantidad = Math.max(1, qty);
+		newList[idx].cantidad = Math.max(1, Math.min(20, qty));
 		setAdultosList(newList);
 	};
 
@@ -1344,20 +1708,29 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 							<input
 								type="number"
 								min="12"
+								max="50"
 								value={niñosExt.cantidad}
-								onChange={(e) =>
+								onChange={(e) => {
+									const val = Math.max(
+										0,
+										Math.min(50, parseInt(e.target.value) || 0),
+									);
 									setNiñosExt({
 										...niñosExt,
-										cantidad: parseInt(e.target.value) || 12,
-									})
-								}
+										cantidad: val,
+									});
+								}}
 								className="w-full bg-transparent text-center font-bold outline-none py-3"
 							/>
 							<button
 								onClick={() =>
-									setNiñosExt({ ...niñosExt, cantidad: niñosExt.cantidad + 1 })
+									setNiñosExt({
+										...niñosExt,
+										cantidad: Math.min(50, niñosExt.cantidad + 1),
+									})
 								}
-								className="px-4 py-3 hover:bg-white text-gray-400 font-bold transition-colors"
+								disabled={niñosExt.cantidad >= 50}
+								className="px-4 py-3 hover:bg-white text-gray-400 disabled:opacity-30 disabled:hover:bg-transparent font-bold transition-colors"
 							>
 								+
 							</button>
@@ -1415,7 +1788,7 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 						</span>
 						<div className="flex items-center bg-white border border-energy-orange/30 rounded-xl overflow-hidden shadow-sm">
 							<button
-								onClick={() => setAdultosQty(Math.max(0, adultosQty - 1))}
+								onClick={() => setAdultosQty(Math.max(1, adultosQty - 1))}
 								className="px-4 py-2 hover:bg-orange-50 text-energy-orange font-black transition-colors"
 							>
 								-
@@ -1424,8 +1797,9 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 								{adultosQty}
 							</span>
 							<button
-								onClick={() => setAdultosQty(adultosQty + 1)}
-								className="px-4 py-2 hover:bg-orange-50 text-energy-orange font-black transition-colors"
+								onClick={() => setAdultosQty(Math.min(40, adultosQty + 1))}
+								disabled={adultosQty >= 40}
+								className="px-4 py-2 hover:bg-orange-50 text-energy-orange disabled:opacity-30 disabled:hover:bg-transparent font-black transition-colors"
 							>
 								+
 							</button>
@@ -1694,8 +2068,12 @@ const ClientInfoEdit = ({ current, onCancel, onSave }) => {
 					<input
 						type="text"
 						value={formData.nombreNiño}
+						maxLength={100}
 						onChange={(e) =>
-							setFormData({ ...formData, nombreNiño: e.target.value })
+							setFormData({
+								...formData,
+								nombreNiño: e.target.value.substring(0, 100),
+							})
 						}
 						className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all"
 					/>
@@ -1707,9 +2085,11 @@ const ClientInfoEdit = ({ current, onCancel, onSave }) => {
 					<input
 						type="number"
 						value={formData.edadNiño}
-						onChange={(e) =>
-							setFormData({ ...formData, edadNiño: parseInt(e.target.value) })
-						}
+						max="99"
+						onChange={(e) => {
+							const val = Math.min(99, parseInt(e.target.value) || 0);
+							setFormData({ ...formData, edadNiño: val });
+						}}
 						className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all"
 					/>
 				</div>
@@ -1720,8 +2100,12 @@ const ClientInfoEdit = ({ current, onCancel, onSave }) => {
 					<input
 						type="text"
 						value={formData.nombrePadre}
+						maxLength={100}
 						onChange={(e) =>
-							setFormData({ ...formData, nombrePadre: e.target.value })
+							setFormData({
+								...formData,
+								nombrePadre: e.target.value.substring(0, 100),
+							})
 						}
 						className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all"
 					/>
@@ -1733,8 +2117,12 @@ const ClientInfoEdit = ({ current, onCancel, onSave }) => {
 					<input
 						type="text"
 						value={formData.telefono}
+						maxLength={20}
 						onChange={(e) =>
-							setFormData({ ...formData, telefono: e.target.value })
+							setFormData({
+								...formData,
+								telefono: e.target.value.substring(0, 20),
+							})
 						}
 						className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all"
 					/>
@@ -1746,8 +2134,12 @@ const ClientInfoEdit = ({ current, onCancel, onSave }) => {
 					<input
 						type="email"
 						value={formData.email || ''}
+						maxLength={100}
 						onChange={(e) =>
-							setFormData({ ...formData, email: e.target.value })
+							setFormData({
+								...formData,
+								email: e.target.value.substring(0, 100),
+							})
 						}
 						className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all"
 						placeholder="ejemplo@email.com"

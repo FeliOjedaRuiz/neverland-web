@@ -91,7 +91,7 @@ const Footer = () => {
 					{/* Column 3: Map */}
 					<div className="h-64 md:h-full min-h-[250px] rounded-3xl overflow-hidden shadow-lg border border-gray-800">
 						<iframe
-							src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3183.084705307524!2d-3.673891823528825!3d37.15286595191319!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd71fcb4aeb61501%3A0x629c424564c48974!2sCalle%20Ramal%20del%20R%C3%ADo%2C%2019%2C%2018101%20C%C3%BAllar%20Vega%2C%20Granada!5e0!3m2!1ses!2ses!4v1706173000000!5m2!1ses!2ses"
+							src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3180.1239596832575!2d-3.663004!3d37.1497519!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd71f956083a2415%3A0x2b6ffa68917c6a6f!2sNeverland%20Granada!5e0!3m2!1ses!2ses!4v1772480732481!5m2!1ses!2ses"
 							width="100%"
 							height="100%"
 							style={{ border: 0 }}

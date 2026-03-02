@@ -1,6 +1,7 @@
 import React from 'react';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Calendar } from 'lucide-react';
 import { formatSafeDate } from '../../utils/safeDate';
+import GoogleCalendarButton from '../common/GoogleCalendarButton';
 
 const BookingSuccess = ({ formData, createdId, getExtendedTime }) => {
 	const reservationDate = formData?.fecha || '';
@@ -74,6 +75,17 @@ const BookingSuccess = ({ formData, createdId, getExtendedTime }) => {
 			</div>
 
 			<div className="flex flex-col gap-3 w-full max-w-xs mx-auto">
+				<GoogleCalendarButton
+					reservation={{
+						id: createdId,
+						publicId: createdId,
+						fecha: reservationDate,
+						turno: formData?.turno,
+						cliente: formData?.cliente,
+					}}
+					getExtendedTime={getExtendedTime}
+					className="w-full"
+				/>
 				<button
 					onClick={() => (window.location.href = '/')}
 					className="px-8 py-4 bg-neverland-green text-white rounded-2xl font-bold text-sm shadow-lg shadow-neverland-green/20 hover:scale-[1.02] active:scale-95 transition-all w-full"

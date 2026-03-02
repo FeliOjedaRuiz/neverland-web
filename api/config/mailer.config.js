@@ -64,6 +64,33 @@ module.exports.sendBookingConfirmationEmail = async (event) => {
     console.error('Error fetching config for email:', error);
   }
 
+  // Google Calendar Link Generation
+  const generateGCalUrl = () => {
+    const baseUrl = 'https://www.google.com/calendar/render?action=TEMPLATE';
+    const text = encodeURIComponent(`Reserva en Neverland - ${cliente.nombreNiño || 'Cumpleaños'}`);
+    const datePart = new Date(fecha).toISOString().split('T')[0].replace(/-/g, '');
+
+    const turnosMap = {
+      T1: { start: '170000', end: '190000' },
+      T2: { start: '180000', end: '200000' },
+      T3: { start: '191500', end: '211500' },
+    };
+    const times = turnosMap[turno] || { start: '170000', end: '190000' };
+    const dates = `${datePart}T${times.start}/${datePart}T${times.end}`;
+
+    const publicUrl = `${WEB_URL}/mi-reserva/${event.id || publicId}`;
+    const gCalDetails = `Gestiona tu reserva aquí:
+${publicUrl}
+
+¡Gracias por elegir Neverland!`;
+    const details = encodeURIComponent(gCalDetails);
+    const location = encodeURIComponent('Neverland Cúllar Vega, Calle Clara Campoamor, 18195 Cúllar Vega, Granada');
+
+    return `${baseUrl}&text=${text}&dates=${dates}&details=${details}&location=${location}`;
+  };
+
+  const googleCalendarUrl = generateGCalUrl();
+
   // Preparamos el texto del taller para evitar duplicados
   let tallerText = detalles.extras.taller;
   if (tallerText && tallerText !== 'ninguno') {
@@ -123,16 +150,17 @@ module.exports.sendBookingConfirmationEmail = async (event) => {
           <div class="booking-id-container">
             <div class="booking-id-label">ID DE TU SOLICITUD</div>
             <div class="booking-id">${publicId}</div>
-            <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.2); pt: 15px;">
-              <p style="font-size: 13px; color: #4B5563; margin-bottom: 12px;">Pudes consultar o modificar tu reserva aquí:</p>
-              <a href="${WEB_URL}/mi-reserva/${event.id}" 
-                 style="display: inline-block; background-color: #24635A; color: #ffffff; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: 800; font-size: 14px; box-shadow: 0 4px 12px rgba(36, 99, 90, 0.2);">
-                Ver detalles de mi reserva
-              </a>
+            <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 15px;">
+              <p style="font-size: 13px; color: #4B5563; margin-bottom: 12px;">Puedes consultar o modificar tu reserva aquí:</p>
+              <a href="${WEB_URL}/mi-reserva/${event.id || publicId}" style="display: inline-block; background-color: #24635A; color: #ffffff; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: 800; font-size: 14px; box-shadow: 0 4px 12px rgba(36, 99, 90, 0.2);">Ver detalles de mi reserva</a>
               <p style="font-size: 11px; color: #9CA3AF; margin-top: 10px; font-style: italic;">
                 * Podrás realizar cambios hasta 72h antes del evento.
               </p>
             </div>
+          </div>
+
+          <div style="margin: 25px 0 35px 0;">
+             <a href="${googleCalendarUrl}" target="_blank" style="display: inline-block; border: 2px solid #24635A; color: #24635A; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: 800; font-size: 14px; background: #ffffff;">🗓️ Añadir a Google Calendar</a>
           </div>
 
           <div class="summary-card">

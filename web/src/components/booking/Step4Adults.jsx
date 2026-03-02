@@ -49,11 +49,12 @@ const Step4Adults = ({ formData, setFormData, ADULT_MENU_OPTIONS }) => {
 								...formData,
 								adultos: {
 									...formData.adultos,
-									cantidad: formData.adultos.cantidad + 1,
+									cantidad: Math.min(40, formData.adultos.cantidad + 1),
 								},
 							})
 						}
-						className="w-8 h-8 rounded-full bg-neverland-green text-white font-black shadow-md hover:scale-105 active:scale-90 transition-all flex items-center justify-center text-base"
+						disabled={formData.adultos.cantidad >= 40}
+						className={`w-8 h-8 rounded-full font-black shadow-md hover:scale-105 active:scale-90 transition-all flex items-center justify-center text-base ${formData.adultos.cantidad >= 40 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-neverland-green text-white'}`}
 					>
 						<Plus size={14} />
 					</button>
@@ -150,7 +151,8 @@ const Step4Adults = ({ formData, setFormData, ADULT_MENU_OPTIONS }) => {
 									</span>
 									<button
 										onClick={() => updateQty(1)}
-										className="w-7 h-7 rounded-full bg-energy-orange text-white flex items-center justify-center hover:bg-orange-600 transition-colors"
+										disabled={qty >= 20}
+										className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${qty >= 20 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-energy-orange text-white hover:bg-orange-600'}`}
 									>
 										<Plus size={12} />
 									</button>

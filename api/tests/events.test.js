@@ -101,7 +101,57 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
         detalles: { niños: { cantidad: 15, menuId: 'menu-1' } }
       });
       expect(res.statusCode).toBe(400);
-      expect(res.body.message).toMatch(/La edad debe tener máximo 2 cifras/);
+      expect(res.body.message).toMatch(/La edad debe ser de máximo 2 cifras/);
+    });
+
+    it('Debería rechazar reserva con más de 50 niños', async () => {
+      const res = await request(app).post('/api/v1/events').send({
+        tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
+        cliente: { nombreNiño: 'Pedrito', edadNiño: 5, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789' },
+        detalles: { niños: { cantidad: 51, menuId: 'menu-1' } }
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toMatch(/Máximo 50 niños/);
+    });
+
+    it('Debería rechazar reserva con más de 40 adultos', async () => {
+      const res = await request(app).post('/api/v1/events').send({
+        tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
+        cliente: { nombreNiño: 'Pedrito', edadNiño: 5, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789' },
+        detalles: {
+          niños: { cantidad: 15, menuId: 'menu-1' },
+          adultos: { cantidad: 41 }
+        }
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toMatch(/Máximo 40 adultos/);
+    });
+
+    it('Debería rechazar raciones de comida de adultos mayores a 20 unidades', async () => {
+      const res = await request(app).post('/api/v1/events').send({
+        tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
+        cliente: { nombreNiño: 'Pedrito', edadNiño: 5, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789' },
+        detalles: {
+          niños: { cantidad: 15, menuId: 'menu-1' },
+          adultos: {
+            cantidad: 20,
+            comida: [{ item: 'Tortilla', cantidad: 21, precioUnitario: 10 }]
+          }
+        }
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toMatch(/Máximo 20 unidades por ración/);
+    });
+
+    it('Debería rechazar nombres de más de 100 caracteres', async () => {
+      const longName = 'A'.repeat(101);
+      const res = await request(app).post('/api/v1/events').send({
+        tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
+        cliente: { nombreNiño: longName, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789' },
+        detalles: { niños: { cantidad: 15, menuId: 'menu-1' } }
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toMatch(/Nombre del niño demasiado largo/);
     });
   });
 

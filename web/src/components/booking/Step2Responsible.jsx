@@ -146,6 +146,14 @@ const Step2Responsible = ({ formData, setFormData }) => {
 						<input
 							type={f.type || 'text'}
 							min={f.min}
+							max={f.id === 'edadNiño' ? 99 : undefined}
+							maxLength={
+								f.id === 'nombreNiño' ||
+								f.id === 'nombrePadre' ||
+								f.id === 'email'
+									? 100
+									: undefined
+							}
 							className="w-full bg-transparent outline-none text-sm font-medium text-gray-800 placeholder:text-gray-300"
 							placeholder={f.ph}
 							value={value || ''}
@@ -154,6 +162,16 @@ const Step2Responsible = ({ formData, setFormData }) => {
 								const val = e.target.value;
 								if (f.id === 'edadNiño' && val.length > 2) return;
 								if (f.type === 'number' && parseInt(val) < 0) return;
+								if (
+									f.type === 'number' &&
+									f.id === 'edadNiño' &&
+									parseInt(val) > 99
+								)
+									return;
+
+								// Limit name length additionally in onChange just in case
+								if (f.type === 'text' && val.length > 100) return;
+
 								if (
 									f.type === 'text' &&
 									val &&

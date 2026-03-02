@@ -347,6 +347,8 @@ El cliente atraviesa un proceso de 8 pasos diseñado para la conversión:
 - **Vista Calendario**: Calendario mensual con códigos de colores por estado de reserva.
 - **Detalle de Día/Turno**: Vista profunda para gestionar cada slot. Recientemente optimizada con un **sistema de modales personalizados** (animados con Framer Motion) que reemplazan los diálogos del sistema, permitiendo una gestión más fluida de bloqueos individuales o masivos, con una jerarquía visual de alto contraste y botones de acción compactos.
 - **Configuración**: Interfaz para actualizar precios de menús, extras y raciones de adultos sin tocar el código.
+- **Vista de Detalle para Clientes**: Los clientes pueden acceder a sus datos mediante un link único (`/mi-reserva/:id`). Recientemente se ha añadido la **visualización del estado de la reserva** (Solicitado, Pendiente, Confirmado) para que el cliente esté informado del progreso.
+- **Agendado en Google Calendar**: Implementado un botón en la página de éxito y en la vista de detalle que permite al cliente añadir el cumpleaños a su Google Calendar personal. El evento generado incluye un **link directo de vuelta a la reserva** para facilitar la gestión.
 
 ---
 
@@ -448,6 +450,11 @@ El API implementa niveles de protección claros:
 
 - **Campos de Observaciones y Alérgenos**: Se han implementado con éxito campos específicos de texto libre para recopilar "Notas del Cliente" (peticiones especiales) y "Alérgenos/Intolerancias" de forma independiente para mayor seguridad y claridad comercial.
 - **Mensaje de WhatsApp**: Se planea enriquecer el mensaje automático con detalles de ubicación (Google Maps).
+- **Límites de Entrada (Seguridad y Diseño)**: Se han implementado límites estrictos en el frontend y backend para evitar abusos o errores de diseño:
+  - **Niños**: Máximo 50.
+  - **Adultos**: Máximo 40.
+  - **Comida Adultos**: Máximo 20 unidades por tipo de ración.
+  - **Textos**: Nombres y correos limitados a 100 caracteres; observaciones y alérgenos limitados a 500 caracteres.
 
 ---
 

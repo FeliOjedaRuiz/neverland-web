@@ -72,21 +72,43 @@ export const validateBookingStep = (step, formData) => {
 
   if (step === 2) {
     const { nombreNiño, edadNiño, nombrePadre, telefono, email } = formData.cliente || {};
-    let isPhoneValid = (telefono || '').length >= 9;
-    if ((telefono || '').startsWith('+')) isPhoneValid = (telefono || '').length >= 11;
-    const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || '');
+    const cleanPhone = (telefono || '').replace(/\s/g, '');
+    let isPhoneValid = cleanPhone.length >= 9 && cleanPhone.length <= 15;
+    if (cleanPhone.startsWith('+')) isPhoneValid = cleanPhone.length >= 11 && cleanPhone.length <= 16;
+    const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || '') && (email || '').length <= 100;
+    const isNameValid = (nombreNiño || '').length > 0 && (nombreNiño || '').length <= 100 && (nombrePadre || '').length > 0 && (nombrePadre || '').length <= 100;
 
     return !!(
-      nombreNiño &&
+      isNameValid &&
       edadNiño &&
       parseInt(edadNiño) > 0 &&
-      nombrePadre &&
+      parseInt(edadNiño) <= 99 &&
       isPhoneValid &&
       isEmailValid
     );
   }
 
-  if (step === 4) return (formData.adultos?.cantidad || 0) > 0;
+  if (step === 3) {
+    const kids = formData.niños?.cantidad || 0;
+    return kids >= 12 && kids <= 50;
+  }
+
+  if (step === 4) {
+    const adults = formData.adultos?.cantidad || 0;
+    return adults > 0 && adults <= 40;
+  }
+
+  // Adults Food (Part of Step 4/6 or handled after adults count)
+  if (formData.adultos?.comida?.some(item => (item.cantidad || 0) > 20)) {
+    return false;
+  }
+
+  if (step === 7) {
+    const obs = formData.extras?.observaciones || '';
+    const alg = formData.extras?.alergenos || '';
+    return obs.length <= 500 && alg.length <= 500;
+  }
 
   return true;
 };
+

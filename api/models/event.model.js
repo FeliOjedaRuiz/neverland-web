@@ -23,27 +23,27 @@ const eventSchema = new mongoose.Schema({
 
   // Datos de contacto (solo si tipo: 'reserva')
   cliente: {
-    nombreNiño: String,
-    edadNiño: Number,
-    nombrePadre: String,
-    telefono: String,
-    email: String
+    nombreNiño: { type: String, maxlength: 100 },
+    edadNiño: { type: Number, max: 99 },
+    nombrePadre: { type: String, maxlength: 100 },
+    telefono: { type: String, maxlength: 20 },
+    email: { type: String, maxlength: 100 }
   },
 
   // Configuración del evento
   detalles: {
     niños: {
-      cantidad: { type: Number, min: 12 },
+      cantidad: { type: Number, min: 12, max: 50 },
       menuId: { type: String },
       menuNombre: { type: String }, // [NEW] Snapshot of the menu name
       precioApplied: { type: Number } // [NEW] Snapshot of the menu price per child
     },
     adultos: {
-      cantidad: { type: Number, default: 0 },
+      cantidad: { type: Number, default: 1, max: 40 },
       comida: [
         {
           item: String, // 'Salaillas', 'Tortilla', etc.
-          cantidad: Number,
+          cantidad: { type: Number, max: 20 },
           precioUnitario: Number
         }
       ]
@@ -72,7 +72,7 @@ const eventSchema = new mongoose.Schema({
   precioTotal: { type: Number, default: 0 },
   publicId: { type: String, unique: true },
   googleEventId: String, // ID devuelto por Google Calendar API
-  notasAdmin: String,    // Para uso interno del salón
+  notasAdmin: { type: String, maxlength: 500 },    // Para uso interno del salón
 }, {
   timestamps: true,
   toJSON: {
