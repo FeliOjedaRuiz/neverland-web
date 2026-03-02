@@ -7,17 +7,20 @@ import 'swiper/css';
 import 'swiper/css/effect-fade';
 import 'swiper/css/pagination';
 
-// Import local images (vite handles these imports by returning the path)
-import img1 from '../../assets/images/bolas 1.png';
-import img2 from '../../assets/images/Slime 1.jpg';
-import img3 from '../../assets/images/Captura de pantalla 2026-01-24 232919.png';
-import img4 from '../../assets/images/Captura de pantalla 2026-01-24 232942.png';
-
 import { motion } from 'framer-motion';
 import logo from '../../assets/neverland_logo.svg';
 
 const HeroSection = () => {
-	const images = [img1, img2, img3, img4];
+	const CLOUDINARY_BASE =
+		'https://res.cloudinary.com/duoshgr3h/image/upload/f_auto,q_auto,w_1920/neverland/home/portada';
+	const images = [
+		`${CLOUDINARY_BASE}/portada_1.jpg`,
+		`${CLOUDINARY_BASE}/portada_2.jpg`,
+		`${CLOUDINARY_BASE}/portada_3.jpg`,
+		`${CLOUDINARY_BASE}/portada_4.jpg`,
+		`${CLOUDINARY_BASE}/portada_5.jpg`,
+		`${CLOUDINARY_BASE}/portada_6.jpg`,
+	];
 
 	return (
 		<section
