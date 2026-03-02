@@ -345,7 +345,7 @@ El cliente atraviesa un proceso de 8 pasos diseñado para la conversión:
 
 - **Bandeja de Entrada**: Lista de reservas filtrable con estados de color.
 - **Vista Calendario**: Calendario mensual con códigos de colores por estado de reserva.
-- **Detalle de Día/Turno**: Vista profunda para gestionar cada slot, permitiendo confirmar, editar o bloquear turnos manualmente.
+- **Detalle de Día/Turno**: Vista profunda para gestionar cada slot. Recientemente optimizada con un **sistema de modales personalizados** (animados con Framer Motion) que reemplazan los diálogos del sistema, permitiendo una gestión más fluida de bloqueos individuales o masivos, con una jerarquía visual de alto contraste y botones de acción compactos.
 - **Configuración**: Interfaz para actualizar precios de menús, extras y raciones de adultos sin tocar el código.
 
 ---

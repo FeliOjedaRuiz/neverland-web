@@ -3,6 +3,8 @@ import { Menu, X } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import logo from '../../assets/neverland_logo.svg';
 
+import { motion, AnimatePresence } from 'framer-motion';
+
 const Navbar = () => {
 	const [isOpen, setIsOpen] = React.useState(false);
 	const location = useLocation();
@@ -38,6 +40,21 @@ const Navbar = () => {
 			document.removeEventListener('mousedown', handleClickOutside);
 		};
 	}, [isOpen]);
+
+	// Animaciones simplificadas para mejor rendimiento
+	const menuVariants = {
+		hidden: { opacity: 0, y: -10 },
+		visible: {
+			opacity: 1,
+			y: 0,
+			transition: { duration: 0.2, ease: 'easeOut' },
+		},
+		exit: {
+			opacity: 0,
+			y: -10,
+			transition: { duration: 0.15, ease: 'easeIn' },
+		},
+	};
 
 	return (
 		<nav className="bg-cream-bg fixed w-full z-50 shadow-sm border-b border-neverland-green/10">
@@ -102,67 +119,88 @@ const Navbar = () => {
 							onClick={() => setIsOpen(!isOpen)}
 							className="text-text-black hover:text-neverland-green focus:outline-none"
 						>
-							{isOpen ? <X size={28} /> : <Menu size={28} />}
+							<AnimatePresence mode="wait">
+								<motion.div
+									key={isOpen ? 'close' : 'open'}
+									initial={{ rotate: -90, opacity: 0 }}
+									animate={{ rotate: 0, opacity: 1 }}
+									exit={{ rotate: 90, opacity: 0 }}
+									transition={{ duration: 0.2 }}
+								>
+									{isOpen ? <X size={28} /> : <Menu size={28} />}
+								</motion.div>
+							</AnimatePresence>
 						</button>
 					</div>
 				</div>
 			</div>
 
 			{/* Mobile Menu */}
-			{isOpen && (
-				<div
-					ref={menuRef}
-					className="md:hidden bg-cream-bg border-t border-gray-100 shadow-xl"
-				>
-					<div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 flex flex-col items-center">
-						<Link
-							to={getLink('#home')}
-							onClick={() => setIsOpen(false)}
-							className="block px-3 py-2 text-text-black hover:text-neverland-green font-medium"
-						>
-							Inicio
-						</Link>
+			<AnimatePresence>
+				{isOpen && (
+					<motion.div
+						ref={menuRef}
+						variants={menuVariants}
+						initial="hidden"
+						animate="visible"
+						exit="exit"
+						className="md:hidden bg-cream-bg border-t border-gray-100 shadow-xl overflow-hidden"
+					>
+						<div className="px-4 pt-4 pb-8 space-y-1 flex flex-col items-center text-center">
+							<Link
+								to={getLink('#home')}
+								onClick={() => setIsOpen(false)}
+								className="w-full py-3 text-text-black hover:text-neverland-green font-display font-bold text-lg"
+							>
+								Inicio
+							</Link>
 
-						<Link
-							to={getLink('#menus')}
-							onClick={() => setIsOpen(false)}
-							className="block px-3 py-2 text-text-black hover:text-neverland-green font-medium"
-						>
-							Menús
-						</Link>
-						<Link
-							to={getLink('#actividades')}
-							onClick={() => setIsOpen(false)}
-							className="block px-3 py-2 text-text-black hover:text-neverland-green font-medium"
-						>
-							Actividades
-						</Link>
-						<Link
-							to={getLink('#faq')}
-							onClick={() => setIsOpen(false)}
-							className="block px-3 py-2 text-text-black hover:text-neverland-green font-medium"
-						>
-							FAQ
-						</Link>
-						<Link
-							to="/booking"
-							onClick={() => setIsOpen(false)}
-							className="mt-4 block w-full text-center bg-energy-orange text-white px-5 py-3 rounded-full font-bold shadow-md"
-						>
-							Reservar
-						</Link>
-						<Link
-							to={isLoggedIn ? '/admin' : '/admin/login'}
-							onClick={() => setIsOpen(false)}
-							className="mt-2 block w-full text-center text-gray-400 hover:text-neverland-green py-2 text-sm font-medium"
-						>
-							{isLoggedIn ? 'Panel Control' : 'Acceso Admin'}
-						</Link>
-					</div>
-				</div>
-			)}
+							<Link
+								to={getLink('#menus')}
+								onClick={() => setIsOpen(false)}
+								className="w-full py-3 text-text-black hover:text-neverland-green font-display font-bold text-lg"
+							>
+								Menús
+							</Link>
+
+							<Link
+								to={getLink('#actividades')}
+								onClick={() => setIsOpen(false)}
+								className="w-full py-3 text-text-black hover:text-neverland-green font-display font-bold text-lg"
+							>
+								Actividades
+							</Link>
+
+							<Link
+								to={getLink('#faq')}
+								onClick={() => setIsOpen(false)}
+								className="w-full py-3 text-text-black hover:text-neverland-green font-display font-bold text-lg"
+							>
+								FAQ
+							</Link>
+
+							<div className="w-full pt-4 px-4">
+								<Link
+									to="/booking"
+									onClick={() => setIsOpen(false)}
+									className="block w-full bg-energy-orange text-white px-5 py-4 rounded-2xl font-display font-black shadow-lg shadow-energy-orange/20"
+								>
+									Reservar Ahora
+								</Link>
+							</div>
+
+							<Link
+								to={isLoggedIn ? '/admin' : '/admin/login'}
+								onClick={() => setIsOpen(false)}
+								className="w-full py-4 text-gray-400 hover:text-neverland-green text-sm font-medium"
+							>
+								{isLoggedIn ? 'Panel Control' : 'Acceso Admin'}
+							</Link>
+						</div>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</nav>
 	);
 };
-
 export default Navbar;

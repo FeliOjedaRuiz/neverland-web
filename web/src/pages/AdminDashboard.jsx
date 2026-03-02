@@ -10,6 +10,7 @@ import {
 	X,
 } from 'lucide-react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getConfig } from '../services/api';
 import ServerError from './ServerError';
 
@@ -19,65 +20,70 @@ const SidebarContent = ({
 	handleLogout,
 	currentPath,
 	onNavigate,
-}) => (
-	<>
-		<div className="p-6">
-			<h2 className="text-xl font-display font-black text-neverland-green flex items-center gap-2">
-				<BarChart size={24} />
-				NEVERLAND{' '}
-				<span className="text-text-muted font-light font-sans text-xs">
-					ADMIN
-				</span>
-			</h2>
-		</div>
+}) => {
+	return (
+		<div className="h-full flex flex-col">
+			<div className="p-6">
+				<h2 className="text-xl font-display font-black text-neverland-green flex items-center gap-2">
+					<BarChart size={24} />
+					NEVERLAND{' '}
+					<span className="text-text-muted font-light font-sans text-xs">
+						ADMIN
+					</span>
+				</h2>
+			</div>
 
-		<nav className="flex-1 px-4 space-y-2 mt-4">
-			{sidebarItems.map((item) => {
-				const isActive = currentPath.includes(item.id);
-				return (
-					<button
-						key={item.id}
-						onClick={() => {
-							navigate(`/admin/${item.id}`);
-							if (onNavigate) onNavigate();
-						}}
-						className={`w-full flex items-center gap-3 px-4 py-3 rounded-full font-medium transition-all font-display ${
-							isActive
-								? 'bg-neverland-green text-white shadow-md'
-								: 'text-gray-600 hover:bg-gray-50'
-						}`}
-					>
-						<item.icon size={20} />
-						{item.label}
-					</button>
-				);
-			})}
-		</nav>
+			<nav className="flex-1 px-4 space-y-2 mt-4">
+				{sidebarItems.map((item) => {
+					const isActive = currentPath.includes(item.id);
+					return (
+						<button
+							key={item.id}
+							onClick={() => {
+								navigate(`/admin/${item.id}`);
+								if (onNavigate) onNavigate();
+							}}
+							className={`w-full flex items-center gap-3 px-4 py-3 rounded-full font-medium transition-all font-display ${
+								isActive
+									? 'bg-neverland-green text-white shadow-md'
+									: 'text-gray-600 hover:bg-gray-50'
+							}`}
+						>
+							<item.icon size={20} />
+							{item.label}
+						</button>
+					);
+				})}
+			</nav>
 
-		<div className="p-4 border-t border-gray-100 space-y-1">
-			<button
-				onClick={() => {
-					navigate('/');
-					if (onNavigate) onNavigate();
-				}}
-				className="w-full flex items-center gap-3 px-4 py-3 rounded-full font-medium text-gray-400 hover:text-neverland-green hover:bg-gray-50 transition-all group font-display"
-			>
-				<LogOut
-					size={20}
-					className="rotate-180 group-hover:-translate-x-1 transition-transform"
-				/>
-				Volver a Inicio
-			</button>
-			<button
-				onClick={handleLogout}
-				className="w-full flex items-center gap-3 px-4 py-3 rounded-full font-medium text-red-600 hover:bg-red-50 transition-all font-display"
-			>
-				<LogOut size={20} />
-				Cerrar Sesión
-			</button>
+			<div className="p-4 border-t border-gray-100 space-y-1">
+				<button
+					onClick={() => {
+						navigate('/');
+						if (onNavigate) onNavigate();
+					}}
+					className="w-full flex items-center gap-3 px-4 py-3 rounded-full font-medium text-gray-400 hover:text-neverland-green hover:bg-gray-50 transition-all group font-display"
+				>
+					<LogOut
+						size={20}
+						className="rotate-180 group-hover:-translate-x-1 transition-transform"
+					/>
+					Volver a Inicio
+				</button>
+				<button
+					onClick={() => {
+						handleLogout();
+						if (onNavigate) onNavigate();
+					}}
+					className="w-full flex items-center gap-3 px-4 py-3 rounded-full font-medium text-red-600 hover:bg-red-50 transition-all font-display"
+				>
+					<LogOut size={20} />
+					Cerrar Sesión
+				</button>
+			</div>
 		</div>
-	</>
-);
+	);
+};
 
 const AdminDashboard = () => {
 	const navigate = useNavigate();
@@ -143,30 +149,40 @@ const AdminDashboard = () => {
 			</aside>
 
 			{/* Sidebar Mobile Overlay */}
-			{isMobileMenuOpen && (
-				<div
-					className="fixed inset-0 bg-black/20 z-50 md:hidden backdrop-blur-md flex justify-end animate-in fade-in duration-300"
-					onClick={() => setIsMobileMenuOpen(false)}
-				>
-					<aside
-						className="w-[280px] h-full bg-calendar-bg flex flex-col shadow-2xl shadow-black/10 animate-in slide-in-from-right duration-300 ease-out rounded-l-[32px]"
-						onClick={(e) => e.stopPropagation()}
+			<AnimatePresence>
+				{isMobileMenuOpen && (
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						transition={{ duration: 0.3 }}
+						className="fixed inset-0 bg-black/20 z-50 md:hidden backdrop-blur-md flex justify-end"
+						onClick={() => setIsMobileMenuOpen(false)}
 					>
-						<div className="flex justify-end p-4">
-							<button
-								onClick={() => setIsMobileMenuOpen(false)}
-								className="p-2 text-gray-400 hover:text-neverland-green"
-							>
-								<X size={24} />
-							</button>
-						</div>
-						<SidebarContent
-							{...commonProps}
-							setIsMobileMenuOpen={setIsMobileMenuOpen}
-						/>
-					</aside>
-				</div>
-			)}
+						<motion.aside
+							initial={{ x: '100%' }}
+							animate={{ x: 0 }}
+							exit={{ x: '100%' }}
+							transition={{ duration: 0.25, ease: 'easeOut' }}
+							className="w-[280px] h-full bg-calendar-bg flex flex-col shadow-2xl shadow-black/10 rounded-l-[32px] overflow-hidden"
+							onClick={(e) => e.stopPropagation()}
+						>
+							<div className="flex justify-end p-4">
+								<button
+									onClick={() => setIsMobileMenuOpen(false)}
+									className="p-2 text-gray-400 hover:text-neverland-green"
+								>
+									<X size={24} />
+								</button>
+							</div>
+							<SidebarContent
+								{...commonProps}
+								onNavigate={() => setIsMobileMenuOpen(false)}
+							/>
+						</motion.aside>
+					</motion.div>
+				)}
+			</AnimatePresence>
 
 			{/* Main Content */}
 			<main className="flex-1 flex flex-col overflow-hidden relative bg-transparent">
