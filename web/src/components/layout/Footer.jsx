@@ -37,12 +37,6 @@ const Footer = () => {
 									651 70 79 85
 								</a>
 							</div>
-							<div className="flex items-center gap-4">
-								<Clock className="text-energy-orange shrink-0" size={20} />
-								<span className="text-gray-300 text-sm">
-									L-V: 17:00 - 21:00 | S-D: 11:00 - 21:30
-								</span>
-							</div>
 						</div>
 					</div>
 

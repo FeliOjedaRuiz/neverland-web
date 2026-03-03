@@ -71,7 +71,7 @@ const FAQSection = () => {
 	];
 
 	return (
-		<section id="faq" className="py-20 bg-white">
+		<section id="faq" className="py-20 bg-cream-bg">
 			<div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 				<div className="text-center mb-12">
 					<div className="inline-flex items-center justify-center p-2 bg-cream-bg rounded-full mb-4 px-4 shadow-sm border border-gray-100">

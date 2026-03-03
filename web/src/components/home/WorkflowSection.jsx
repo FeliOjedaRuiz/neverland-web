@@ -55,7 +55,7 @@ const WorkflowSection = () => {
 	const { ref, controls, variants } = useScrollReveal();
 
 	return (
-		<section id="como-funciona" className="py-20 bg-white overflow-hidden">
+		<section id="como-funciona" className="py-20 bg-cream-bg overflow-hidden">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<motion.div
 					ref={ref}

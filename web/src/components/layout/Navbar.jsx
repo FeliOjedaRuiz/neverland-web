@@ -5,6 +5,28 @@ import logo from '../../assets/neverland_logo.svg';
 
 import { motion, AnimatePresence } from 'framer-motion';
 
+const NavLink = ({ hash, label, activeSection, isHome, getLink }) => {
+	const id = hash.replace('#', '');
+	const isActive = isHome && activeSection === id;
+
+	return (
+		<Link
+			to={getLink(hash)}
+			className={`relative text-text-black hover:text-neverland-green transition-colors font-display font-medium px-1 py-2 ${isActive ? 'text-neverland-green' : ''}`}
+		>
+			{label}
+			{isActive && (
+				<motion.div
+					layoutId="activeUnderline"
+					className="absolute bottom-0 left-0 right-0 h-0.5 bg-neverland-green rounded-full"
+					initial={false}
+					transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+				/>
+			)}
+		</Link>
+	);
+};
+
 const Navbar = () => {
 	const [isOpen, setIsOpen] = React.useState(false);
 	const location = useLocation();
@@ -14,6 +36,7 @@ const Navbar = () => {
 
 	const menuRef = React.useRef(null);
 	const buttonRef = React.useRef(null);
+	const [activeSection, setActiveSection] = React.useState('home');
 	const [isLoggedIn, setIsLoggedIn] = React.useState(
 		!!localStorage.getItem('token'),
 	);
@@ -21,6 +44,40 @@ const Navbar = () => {
 	React.useEffect(() => {
 		setIsLoggedIn(!!localStorage.getItem('token'));
 	}, [location]);
+
+	// Intersection Observer for active section tracking
+	React.useEffect(() => {
+		if (!isHome) return;
+
+		const sections = [
+			'home',
+			'servicios',
+			'instalaciones',
+			'actividades',
+			'menus',
+			'faq',
+		];
+		const observerOptions = {
+			root: null,
+			rootMargin: '-40% 0px -40% 0px',
+			threshold: 0,
+		};
+
+		const observer = new IntersectionObserver((entries) => {
+			entries.forEach((entry) => {
+				if (entry.isIntersecting) {
+					setActiveSection(entry.target.id);
+				}
+			});
+		}, observerOptions);
+
+		sections.forEach((id) => {
+			const el = document.getElementById(id);
+			if (el) observer.observe(el);
+		});
+
+		return () => observer.disconnect();
+	}, [isHome]);
 
 	React.useEffect(() => {
 		const handleClickOutside = (event) => {
@@ -72,35 +129,53 @@ const Navbar = () => {
 					</div>
 
 					{/* Desktop Menu */}
-					<div className="hidden md:flex space-x-8 items-center">
-						<Link
-							to={getLink('#home')}
-							className="text-text-black hover:text-neverland-green transition-colors font-display font-medium"
-						>
-							Inicio
-						</Link>
+					<div className="hidden md:flex space-x-6 items-center">
+						<NavLink
+							hash="#home"
+							label="Inicio"
+							activeSection={activeSection}
+							isHome={isHome}
+							getLink={getLink}
+						/>
+						<NavLink
+							hash="#servicios"
+							label="Servicios"
+							activeSection={activeSection}
+							isHome={isHome}
+							getLink={getLink}
+						/>
+						<NavLink
+							hash="#instalaciones"
+							label="Instalaciones"
+							activeSection={activeSection}
+							isHome={isHome}
+							getLink={getLink}
+						/>
+						<NavLink
+							hash="#actividades"
+							label="Actividades"
+							activeSection={activeSection}
+							isHome={isHome}
+							getLink={getLink}
+						/>
+						<NavLink
+							hash="#menus"
+							label="Menús"
+							activeSection={activeSection}
+							isHome={isHome}
+							getLink={getLink}
+						/>
+						<NavLink
+							hash="#faq"
+							label="FAQ"
+							activeSection={activeSection}
+							isHome={isHome}
+							getLink={getLink}
+						/>
 
 						<Link
-							to={getLink('#menus')}
-							className="text-text-black hover:text-neverland-green transition-colors font-display font-medium"
-						>
-							Menús
-						</Link>
-						<Link
-							to={getLink('#actividades')}
-							className="text-text-black hover:text-neverland-green transition-colors font-display font-medium"
-						>
-							Actividades
-						</Link>
-						<Link
-							to={getLink('#faq')}
-							className="text-text-black hover:text-neverland-green transition-colors font-display font-medium"
-						>
-							FAQ
-						</Link>
-						<Link
 							to={isLoggedIn ? '/admin' : '/admin/login'}
-							className="text-gray-500 hover:text-neverland-green transition-colors font-sans font-medium text-sm"
+							className="text-gray-500 hover:text-neverland-green transition-colors font-sans font-medium text-sm ml-4"
 						>
 							{isLoggedIn ? 'Panel Control' : 'Acceso Admin'}
 						</Link>
@@ -156,11 +231,19 @@ const Navbar = () => {
 							</Link>
 
 							<Link
-								to={getLink('#menus')}
+								to={getLink('#servicios')}
 								onClick={() => setIsOpen(false)}
 								className="w-full py-3 text-text-black hover:text-neverland-green font-display font-bold text-lg"
 							>
-								Menús
+								Servicios
+							</Link>
+
+							<Link
+								to={getLink('#instalaciones')}
+								onClick={() => setIsOpen(false)}
+								className="w-full py-3 text-text-black hover:text-neverland-green font-display font-bold text-lg"
+							>
+								Instalaciones
 							</Link>
 
 							<Link
@@ -169,6 +252,14 @@ const Navbar = () => {
 								className="w-full py-3 text-text-black hover:text-neverland-green font-display font-bold text-lg"
 							>
 								Actividades
+							</Link>
+
+							<Link
+								to={getLink('#menus')}
+								onClick={() => setIsOpen(false)}
+								className="w-full py-3 text-text-black hover:text-neverland-green font-display font-bold text-lg"
+							>
+								Menús
 							</Link>
 
 							<Link
@@ -203,4 +294,5 @@ const Navbar = () => {
 		</nav>
 	);
 };
+
 export default Navbar;

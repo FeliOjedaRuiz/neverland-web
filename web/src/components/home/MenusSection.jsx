@@ -93,7 +93,7 @@ const MenusSection = () => {
 
 	if (loading)
 		return (
-			<div className="py-24 text-center bg-cream-bg">
+			<div className="py-24 text-center bg-white">
 				<div className="inline-block w-8 h-8 border-4 border-neverland-green/20 border-t-neverland-green rounded-full animate-spin"></div>
 			</div>
 		);
@@ -102,7 +102,7 @@ const MenusSection = () => {
 	if (menus.length === 0) return null;
 
 	return (
-		<section id="menus" className="py-24 bg-cream-bg overflow-hidden">
+		<section id="menus" className="py-24 bg-white overflow-hidden">
 			<div className="max-w-7xl mx-auto px-6 sm:px-8">
 				<motion.div
 					ref={ref}
