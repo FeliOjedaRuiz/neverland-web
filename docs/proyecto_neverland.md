@@ -66,7 +66,9 @@ Es el núcleo del sistema. Centraliza tanto la actividad comercial como el contr
       pinata: Boolean,
       precioPinataApplied: Number,
       observaciones: String,     // Notas generales añadidas por el usuario o administrador
-      alergenos: String          // Notas específicas sobre alergias o intolerancias alimentarias
+      alergenos: String,         // Notas específicas sobre alergias o intolerancias alimentarias
+      privacyPolicyConsent: Boolean, // [NEW] Consentimiento obligatorio de protección de datos
+      marketingConsent: Boolean  // [NEW] Consentimiento opcional para comunicaciones comerciales
     }
   },
   horario: {
@@ -114,7 +116,10 @@ Es el núcleo del sistema. Centraliza tanto la actividad comercial como el contr
 			"pinata": true,
 			"precioPinataApplied": 15,
 			"observaciones": "Cumpleañero vestido de pirata",
-			"alergenos": "Un niño con alergia al huevo"
+			"alergenos": "Un niño con alergia al huevo",
+			"privacyPolicyConsent": true,
+			"marketingConsent": false,
+			"fechaConsentimiento": "2026-03-04T22:15:00.000Z"
 		}
 	},
 	"horario": {
@@ -336,6 +341,7 @@ El cliente atraviesa un proceso de 8 pasos diseñado para la conversión:
 6.  **Personajes**: Buscador de personajes favoritos.
 7.  **Extras**: Selección de piñata y extensiones de tiempo.
 8.  **Resumen**: Desglose visual de todos los costos antes de confirmar.
+9.  **Protección de Datos (Modular)**: Al finalizar, el sistema requiere la aceptación de la política de protección de datos (RGPD) mediante un modal emergente que incluye tabla informativa y checkboxes de consentimiento (legal y comercial).
 
 ---
 

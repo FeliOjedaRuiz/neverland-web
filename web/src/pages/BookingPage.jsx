@@ -27,6 +27,7 @@ import Step6Characters from '../components/booking/Step6Characters';
 import Step7Extras from '../components/booking/Step7Extras';
 import Step8Summary from '../components/booking/Step8Summary';
 import BookingSuccess from '../components/booking/BookingSuccess';
+import DataProtectionModal from '../components/booking/DataProtectionModal';
 import {
 	calculateBookingTotal,
 	validateBookingStep,
@@ -61,6 +62,7 @@ const BookingPage = () => {
 	const [prices, setPrices] = useState(DEFAULT_CONFIG);
 	const [loading, setLoading] = useState(false);
 	const [createdEventId, setCreatedEventId] = useState(null);
+	const [showProtectionModal, setShowProtectionModal] = useState(false);
 
 	const [currentMonth, setCurrentMonth] = useState(new Date());
 	const [monthlyOccupied, setMonthlyOccupied] = useState([]);
@@ -305,7 +307,11 @@ const BookingPage = () => {
 		return getTurnoLabel(base);
 	};
 
-	const handleSubmit = async () => {
+	const handlePreSubmit = () => {
+		setShowProtectionModal(true);
+	};
+
+	const handleSubmit = async (consentData) => {
 		setLoading(true);
 		try {
 			const scheduleString = getExtendedTime();
@@ -324,7 +330,12 @@ const BookingPage = () => {
 						cantidad: formData.adultos.cantidad,
 						comida: formData.adultos.comida,
 					},
-					extras: formData.extras,
+					extras: {
+						...formData.extras,
+						privacyPolicyConsent: consentData.privacyPolicy,
+						marketingConsent: consentData.marketing,
+						fechaConsentimiento: new Date().toISOString(),
+					},
 				},
 				horario: {
 					inicio: startTime,
@@ -342,6 +353,7 @@ const BookingPage = () => {
 			const response = await createBooking(finalData);
 			setCreatedEventId(response.data.publicId);
 			setLoading(false);
+			setShowProtectionModal(false);
 			nextStep();
 		} catch (error) {
 			console.error(error);
@@ -476,12 +488,19 @@ const BookingPage = () => {
 							onNext={nextStep}
 							onBack={handleBack}
 							showBack={step > 1 || (step === 1 && view === 'dayDetails')}
-							onSubmit={handleSubmit}
+							onSubmit={handlePreSubmit}
 							isValid={validateStep()}
 						/>
 					</div>
 				</div>
 			</div>
+
+			<DataProtectionModal
+				isOpen={showProtectionModal}
+				onClose={() => setShowProtectionModal(false)}
+				onAccept={handleSubmit}
+				loading={loading}
+			/>
 		</div>
 	);
 };

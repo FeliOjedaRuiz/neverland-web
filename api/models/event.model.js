@@ -56,7 +56,13 @@ const eventSchema = new mongoose.Schema({
       pinata: { type: Boolean, default: false },
       precioPinataApplied: { type: Number }, // [NEW] Snapshot
       observaciones: { type: String, default: '', maxlength: 500 },
-      alergenos: { type: String, default: '', maxlength: 500 }
+      alergenos: { type: String, default: '', maxlength: 500 },
+      privacyPolicyConsent: {
+        type: Boolean,
+        required: function () { return this.tipo === 'reserva'; }
+      },
+      marketingConsent: { type: Boolean, default: false },
+      fechaConsentimiento: { type: Date, default: Date.now }
     }
   },
 

@@ -1,9 +1,16 @@
-import React from 'react';
-import { MapPin, Phone, Instagram, Facebook, Clock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { MapPin, Phone, Instagram, Facebook } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import logo from '../../assets/neverland_logo.svg';
+import DataProtectionModal from '../booking/DataProtectionModal';
 
 const Footer = () => {
+	const [showPolicy, setShowPolicy] = useState(false);
+	const location = useLocation();
+	const isHome = location.pathname === '/';
+
+	const getLink = (hash) => (isHome ? hash : `/${hash}`);
+
 	return (
 		<footer className="bg-text-black text-white pt-16 pb-8 font-sans">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -45,39 +52,62 @@ const Footer = () => {
 						<h4 className="text-lg font-display font-bold text-white mb-6 border-b border-gray-800 pb-2 inline-block">
 							Accesos Rápidos
 						</h4>
-						<ul className="space-y-3 text-sm">
+						<ul className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
 							<li>
-								<a
-									href="#home"
+								<Link
+									to={getLink('#home')}
 									className="text-gray-400 hover:text-neverland-green transition-colors"
 								>
 									Inicio
-								</a>
+								</Link>
 							</li>
-
 							<li>
-								<a
-									href="#menus"
+								<Link
+									to={getLink('#servicios')}
 									className="text-gray-400 hover:text-neverland-green transition-colors"
 								>
-									Nuestros Menús
-								</a>
+									Servicios
+								</Link>
 							</li>
 							<li>
-								<a
-									href="#actividades"
+								<Link
+									to={getLink('#instalaciones')}
 									className="text-gray-400 hover:text-neverland-green transition-colors"
 								>
-									Actividades Creativas
-								</a>
+									Instalaciones
+								</Link>
 							</li>
 							<li>
-								<a
-									href="#"
+								<Link
+									to={getLink('#actividades')}
 									className="text-gray-400 hover:text-neverland-green transition-colors"
+								>
+									Actividades
+								</Link>
+							</li>
+							<li>
+								<Link
+									to={getLink('#menus')}
+									className="text-gray-400 hover:text-neverland-green transition-colors"
+								>
+									Menús
+								</Link>
+							</li>
+							<li>
+								<Link
+									to={getLink('#faq')}
+									className="text-gray-400 hover:text-neverland-green transition-colors"
+								>
+									FAQ
+								</Link>
+							</li>
+							<li className="col-span-2 mt-2">
+								<button
+									onClick={() => setShowPolicy(true)}
+									className="text-gray-400 hover:text-neverland-green transition-colors text-left"
 								>
 									Política de Privacidad
-								</a>
+								</button>
 							</li>
 						</ul>
 					</div>
@@ -124,6 +154,12 @@ const Footer = () => {
 					</div>
 				</div>
 			</div>
+
+			<DataProtectionModal
+				isOpen={showPolicy}
+				onClose={() => setShowPolicy(false)}
+				readOnly={true}
+			/>
 		</footer>
 	);
 };
