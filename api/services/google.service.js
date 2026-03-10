@@ -17,6 +17,13 @@ const init = async () => {
 
     if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
       const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      // Fix: Ensure private_key newlines are real newline characters.
+      // When stored as env vars (e.g. Fly.io secrets), literal \n can become
+      // escaped strings instead of actual newline characters, causing
+      // ERR_OSSL_UNSUPPORTED in Node 20+ (OpenSSL 3.x).
+      if (credentials.private_key) {
+        credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+      }
       auth = new google.auth.GoogleAuth({
         credentials,
         scopes: ['https://www.googleapis.com/auth/calendar'],

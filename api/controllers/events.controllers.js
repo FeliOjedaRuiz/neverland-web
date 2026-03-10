@@ -516,24 +516,7 @@ module.exports.checkAvailability = async (req, res, next) => {
         if (gEvent.transparency === 'transparent') return;
         if (gEvent.status === 'cancelled') return;
 
-        const start = new Date(gEvent.start.dateTime || gEvent.start.date);
-        const end = new Date(gEvent.end.dateTime || gEvent.end.date);
-
-        // Handle All-Day Events
-        if (!gEvent.start.dateTime) {
-          let curr = new Date(start);
-          while (curr < end) {
-            const dateStr = curr.toISOString().split('T')[0];
-            // Block all shifts for all-day events
-            ['T1', 'T2', 'T3'].forEach(shift => {
-              occupied.push({ date: dateStr, shift, id: gEvent.id });
-            });
-            curr.setDate(curr.getDate() + 1);
-          }
-          return;
-        }
-
-        // Handle Timed Events
+        // --- FILTER: Only process Neverland events or manual keyword events ---
         const summary = (gEvent.summary || '').toUpperCase();
         const eventTurno = gEvent.extendedProperties?.private?.turno;
         const bookingId = gEvent.extendedProperties?.private?.bookingId;
@@ -543,11 +526,36 @@ module.exports.checkAvailability = async (req, res, next) => {
         const keywordShift = ['T1', 'T2', 'T3'].find(s => summary.includes(`#${s}`));
         const hasGeneralKeyword = summary.includes('#BLOQUEO') || summary.includes('#NEVERLAND');
 
+        // Ignorar eventos que NO son de Neverland ni tienen palabras clave
         if (!isNeverland && !keywordShift && !hasGeneralKeyword) return;
 
+        const start = new Date(gEvent.start.dateTime || gEvent.start.date);
+        const end = new Date(gEvent.end.dateTime || gEvent.end.date);
+
+        // Handle All-Day Events (solo si pasó el filtro anterior)
+        if (!gEvent.start.dateTime) {
+          const shiftToBlock = eventTurno || keywordShift;
+          let curr = new Date(start);
+          while (curr < end) {
+            const dateStr = curr.toISOString().split('T')[0];
+            if (shiftToBlock) {
+              // Bloquea solo el turno específico
+              occupied.push({ date: dateStr, shift: shiftToBlock, id: bookingId || gEvent.id });
+            } else {
+              // Bloquea todos los turnos (ej: #BLOQUEO o #NEVERLAND sin turno específico)
+              ['T1', 'T2', 'T3'].forEach(shift => {
+                occupied.push({ date: dateStr, shift, id: bookingId || gEvent.id });
+              });
+            }
+            curr.setDate(curr.getDate() + 1);
+          }
+          return;
+        }
+
+        // Handle Timed Events
         const eventDateStr = start.toISOString().split('T')[0];
 
-        const shiftToBlock = eventTurno || keywordShift?.replace('#', '');
+        const shiftToBlock = eventTurno || keywordShift;
         if (shiftToBlock) {
           // 1. Por metadatos (App) o Palabra Clave específica (#T1, #T2, #T3)
           // Bloquea EXCLUSIVAMENTE su propio turno.
@@ -556,7 +564,7 @@ module.exports.checkAvailability = async (req, res, next) => {
         }
 
         Object.entries(SHIFTS).forEach(([shiftId, time]) => {
-          // 2. Por solapamiento (Si es un evento genérico de Google Calendar/Bloqueo SIN turno específico)
+          // 2. Por solapamiento horario (evento Neverland/#BLOQUEO SIN turno específico)
           const shiftStart = new Date(eventDateStr);
           shiftStart.setHours(time.start[0], time.start[1], 0, 0);
 
