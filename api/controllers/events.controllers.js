@@ -391,11 +391,19 @@ module.exports.update = (req, res, next) => {
           delete oldDetalles.extras.precioPinataApplied;
         }
 
-        // Deep merge details to avoid losing other sub-fields
+        // Deep merge details to avoid losing other sub-fields.
+        // Strip internal _id fields from toObject() result to avoid Mongoose CastError.
+        const stripIds = (obj) => {
+          if (!obj || typeof obj !== 'object') return obj;
+          const clean = { ...obj };
+          delete clean._id;
+          return clean;
+        };
+
         event.detalles = {
-          niños: { ...oldDetalles.niños, ...(newDetalles.niños || {}) },
-          adultos: { ...oldDetalles.adultos, ...(newDetalles.adultos || {}) },
-          extras: { ...oldDetalles.extras, ...(newDetalles.extras || {}) }
+          niños: { ...stripIds(oldDetalles.niños), ...(newDetalles.niños || {}) },
+          adultos: { ...stripIds(oldDetalles.adultos), ...(newDetalles.adultos || {}) },
+          extras: { ...stripIds(oldDetalles.extras), ...(newDetalles.extras || {}) }
         };
 
         // Validate merged details
