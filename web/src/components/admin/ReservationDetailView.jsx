@@ -2093,7 +2093,12 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 // Sub-component for Observations Edit
 const ObservationsEdit = ({ current, currentCostoExtra, isAdmin, onCancel, onSave }) => {
 	const [obs, setObs] = useState(current || '');
-	const [costoExtra, setCostoExtra] = useState(currentCostoExtra ?? 0);
+	// Use string so mobile can type '-', clear field, etc. Parse only on save.
+	const [costoExtraStr, setCostoExtraStr] = useState(
+		currentCostoExtra !== undefined && currentCostoExtra !== null
+			? String(currentCostoExtra)
+			: '0'
+	);
 
 	return (
 		<div className="space-y-6">
@@ -2134,11 +2139,23 @@ const ObservationsEdit = ({ current, currentCostoExtra, isAdmin, onCancel, onSav
 					<div className="relative max-w-[180px]">
 						<span className="absolute left-3 top-1/2 -translate-y-1/2 text-energy-orange font-black text-lg">€</span>
 						<input
-							type="number"
-							value={costoExtra}
-							min="-999"
-							max="999"
-							onChange={(e) => setCostoExtra(Math.max(-999, Math.min(999, parseInt(e.target.value) || 0)))}
+							type="text"
+							inputMode="decimal"
+							value={costoExtraStr}
+							onChange={(e) => {
+								const raw = e.target.value;
+								// Allow: empty, '-', or a valid integer in range -999..999
+								if (raw === '' || raw === '-' || /^-?\d{1,3}$/.test(raw)) {
+									const num = parseInt(raw);
+									if (raw === '' || raw === '-' || (num >= -999 && num <= 999)) {
+										setCostoExtraStr(raw);
+									}
+								}
+							}}
+							onBlur={() => {
+								// Normalize on blur: '-' or '' => '0'
+								if (costoExtraStr === '' || costoExtraStr === '-') setCostoExtraStr('0');
+							}}
 							className="w-full pl-8 pr-3 py-3 bg-white border-2 border-energy-orange/20 focus:border-energy-orange rounded-xl font-black text-xl text-energy-orange outline-none transition-all"
 						/>
 					</div>
@@ -2150,7 +2167,11 @@ const ObservationsEdit = ({ current, currentCostoExtra, isAdmin, onCancel, onSav
 
 			<div className="flex gap-3 pt-6 border-t border-gray-100">
 				<button
-					onClick={() => onSave(obs, costoExtra)}
+					onClick={() => {
+						const parsed = parseInt(costoExtraStr) || 0;
+						const clamped = Math.max(-999, Math.min(999, parsed));
+						onSave(obs, clamped);
+					}}
 					className="flex-1 py-4 bg-neverland-green text-white rounded-2xl font-black text-sm shadow-lg shadow-neverland-green/20 transition-all active:scale-95"
 				>
 					Guardar
