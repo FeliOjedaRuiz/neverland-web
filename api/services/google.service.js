@@ -104,6 +104,7 @@ module.exports.createCalendarEvent = async (booking) => {
 **📊 DETALLES COMERCIALES**:
 - **Niños**: ${detalles?.niños?.cantidad || 0}
 - **Menú**: ${detalles?.niños?.menuNombre || detalles?.niños?.menuId}
+- **🚨 Alérgenos**: ${detalles?.extras?.alergenos || 'Ninguno'}
 - **Adultos**: ${detalles?.adultos?.cantidad || 0}
 - **Raciones**: ${detalles?.adultos?.comida?.map(c => `${c.item} (x${c.cantidad})`).join(', ') || 'Sin comida'}
 
@@ -115,9 +116,6 @@ module.exports.createCalendarEvent = async (booking) => {
 
 **📝 OBSERVACIONES**:
 - ${detalles?.extras?.observaciones || 'Ninguna'}
-
-**🚨 ALÉRGENOS**:
-- ${detalles?.extras?.alergenos || 'Ninguno'}
 
 **💰 TOTAL RESERVA**: ${booking.precioTotal}€
 **🆔 ID**: ${booking.publicId || _id}
