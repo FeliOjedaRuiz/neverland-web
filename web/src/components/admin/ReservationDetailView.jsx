@@ -27,6 +27,7 @@ import {
 	Receipt,
 } from 'lucide-react';
 import { useNavigate, useParams, useOutletContext } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import GoogleCalendarButton from '../common/GoogleCalendarButton';
 import {
 	getReservationById,
@@ -159,7 +160,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 			setIsStatusMenuOpen(false);
 			return;
 		}
-		if (newStatus === 'cancelado') {
+		if (newStatus === 'cancelado' || newStatus === 'cancelada') {
 			setShowDeleteConfirm(true);
 			setIsStatusMenuOpen(false);
 			return;
@@ -170,9 +171,10 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 		try {
 			await updateReservation(reservation.id, { estado: newStatus });
 			setReservation({ ...reservation, estado: newStatus });
+			toast.success(`Estado actualizado a ${newStatus}`);
 		} catch (err) {
 			console.error('Error updating status:', err);
-			alert('Error al actualizar el estado');
+			toast.error('Error al actualizar el estado');
 		} finally {
 			setIsUpdating(false);
 		}
@@ -180,13 +182,22 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 
 	const handleDelete = async () => {
 		setIsUpdating(true);
-		setShowDeleteConfirm(false);
 		try {
 			await deleteReservation(reservation.id);
-			onBack(); // Go back to calendar or inbox
+			toast.success('Reserva eliminada correctamente');
+			
+			// Clean up modal history entry if present
+			if (window.history.state?.isModal) {
+				window.history.back();
+				// Small delay to allow history to pop before navigating main view
+				setTimeout(() => onBack(), 100);
+			} else {
+				onBack();
+			}
 		} catch (err) {
 			console.error('Error deleting reservation:', err);
-			alert('Error al eliminar la reserva');
+			toast.error('Error al eliminar la reserva');
+			setShowDeleteConfirm(false);
 			setIsUpdating(false);
 		}
 	};
@@ -391,7 +402,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 													/>
 												</button>
 												<button
-													onClick={() => handleStatusChange('cancelado')}
+													onClick={() => handleStatusChange('cancelada')}
 													className="w-full text-left px-5 py-4 text-sm font-bold text-red-500 hover:bg-red-50 flex items-center justify-between group"
 												>
 													Cancelar
