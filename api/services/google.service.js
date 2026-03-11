@@ -95,6 +95,24 @@ module.exports.createCalendarEvent = async (booking) => {
       description = `Bloqueo manual: ${notasAdmin || 'Sin descripción'}`;
     } else {
       const { detalles } = booking;
+
+      // Build price summary lines
+      const precioLines = [];
+      const precioNinos = (detalles?.niños?.cantidad || 0) * (detalles?.niños?.precioApplied || 0);
+      if (precioNinos > 0) precioLines.push(`  ${detalles.niños.cantidad} Niños × ${(detalles.niños.precioApplied || 0).toFixed(2)}€ = ${precioNinos.toFixed(2)}€`);
+      let precioAdultos = 0;
+      const comidaItems = detalles?.adultos?.comida || [];
+      comidaItems.forEach(c => { precioAdultos += (c.cantidad || 0) * (c.precioUnitario || 0); });
+      if (precioAdultos > 0) precioLines.push(`  Comida Adultos = ${precioAdultos.toFixed(2)}€`);
+      if (detalles?.extras?.precioTallerApplied > 0) precioLines.push(`  Actividad (${detalles.extras.taller}) = ${detalles.extras.precioTallerApplied.toFixed(2)}€`);
+      if (detalles?.extras?.precioPersonajeApplied > 0) precioLines.push(`  Personaje (${detalles.extras.personaje}) = ${detalles.extras.precioPersonajeApplied.toFixed(2)}€`);
+      if (detalles?.extras?.precioPinataApplied > 0) precioLines.push(`  Piñata = ${detalles.extras.precioPinataApplied.toFixed(2)}€`);
+      if (booking.horario?.costoExtension > 0) precioLines.push(`  Extensión (+${booking.horario.extensionMinutos}min) = ${booking.horario.costoExtension.toFixed(2)}€`);
+      if (detalles?.extras?.costoExtra && detalles.extras.costoExtra !== 0) {
+        const label = detalles.extras.costoExtra > 0 ? 'Costo Extra' : 'Descuento';
+        precioLines.push(`  ${label} = ${detalles.extras.costoExtra > 0 ? '+' : ''}${detalles.extras.costoExtra.toFixed(2)}€`);
+      }
+
       description = `
 **🎂 NIÑO/A**: ${cliente.nombreNiño} (${cliente.edadNiño} años)
 **👤 RESPONSABLE**: ${cliente.nombrePadre}
@@ -106,19 +124,23 @@ module.exports.createCalendarEvent = async (booking) => {
 - **Menú**: ${detalles?.niños?.menuNombre || detalles?.niños?.menuId}
 - **🚨 Alérgenos**: ${detalles?.extras?.alergenos || 'Ninguno'}
 - **Adultos**: ${detalles?.adultos?.cantidad || 0}
-- **Raciones**: ${detalles?.adultos?.comida?.map(c => `${c.item} (x${c.cantidad})`).join(', ') || 'Sin comida'}
+- **Raciones**: ${(detalles?.adultos?.comida || []).map(function(c) { return c.item + ' (x' + c.cantidad + ')'; }).join(', ') || 'Sin comida'}
 
 **✨ ACTIVIDADES Y EXTRAS**:
 - **Taller**: ${detalles?.extras?.taller && detalles.extras.taller !== 'ninguno' ? detalles.extras.taller : 'No'}
 - **Personaje**: ${detalles?.extras?.personaje && detalles.extras.personaje !== 'ninguno' ? detalles.extras.personaje : 'No'}
 - **Piñata**: ${detalles?.extras?.pinata ? 'Sí' : 'No'}
-- **Extensión**: ${booking.horario?.extensionMinutos || 0} min (+${booking.horario?.costoExtension || 0}€)
-${detalles?.extras?.costoExtra && detalles.extras.costoExtra !== 0 ? `- **Costo Extra/Desc**: ${detalles.extras.costoExtra}€` : ''}
+- **Extensión**: ${booking.horario?.extensionMinutos || 0} min
 
 **📝 OBSERVACIONES**:
 - ${detalles?.extras?.observaciones || 'Ninguna'}
+${detalles?.extras?.costoExtra && detalles.extras.costoExtra !== 0 ? `\n**${detalles.extras.costoExtra > 0 ? '💲 COSTO EXTRA' : '🏷️ DESCUENTO'}**: ${detalles.extras.costoExtra > 0 ? '+' : ''}${detalles.extras.costoExtra.toFixed(2)}€` : ''}
 
-**💰 TOTAL RESERVA**: ${booking.precioTotal}€
+**💰 RESUMEN DE CUENTA**:
+${precioLines.join('\n')}
+━━━━━━━━━━━━━━━
+**TOTAL**: ${(booking.precioTotal || 0).toFixed(2)}€
+
 **🆔 ID**: ${booking.publicId || _id}
       `.trim();
     }

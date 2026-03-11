@@ -486,8 +486,8 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 											<Phone size={14} /> {reservation.cliente?.telefono}
 										</a>
 										{reservation.cliente?.email && (
-											<div className="flex items-center gap-2 text-sm font-bold text-gray-500 bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100">
-												<Mail size={14} /> {reservation.cliente.email}
+											<div className="flex items-center gap-2 text-sm font-bold text-gray-500 bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100 overflow-hidden max-w-full">
+												<Mail size={14} className="shrink-0" /> <span className="truncate lowercase">{reservation.cliente.email}</span>
 											</div>
 										)}
 									</div>
@@ -876,13 +876,13 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 								<div className="flex justify-between items-center text-sm">
 									<span className="text-gray-600 font-medium">
 										{reservation.detalles?.niños?.cantidad || 0} Niños ×{' '}
-										{reservation.detalles?.niños?.precioApplied || '?'}€
+										{(reservation.detalles?.niños?.precioApplied || 0).toFixed(2)}€
 									</span>
 									<span className="font-black text-text-black">
 										{(
 											(reservation.detalles?.niños?.cantidad || 0) *
 											(reservation.detalles?.niños?.precioApplied || 0)
-										).toFixed(0)}
+										).toFixed(2)}
 										€
 									</span>
 								</div>
@@ -905,7 +905,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 													Comida Adultos
 												</span>
 												<span className="font-black text-text-black">
-													{total}€
+													{total.toFixed(2)}€
 												</span>
 											</div>
 										);
@@ -920,7 +920,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 												Actividad ({reservation.detalles.extras.taller})
 											</span>
 											<span className="font-black text-text-black">
-												{reservation.detalles.extras.precioTallerApplied}€
+												{reservation.detalles.extras.precioTallerApplied.toFixed(2)}€
 											</span>
 										</div>
 									)}
@@ -933,7 +933,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 												Personaje ({reservation.detalles.extras.personaje})
 											</span>
 											<span className="font-black text-text-black">
-												{reservation.detalles.extras.precioPersonajeApplied}€
+												{reservation.detalles.extras.precioPersonajeApplied.toFixed(2)}€
 											</span>
 										</div>
 									)}
@@ -944,7 +944,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 										<div className="flex justify-between items-center text-sm">
 											<span className="text-gray-600 font-medium">Piñata</span>
 											<span className="font-black text-text-black">
-												{reservation.detalles.extras.precioPinataApplied}€
+												{reservation.detalles.extras.precioPinataApplied.toFixed(2)}€
 											</span>
 										</div>
 									)}
@@ -957,7 +957,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 												Extensión (+{reservation.horario.extensionMinutos} min)
 											</span>
 											<span className="font-black text-text-black">
-												{reservation.horario.costoExtension}€
+												{reservation.horario.costoExtension.toFixed(2)}€
 											</span>
 										</div>
 									)}
@@ -972,7 +972,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 										</span>
 										<span className="font-black text-energy-orange">
 											{reservation.detalles.extras.costoExtra > 0 ? '+' : ''}
-											{reservation.detalles.extras.costoExtra}€
+											{reservation.detalles.extras.costoExtra.toFixed(2)}€
 										</span>
 									</div>
 								)}
@@ -986,7 +986,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 										Total
 									</span>
 									<span className="text-3xl font-display font-black text-neverland-green">
-										{reservation.precioTotal}€
+										{reservation.precioTotal.toFixed(2)}€
 									</span>
 								</div>
 							</div>
