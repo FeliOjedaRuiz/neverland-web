@@ -12,7 +12,7 @@ import logo from '../../assets/neverland_logo.svg';
 
 const HeroSection = () => {
 	const CLOUDINARY_BASE =
-		'https://res.cloudinary.com/duoshgr3h/image/upload/f_auto,q_auto,w_1920/neverland/home/portada';
+		'https://res.cloudinary.com/dhdd7a5pr/image/upload/f_auto,q_auto,w_1920/neverland/home/portada';
 	const images = [
 		`${CLOUDINARY_BASE}/portada_1.jpg`,
 		`${CLOUDINARY_BASE}/portada_2.jpg`,

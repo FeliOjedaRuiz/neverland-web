@@ -409,8 +409,10 @@ module.exports.update = (req, res, next) => {
 
       // Recalculate price if relevant fields changed
       if (event.isModified('detalles') || event.isModified('fecha') || event.isModified('turno') || event.isModified('horario')) {
-        const newPrice = await calculateEventPrice(event.toObject());
+        const eventData = event.toObject();
+        const newPrice = await calculateEventPrice(eventData);
         console.log(`Recalculating price for ${event.publicId}: ${newPrice}€`);
+        event.detalles = eventData.detalles; // Capture snapshots (menuNombre, harga applied, etc.)
         event.precioTotal = newPrice;
       }
 

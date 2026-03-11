@@ -52,8 +52,8 @@ module.exports.sendBookingConfirmationEmail = async (event) => {
   const formattedDate = formatDate(fecha);
   const shiftHours = getHorarioFinal(turno, horario.extensionMinutos);
 
-  // Intentamos obtener el nombre del menú desde la configuración
-  let menuName = detalles.niños.menuId;
+  // Intentamos obtener el nombre del menú desde el snapshot o la configuración
+  let menuName = detalles.niños.menuNombre || detalles.niños.menuId;
   try {
     const config = await Config.findOne();
     if (config && config.menusNiños) {
@@ -131,7 +131,7 @@ ${publicUrl}
         <div class="header" style="background-color: #ffffff; padding: 25px 20px; text-align: center;">
           <a href="${WEB_URL}" target="_blank" style="text-decoration: none;">
             <img 
-              src="https://res.cloudinary.com/duoshgr3h/image/upload/f_auto,q_auto/v1772317871/neverland/assets/neverland_logo_svg.png" 
+              src="https://res.cloudinary.com/dhdd7a5pr/image/upload/f_auto,q_auto/v1772317871/neverland/assets/neverland_logo_svg.png" 
               alt="Neverland Cúllar Vega" 
               style="display: block; width: 140px; height: auto; margin: 0 auto; border: 0;"
               width="140"
@@ -175,7 +175,11 @@ ${publicUrl}
             </div>
             <div class="summary-row">
               <span class="summary-label">Niños:</span>
-              <span class="summary-value">${detalles.niños.cantidad} (${menuName})</span>
+              <span class="summary-value">${detalles.niños.cantidad}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Menú:</span>
+              <span class="summary-value">${menuName}</span>
             </div>
             <div class="summary-row">
               <span class="summary-label">Adultos:</span>

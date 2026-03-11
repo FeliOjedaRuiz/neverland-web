@@ -16,7 +16,7 @@ import {
 import 'swiper/css';
 import 'swiper/css/pagination';
 
-const CLD_BASE = 'https://res.cloudinary.com/duoshgr3h/image/upload';
+const CLD_BASE = 'https://res.cloudinary.com/dhdd7a5pr/image/upload';
 
 const getUrl = (id, width = 800) => {
 	const duplicatedIds = [
