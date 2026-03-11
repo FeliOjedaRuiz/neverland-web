@@ -830,7 +830,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 									</button>
 								)}
 							</div>
-							<div className="p-6 bg-blue-50/30 rounded-2xl border border-blue-100/50 relative overflow-hidden group">
+							<div className="p-6 bg-blue-50/30 rounded-2xl border border-blue-100/50 relative overflow-hidden group mb-4">
 								<div className="absolute top-0 left-0 w-1.5 h-full bg-blue-400 opacity-20"></div>
 								{reservation.detalles?.extras?.observaciones ? (
 									<p className="text-sm font-medium text-gray-700 italic leading-relaxed">
@@ -842,6 +842,23 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 									</p>
 								)}
 							</div>
+
+							{/* Costo Extra Manual / Descuento */}
+							{(isAdmin || (reservation.detalles?.extras?.costoExtra && reservation.detalles.extras.costoExtra !== 0)) && (
+								<div className="flex items-center justify-between p-4 bg-energy-orange/5 rounded-2xl border border-energy-orange/10">
+									<div className="flex items-center gap-3">
+										<div className="w-8 h-8 rounded-lg bg-energy-orange/10 text-energy-orange flex items-center justify-center">
+											<Receipt size={16} />
+										</div>
+										<p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+											{reservation.detalles?.extras?.costoExtra < 0 ? 'Descuento Aplicado' : 'Ajuste / Costo Extra'}
+										</p>
+									</div>
+									<p className={`text-sm font-black ${reservation.detalles?.extras?.costoExtra < 0 ? 'text-green-600' : 'text-energy-orange'}`}>
+										{reservation.detalles?.extras?.costoExtra > 0 ? '+' : ''}{reservation.detalles?.extras?.costoExtra || 0}€
+									</p>
+								</div>
+							)}
 						</div>
 					</section>
 
@@ -943,6 +960,21 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 											</span>
 										</div>
 									)}
+
+								{/* Costo Extra / Descuento */}
+								{reservation.detalles?.extras?.costoExtra !== 0 && (
+									<div className="flex justify-between items-center text-sm italic">
+										<span className="text-energy-orange font-bold">
+											{reservation.detalles.extras.costoExtra > 0
+												? 'Costo Extra Manual'
+												: 'Descuento Aplicado'}
+										</span>
+										<span className="font-black text-energy-orange">
+											{reservation.detalles.extras.costoExtra > 0 ? '+' : ''}
+											{reservation.detalles.extras.costoExtra}€
+										</span>
+									</div>
+								)}
 
 								{/* Divider */}
 								<div className="border-t-2 border-dashed border-gray-200 my-2"></div>
@@ -1997,7 +2029,7 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 					</div>
 					<div>
 						<h5 className="text-sm font-display font-black text-energy-orange uppercase tracking-wider">
-							Costo Extra Manual
+							Extra / Descuento Manual
 						</h5>
 						<p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
 							Solo visible para administradores
@@ -2010,10 +2042,10 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 						type="number"
 						value={formData.extras?.costoExtra || 0}
 						max="999"
-						min="0"
+						min="-999"
 						onChange={(e) => {
 							const val = Math.max(
-								0,
+								-999,
 								Math.min(999, parseInt(e.target.value) || 0),
 							);
 							setFormData({
@@ -2031,7 +2063,7 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 					</div>
 				</div>
 				<p className="text-[10px] text-gray-400 italic pl-1">
-					Este valor se sumará directamente al total de la reserva.
+					Usa números negativos para aplicar un descuento (ej: -10).
 				</p>
 			</div>
 

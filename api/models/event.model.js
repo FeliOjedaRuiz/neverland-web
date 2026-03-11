@@ -57,7 +57,7 @@ const eventSchema = new mongoose.Schema({
       precioPinataApplied: { type: Number }, // [NEW] Snapshot
       observaciones: { type: String, default: '', maxlength: 500 },
       alergenos: { type: String, default: '', maxlength: 500 },
-      costoExtra: { type: Number, default: 0, min: 0, max: 999 },
+      costoExtra: { type: Number, default: 0, max: 999 },
       privacyPolicyConsent: {
         type: Boolean,
         required: function () { return this.tipo === 'reserva'; }

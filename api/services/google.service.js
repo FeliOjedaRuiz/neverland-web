@@ -113,7 +113,7 @@ module.exports.createCalendarEvent = async (booking) => {
 - **Personaje**: ${detalles?.extras?.personaje && detalles.extras.personaje !== 'ninguno' ? detalles.extras.personaje : 'No'}
 - **Piñata**: ${detalles?.extras?.pinata ? 'Sí' : 'No'}
 - **Extensión**: ${booking.horario?.extensionMinutos || 0} min (+${booking.horario?.costoExtension || 0}€)
-${detalles?.extras?.costoExtra > 0 ? `- **Costo Extra**: ${detalles.extras.costoExtra}€` : ''}
+${detalles?.extras?.costoExtra && detalles.extras.costoExtra !== 0 ? `- **Costo Extra/Desc**: ${detalles.extras.costoExtra}€` : ''}
 
 **📝 OBSERVACIONES**:
 - ${detalles?.extras?.observaciones || 'Ninguna'}
