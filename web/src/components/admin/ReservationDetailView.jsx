@@ -1110,9 +1110,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 											try {
 												const payload = {
 													detalles: {
-														...reservation.detalles,
 														extras: {
-															...reservation.detalles.extras,
 															observaciones: newObs,
 															...(isAdmin && { costoExtra: newCostoExtra }),
 														},
