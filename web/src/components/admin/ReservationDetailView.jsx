@@ -1989,6 +1989,52 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 				</div>
 			</div>
 
+			{/* Costo Extra (Admin only) */}
+			<div className="p-6 bg-energy-orange/5 border-2 border-dashed border-energy-orange/30 rounded-3xl space-y-4">
+				<div className="flex items-center gap-3">
+					<div className="w-10 h-10 bg-energy-orange/20 text-energy-orange rounded-xl flex items-center justify-center">
+						<Receipt size={20} />
+					</div>
+					<div>
+						<h5 className="text-sm font-display font-black text-energy-orange uppercase tracking-wider">
+							Costo Extra Manual
+						</h5>
+						<p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
+							Solo visible para administradores
+						</p>
+					</div>
+				</div>
+
+				<div className="relative max-w-[200px]">
+					<input
+						type="number"
+						value={formData.extras?.costoExtra || 0}
+						max="999"
+						min="0"
+						onChange={(e) => {
+							const val = Math.max(
+								0,
+								Math.min(999, parseInt(e.target.value) || 0),
+							);
+							setFormData({
+								...formData,
+								extras: {
+									...formData.extras,
+									costoExtra: val,
+								},
+							});
+						}}
+						className="w-full bg-white border border-energy-orange/20 rounded-2xl pl-10 pr-4 py-4 font-black text-xl text-energy-orange focus:outline-none focus:ring-4 focus:ring-energy-orange/10 focus:border-energy-orange transition-all"
+					/>
+					<div className="absolute left-4 top-1/2 -translate-y-1/2 text-energy-orange/50 font-black text-xl">
+						€
+					</div>
+				</div>
+				<p className="text-[10px] text-gray-400 italic pl-1">
+					Este valor se sumará directamente al total de la reserva.
+				</p>
+			</div>
+
 			<div className="flex gap-3 pt-6 border-t border-gray-100">
 				<button
 					onClick={() => onSave(formData)}

@@ -46,7 +46,7 @@ const validateEventData = (data) => {
 
 // Helper to calculate price based on config and event data
 // NOW MUTATES eventData to add snapshots if they are missing!
-const calculateEventPrice = async (eventData, config) => {
+module.exports.calculateEventPrice = async (eventData, config) => {
   const { tipo, fecha, turno, detalles, horario } = eventData;
   if (tipo === 'bloqueo') return 0;
 
@@ -147,6 +147,10 @@ const calculateEventPrice = async (eventData, config) => {
         detalles.extras.precioPinataApplied = pinataPrice;
       }
       total += pinataPrice;
+    }
+
+    if (detalles.extras.costoExtra) {
+      total += detalles.extras.costoExtra;
     }
   }
 
