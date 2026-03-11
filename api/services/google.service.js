@@ -116,6 +116,9 @@ module.exports.createCalendarEvent = async (booking) => {
 **📝 OBSERVACIONES**:
 - ${detalles?.extras?.observaciones || 'Ninguna'}
 
+**🚨 ALÉRGENOS**:
+- ${detalles?.extras?.alergenos || 'Ninguno'}
+
 **💰 TOTAL RESERVA**: ${booking.precioTotal}€
 **🆔 ID**: ${booking.publicId || _id}
       `.trim();
