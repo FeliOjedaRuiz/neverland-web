@@ -38,56 +38,6 @@ import {
 } from '../../services/api';
 import { formatSafeDate, formatLongSafeDate } from '../../utils/safeDate';
 
-// Inline editable field for admins to set a manual extra cost or discount
-const InlineCostoExtra = ({ value, onSave }) => {
-	const [localVal, setLocalVal] = useState(value);
-	const [saving, setSaving] = useState(false);
-	const [saved, setSaved] = useState(false);
-
-	const handleSave = async () => {
-		if (localVal === value) return;
-		setSaving(true);
-		await onSave(localVal);
-		setSaving(false);
-		setSaved(true);
-		setTimeout(() => setSaved(false), 2000);
-	};
-
-	return (
-		<div className="flex items-center gap-3">
-			<div className="relative">
-				<span className="absolute left-3 top-1/2 -translate-y-1/2 text-energy-orange font-black text-lg">€</span>
-				<input
-					type="number"
-					value={localVal}
-					min="-999"
-					max="999"
-					onChange={(e) => setLocalVal(Math.max(-999, Math.min(999, parseInt(e.target.value) || 0)))}
-					onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-					className="w-32 pl-8 pr-3 py-2 bg-white border-2 border-energy-orange/20 focus:border-energy-orange rounded-xl font-black text-xl text-energy-orange outline-none transition-all"
-				/>
-			</div>
-			<button
-				onClick={handleSave}
-				disabled={saving || localVal === value}
-				className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
-					saved
-						? 'bg-green-100 text-green-600'
-						: localVal === value
-							? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-							: 'bg-energy-orange text-white active:scale-95'
-				}`}
-			>
-				{saving ? '...' : saved ? '✓ Guardado' : 'Guardar'}
-			</button>
-			{localVal !== 0 && (
-				<span className={`text-xs font-bold ${localVal < 0 ? 'text-green-600' : 'text-energy-orange'}`}>
-					{localVal < 0 ? 'Descuento' : 'Cargo extra'}
-				</span>
-			)}
-		</div>
-	);
-};
 
 const ReservationDetailView = ({ reservation: propReservation }) => {
 	const navigate = useNavigate();
@@ -896,37 +846,18 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 
 							{/* Costo Extra Manual / Descuento */}
 							{(isAdmin || (reservation.detalles?.extras?.costoExtra && reservation.detalles.extras.costoExtra !== 0)) && (
-								<div className="mt-3 p-4 bg-energy-orange/5 rounded-2xl border border-energy-orange/10">
-									<div className="flex items-center gap-3 mb-3">
+								<div className="mt-3 flex items-center justify-between p-4 bg-energy-orange/5 rounded-2xl border border-energy-orange/10">
+									<div className="flex items-center gap-3">
 										<div className="w-8 h-8 rounded-lg bg-energy-orange/10 text-energy-orange flex items-center justify-center">
 											<Receipt size={16} />
 										</div>
 										<p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-											{isAdmin ? 'Extra / Descuento Manual' : (reservation.detalles?.extras?.costoExtra < 0 ? 'Descuento Aplicado' : 'Ajuste / Costo Extra')}
+											{reservation.detalles?.extras?.costoExtra < 0 ? 'Descuento' : 'Extra Manual'}
 										</p>
 									</div>
-									{isAdmin ? (
-										<InlineCostoExtra
-											value={reservation.detalles?.extras?.costoExtra || 0}
-											onSave={async (newVal) => {
-												setIsUpdating(true);
-												try {
-													const updated = await updateReservation(reservation._id, {
-														detalles: { extras: { costoExtra: newVal } }
-													});
-													setReservation(updated);
-												} catch (e) {
-													console.error(e);
-												} finally {
-													setIsUpdating(false);
-												}
-											}}
-										/>
-									) : (
-										<p className={`text-sm font-black ${reservation.detalles?.extras?.costoExtra < 0 ? 'text-green-600' : 'text-energy-orange'}`}>
-											{reservation.detalles?.extras?.costoExtra > 0 ? '+' : ''}{reservation.detalles?.extras?.costoExtra || 0}€
-										</p>
-									)}
+									<p className={`text-sm font-black ${reservation.detalles?.extras?.costoExtra < 0 ? 'text-green-600' : 'text-energy-orange'}`}>
+										{reservation.detalles?.extras?.costoExtra > 0 ? '+' : ''}{reservation.detalles?.extras?.costoExtra || 0}€
+									</p>
 								</div>
 							)}
 						</div>
@@ -1171,19 +1102,23 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 								{activeModal === 'observations' && (
 									<ObservationsEdit
 										current={reservation.detalles.extras.observaciones}
+										currentCostoExtra={reservation.detalles?.extras?.costoExtra ?? 0}
+										isAdmin={isAdmin}
 										onCancel={closeModals}
-										onSave={async (newObs) => {
+										onSave={async (newObs, newCostoExtra) => {
 											setIsUpdating(true);
 											try {
-												const res = await updateReservation(reservation.id, {
+												const payload = {
 													detalles: {
 														...reservation.detalles,
 														extras: {
 															...reservation.detalles.extras,
 															observaciones: newObs,
+															...(isAdmin && { costoExtra: newCostoExtra }),
 														},
 													},
-												});
+												};
+												const res = await updateReservation(reservation.id, payload);
 												setReservation(res.data);
 												closeModals();
 											} catch (err) {
@@ -2156,8 +2091,9 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 };
 
 // Sub-component for Observations Edit
-const ObservationsEdit = ({ current, onCancel, onSave }) => {
+const ObservationsEdit = ({ current, currentCostoExtra, isAdmin, onCancel, onSave }) => {
 	const [obs, setObs] = useState(current || '');
+	const [costoExtra, setCostoExtra] = useState(currentCostoExtra ?? 0);
 
 	return (
 		<div className="space-y-6">
@@ -2184,9 +2120,37 @@ const ObservationsEdit = ({ current, onCancel, onSave }) => {
 				</div>
 			</div>
 
+			{/* Costo Extra / Descuento — solo admins */}
+			{isAdmin && (
+				<div className="p-5 bg-energy-orange/5 border-2 border-dashed border-energy-orange/30 rounded-3xl space-y-3">
+					<div className="flex items-center gap-3">
+						<div className="w-8 h-8 rounded-lg bg-energy-orange/10 text-energy-orange flex items-center justify-center">
+							<Receipt size={16} />
+						</div>
+						<p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+							Extra / Descuento Manual (solo admin)
+						</p>
+					</div>
+					<div className="relative max-w-[180px]">
+						<span className="absolute left-3 top-1/2 -translate-y-1/2 text-energy-orange font-black text-lg">€</span>
+						<input
+							type="number"
+							value={costoExtra}
+							min="-999"
+							max="999"
+							onChange={(e) => setCostoExtra(Math.max(-999, Math.min(999, parseInt(e.target.value) || 0)))}
+							className="w-full pl-8 pr-3 py-3 bg-white border-2 border-energy-orange/20 focus:border-energy-orange rounded-xl font-black text-xl text-energy-orange outline-none transition-all"
+						/>
+					</div>
+					<p className="text-[10px] text-gray-400 italic">
+						Usa negativos para descuentos (ej: -10). Se suma al total.
+					</p>
+				</div>
+			)}
+
 			<div className="flex gap-3 pt-6 border-t border-gray-100">
 				<button
-					onClick={() => onSave(obs)}
+					onClick={() => onSave(obs, costoExtra)}
 					className="flex-1 py-4 bg-neverland-green text-white rounded-2xl font-black text-sm shadow-lg shadow-neverland-green/20 transition-all active:scale-95"
 				>
 					Guardar
