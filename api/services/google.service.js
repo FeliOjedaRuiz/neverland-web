@@ -102,7 +102,7 @@ module.exports.createCalendarEvent = async (booking) => {
 **📧 EMAIL**: ${cliente.email || 'No proporcionado'}
 
 **📊 DETALLES COMERCIALES**:
-- **Niños**: ${detalles?.niños?.cantidad || 0} (Menú ${detalles?.niños?.menuId})
+- **Niños**: ${detalles?.niños?.cantidad || 0} (Menú ${detalles?.niños?.menuNombre || detalles?.niños?.menuId})
 - **Adultos**: ${detalles?.adultos?.cantidad || 0}
 - **Raciones**: ${detalles?.adultos?.comida?.map(c => `${c.item} (x${c.cantidad})`).join(', ') || 'Sin comida'}
 
