@@ -887,6 +887,27 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 									</span>
 								</div>
 
+								{/* Plus Fin de Semana */}
+								{(() => {
+									if (!reservation.fecha) return null;
+									const day = new Date(reservation.fecha).getDay();
+									if (day !== 0 && day !== 5 && day !== 6) return null;
+									const plus = config?.plusFinDeSemana || 1.5;
+									const cant = reservation.detalles?.niños?.cantidad || 0;
+									const totalPlus = plus * cant;
+									if (totalPlus <= 0) return null;
+									return (
+										<div className="flex justify-between items-center text-sm">
+											<span className="text-gray-600 font-medium">
+												Plus Fin de Semana ({cant} × {plus.toFixed(2)}€)
+											</span>
+											<span className="font-black text-text-black">
+												{totalPlus.toFixed(2)}€
+											</span>
+										</div>
+									);
+								})()}
+
 								{/* Adultos */}
 								{(() => {
 									const adultos = reservation.detalles?.adultos;

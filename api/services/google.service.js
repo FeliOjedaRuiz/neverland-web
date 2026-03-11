@@ -100,6 +100,16 @@ module.exports.createCalendarEvent = async (booking) => {
       const precioLines = [];
       const precioNinos = (detalles?.niños?.cantidad || 0) * (detalles?.niños?.precioApplied || 0);
       if (precioNinos > 0) precioLines.push(`  ${detalles.niños.cantidad} Niños × ${(detalles.niños.precioApplied || 0).toFixed(2)}€ = ${precioNinos.toFixed(2)}€`);
+      // Plus Fin de Semana
+      if (fecha) {
+        const day = new Date(fecha).getDay();
+        if (day === 0 || day === 5 || day === 6) {
+          const plus = 1.5; // plusFinDeSemana
+          const cant = detalles?.niños?.cantidad || 0;
+          const totalPlus = plus * cant;
+          if (totalPlus > 0) precioLines.push(`  Plus Fin de Semana (${cant} × ${plus.toFixed(2)}€) = ${totalPlus.toFixed(2)}€`);
+        }
+      }
       let precioAdultos = 0;
       const comidaItems = detalles?.adultos?.comida || [];
       comidaItems.forEach(c => { precioAdultos += (c.cantidad || 0) * (c.precioUnitario || 0); });
