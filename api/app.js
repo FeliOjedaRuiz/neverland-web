@@ -49,7 +49,12 @@ app.get('/api/health', (req, res) => res.status(200).send('OK'));
 app.use('/api/v1', apiLimiter, api); // Aplicamos límite general a toda la API
 
 app.get('/*', (req, res) => {
-	res.sendFile(`${__dirname}/public/index.html`);
+	const indexPath = `${__dirname}/public/index.html`;
+	if (require('fs').existsSync(indexPath)) {
+		res.sendFile(indexPath);
+	} else {
+		res.status(404).json({ message: 'Route not found' });
+	}
 });
 
 //** Error Handling */
