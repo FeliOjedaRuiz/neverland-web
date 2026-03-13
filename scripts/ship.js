@@ -42,8 +42,8 @@ try {
   console.log('\n📝 No se pudo realizar el commit (quizás no hay cambios).');
 }
 
-// 4. Fly Deploy
-runStep('Fly.io Deploy', 'fly deploy', ROOT_DIR);
+// 4. Fly Deploy (DEPRECATED - Moved to Git Push for Render & Vercel)
+// runStep('Fly.io Deploy', 'fly deploy', ROOT_DIR);
 
-console.log('\n🎉 --- DESPLIEGUE FINALIZADO CON ÉXITO --- 🎉');
-console.log('La aplicación de Neverland ya está actualizada en producción.');
+console.log('\n🎉 --- DESPLIEGUE INICIADO CON ÉXITO --- 🎉');
+console.log('Los cambios han sido subidos. Vercel (Front) y Render (API) se están actualizando automáticamente.');

@@ -8,7 +8,9 @@ Este sistema garantiza que **NUNCA** se despliegue código roto en producción.
 2.  **🔍 Scan Backend**: Ejecuta `jest` para verificar que la API responde correctamente.
 3.  **🛡️ Safari Guardian**: Integrado en el paso 1, asegura compatibilidad total con iPhone.
 4.  **💾 Smart Commit**: Solo si los tests pasan, guarda los cambios localmente.
-5.  **🚀 Deploy**: Sube los cambios. (El backend ahora se despliega en Render e incluye una ruta `/api/health` para Zero-Downtime Deploys).
+5.  **🚀 Git Push Deploy**: Sube los cambios al repositorio (`git push origin main`). Al subir los cambios a la rama principal:
+    - **Vercel** automáticamente intercepta el commit y despliega el **Frontend**.
+    - **Render** automáticamente intercepta el commit y despliega el **Backend** asegurando Zero-Downtime Deploy a través de `/api/health`.
 
 ## 📋 Reglas de uso para el Agente
 
@@ -16,10 +18,10 @@ Cuando el usuario pida "desplegar" o "hacer deploy":
 
 1.  SIEMPRE usar el comando `npm run ship "mensaje del commit"`.
 2.  Si el script falla, NO forzar el despliegue. Corregir primero.
-3.  Informar al usuario del éxito final y los logs del deploy.
+3.  Informar al usuario del éxito final y verificar en los respectivos dashboards (Vercel/Render).
 
 ## ✨ Beneficios
 
 - **Historial de Git Limpio**: Solo versiones estables llegan a GitHub.
 - **Sin Sorpresas en Producción**: Los fallos se detectan ANTES de subir nada.
-- **Ahorro de Tiempo**: Despliegue local directo (Fly CTL) sin esperar a colas externas.
+- **CI/CD Automático**: No es necesario correr scripts de despliegue extra, GitHub conecta nativamente con Render y Vercel.
