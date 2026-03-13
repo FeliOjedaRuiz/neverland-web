@@ -3,8 +3,12 @@ const cors = require("cors");
 module.exports = cors({
   credentials: true,
   origin: (origin, callback) => {
+    const envOrigins = process.env.CORS_ORIGIN 
+      ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+      : [];
+
     const allowedOrigins = [
-      process.env.CORS_ORIGIN,
+      ...envOrigins,
       "http://localhost:5173",
       "http://localhost:3000"
     ].filter(Boolean);

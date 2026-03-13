@@ -43,4 +43,4 @@ Debes ser extremadamente cuidadoso con la renderización en dispositivos móvile
 
 ## 4. Comandos Explícitos y Habilidades (Skills)
 
-- Utiliza las habilidades (`skills/`) disponibles en la carpeta `.agent/skills/` (ej. Backend Expert, Google Services Expert) cuando la tarea requiera conocimientos específicos sobre esas áreas del proyecto. Lê el archivo `SKILL.md` correspondiente antes de actuar.
+- Utiliza las habilidades (`skills/`) disponibles en la carpeta `.agent/skills/` (ej. Backend Expert, Google Services Expert) cuando la tarea requiera conocimientos específicos sobre esas áreas del proyecto. Lee el archivo `SKILL.md` correspondiente antes de actuar.

@@ -42,6 +42,10 @@ app.use(secure.cleanBody);
 //** Rutas de api un-detallico-tarjetas */
 
 const api = require('./config/routes.config');
+
+// Health Check route para Render Zero-Downtime Deploy
+app.get('/api/health', (req, res) => res.status(200).send('OK'));
+
 app.use('/api/v1', apiLimiter, api); // Aplicamos límite general a toda la API
 
 app.get('/*', (req, res) => {

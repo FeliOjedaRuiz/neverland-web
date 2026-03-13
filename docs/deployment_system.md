@@ -8,7 +8,7 @@ Este sistema garantiza que **NUNCA** se despliegue código roto en producción.
 2.  **🔍 Scan Backend**: Ejecuta `jest` para verificar que la API responde correctamente.
 3.  **🛡️ Safari Guardian**: Integrado en el paso 1, asegura compatibilidad total con iPhone.
 4.  **💾 Smart Commit**: Solo si los tests pasan, guarda los cambios localmente.
-5.  **🚀 Fly Deploy**: Lanza la aplicación a Fly.io directamente desde el entorno local.
+5.  **🚀 Deploy**: Sube los cambios. (El backend ahora se despliega en Render e incluye una ruta `/api/health` para Zero-Downtime Deploys).
 
 ## 📋 Reglas de uso para el Agente
 

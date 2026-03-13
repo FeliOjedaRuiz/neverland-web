@@ -442,6 +442,7 @@ El API implementa niveles de protección claros:
 
 - **Privacidad**: La ruta de detalle de reserva es pública. Se recomienda restringirla solo a administradores para proteger los datos de contacto del cliente.
 - **Rate Limiting**: Existe un límite de **150 peticiones cada 15 minutos** por IP para proteger el sistema contra ataques de fuerza bruta.
+- **CORS Dinámico**: La variable `CORS_ORIGIN` en `.env` ahora permite recibir múltiples URLs separadas por comas (ej. `https://dominio1.com,https://dominio2.com`) extendiendo el acceso seguro a otras variaciones del dominio.
 
 ---
 
@@ -470,6 +471,7 @@ El API implementa niveles de protección claros:
 
 - **Failsafe de Google**: Si el calendario de Google no responde, la reserva se guarda igualmente en la base de datos para no perder la venta.
 - **Páginas de Error**: Se requiere implementar páginas 404 y 500 con la estética de Neverland para mejorar la experiencia ante fallos.
+- **Salud del Servidor (Health Check)**: Existe una ruta `/api/health` dedicada a devolver siempre un 200 OK. Específicamente útil para que servicios de despliegue como **Render** identifiquen cuando el backend está arriba y así garantizar un *Zero-Downtime Deploy*.
 
 ---
 

@@ -11,6 +11,7 @@ El usuario ha repetido varias veces que NO quiere que se despliegue a producció
 ## Lo que NO debes hacer jamás:
 - Ejecutar `fly deploy` sin que el usuario lo haya pedido explícitamente en ese mensaje.
 - Ejecutar `git push origin main` como parte de un flujo automático sin permiso.
+- Ejecutar `npm run ship` (que ejecuta el script de despliegue `ship.js`) sin permiso explícito.
 - Asumir que "como voy a hacer cambios, también despliego de paso".
 
 ## Lo que SÍ debes hacer:
