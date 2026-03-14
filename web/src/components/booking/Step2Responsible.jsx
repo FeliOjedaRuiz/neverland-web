@@ -71,9 +71,9 @@ const Step2Responsible = ({ formData, setFormData }) => {
 			if (value.toString().length > 2) return 'Máximo 2 cifras';
 		}
 		if (field === 'phone') {
-			// Strict check: exactly 9 digits
+			// Check if phone has valid international length (roughly 8 to 15 digits)
 			const cleanPhone = value.replace(/\D/g, '');
-			if (cleanPhone.length !== 9) return 'Debe tener 9 dígitos exactos';
+			if (cleanPhone.length < 8 || cleanPhone.length > 15) return 'Número inválido (entre 8 y 15 dígitos)';
 		}
 		if (field === 'email') {
 			const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -251,7 +251,7 @@ const Step2Responsible = ({ formData, setFormData }) => {
 								onChange={(e) => {
 									const val = e.target.value;
 									if (/^[\d\s]*$/.test(val)) {
-										if (val.replace(/\s/g, '').length > 9) return;
+										if (val.replace(/\s/g, '').length > 15) return;
 										handlePhoneChange(val);
 									}
 								}}

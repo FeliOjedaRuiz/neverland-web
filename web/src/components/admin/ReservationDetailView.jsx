@@ -2217,15 +2217,47 @@ const ObservationsEdit = ({ current, currentCostoExtra, isAdmin, onCancel, onSav
 	);
 };
 
+const getInitialPhoneData = (fullPhone) => {
+	if (!fullPhone) return { prefix: '+34', phone: '' };
+	const PREFIXES = ['+34', '+1', '+44', '+33', '+49', '+39', '+351', '+41'];
+	const foundPrefix = PREFIXES.find((p) => fullPhone.startsWith(p));
+	if (foundPrefix) {
+		return {
+			prefix: foundPrefix,
+			phone: fullPhone.slice(foundPrefix.length).trim(),
+		};
+	}
+	return { prefix: '+34', phone: fullPhone };
+};
+
 // Sub-component for Client Info Edit
 const ClientInfoEdit = ({ current, onCancel, onSave }) => {
 	const [formData, setFormData] = useState({ ...current });
+	const [phoneState, setPhoneState] = useState(() =>
+		getInitialPhoneData(current?.telefono),
+	);
 
 	const isSaveDisabled = 
 		!String(formData.nombreNiño || '').trim() || 
 		!String(formData.nombrePadre || '').trim() || 
 		!String(formData.telefono || '').trim() || 
 		!String(formData.email || '').trim();
+
+	const handlePrefixChange = (newPrefix) => {
+		setPhoneState((prev) => ({ ...prev, prefix: newPrefix }));
+		setFormData({
+			...formData,
+			telefono: `${newPrefix} ${phoneState.phone}`,
+		});
+	};
+
+	const handlePhoneChange = (newPhone) => {
+		setPhoneState((prev) => ({ ...prev, phone: newPhone }));
+		setFormData({
+			...formData,
+			telefono: `${phoneState.prefix} ${newPhone}`,
+		});
+	};
 
 	return (
 		<div className="space-y-6">
@@ -2262,7 +2294,7 @@ const ClientInfoEdit = ({ current, onCancel, onSave }) => {
 						className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all"
 					/>
 				</div>
-				<div className="space-y-2">
+				<div className="space-y-2 sm:col-span-2">
 					<label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">
 						Nombre del Padre/Madre
 					</label>
@@ -2283,20 +2315,35 @@ const ClientInfoEdit = ({ current, onCancel, onSave }) => {
 					<label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">
 						Teléfono
 					</label>
-					<input
-						type="text"
-						value={formData.telefono}
-						maxLength={20}
-						onChange={(e) =>
-							setFormData({
-								...formData,
-								telefono: e.target.value.substring(0, 20),
-							})
-						}
-						className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all"
-					/>
+					<div className="flex items-center gap-2 p-4 bg-gray-50 border border-gray-100 rounded-2xl focus-within:ring-4 focus-within:ring-neverland-green/10 focus-within:border-neverland-green transition-all">
+						<input
+							type="text"
+							value={phoneState.prefix}
+							onChange={(e) => {
+								let val = e.target.value;
+								if (!val.startsWith('+')) val = '+' + val.replace(/^\+/, '');
+								if (val.length > 5) return;
+								if (!/^\+[\d]*$/.test(val)) return;
+								handlePrefixChange(val);
+							}}
+							className="w-14 bg-transparent font-bold text-gray-700 outline-none text-center border-r border-gray-200 pr-2"
+						/>
+						<input
+							type="tel"
+							value={phoneState.phone}
+							onChange={(e) => {
+								const val = e.target.value;
+								if (/^[\d\s]*$/.test(val)) {
+									if (val.replace(/\s/g, '').length > 15) return;
+									handlePhoneChange(val);
+								}
+							}}
+							className="flex-1 w-full bg-transparent font-bold outline-none"
+							placeholder="600 000 000"
+						/>
+					</div>
 				</div>
-				<div className="space-y-2 sm:col-span-2">
+				<div className="space-y-2">
 					<label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">
 						Email de contacto
 					</label>
