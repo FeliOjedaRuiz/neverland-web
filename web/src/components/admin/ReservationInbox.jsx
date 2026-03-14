@@ -298,7 +298,7 @@ const ReservationInbox = () => {
 
 								<div className="flex items-center gap-2 shrink-0">
 									<a
-										href={`https://wa.me/${String(item.cliente?.telefono || '').replace(/\s/g, '')}`}
+										href={`https://wa.me/${String(item.cliente?.telefono || '').replace(/\D/g, '')}`}
 										target="_blank"
 										rel="noreferrer"
 										onClick={(e) => e.stopPropagation()}

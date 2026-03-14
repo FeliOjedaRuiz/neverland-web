@@ -489,7 +489,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 									</p>
 									<div className="flex flex-wrap gap-2">
 										<a
-											href={`https://wa.me/${reservation.cliente?.telefono?.replace(/\s/g, '')}`}
+											href={`https://wa.me/${String(reservation.cliente?.telefono || '').replace(/\D/g, '')}`}
 											target="_blank"
 											rel="noreferrer"
 											className="text-neverland-green hover:bg-neverland-green/10 flex items-center gap-2 text-sm font-bold bg-neverland-green/5 px-4 py-2 rounded-2xl transition-colors"

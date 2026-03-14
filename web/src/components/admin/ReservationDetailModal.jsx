@@ -86,7 +86,7 @@ const ReservationDetailModal = ({ reservation, onClose }) => {
 									{reservation.cliente?.nombrePadre}
 								</p>
 								<a
-									href={`https://wa.me/${reservation.cliente?.telefono?.replace(/\s/g, '')}`}
+									href={`https://wa.me/${String(reservation.cliente?.telefono || '').replace(/\D/g, '')}`}
 									target="_blank"
 									rel="noreferrer"
 									className="text-neverland-green hover:underline flex items-center gap-1 text-sm font-bold mt-1"
