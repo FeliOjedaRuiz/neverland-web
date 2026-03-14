@@ -363,13 +363,19 @@ module.exports.update = (req, res, next) => {
 
       // --- VALIDATION LAYER for updates ---
       if (req.body.cliente) {
-        const { email, telefono } = req.body.cliente;
+        const { nombreNiño, nombrePadre, email, telefono } = req.body.cliente;
+
+        if (nombreNiño !== undefined && !String(nombreNiño).trim()) throw createError(400, 'El nombre del niño no puede estar vacío');
+        if (nombrePadre !== undefined && !String(nombrePadre).trim()) throw createError(400, 'El nombre del padre/madre no puede estar vacío');
+        if (email !== undefined && !String(email).trim()) throw createError(400, 'El email no puede estar vacío');
+        if (telefono !== undefined && !String(telefono).trim()) throw createError(400, 'El teléfono no puede estar vacío');
+
         if (email) {
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           if (!emailRegex.test(email)) throw createError(400, 'Email inválido');
         }
         if (telefono) {
-          const phoneDigits = (telefono.match(/\d/g) || []).length;
+          const phoneDigits = (String(telefono).match(/\d/g) || []).length;
           if (phoneDigits < 9) throw createError(400, 'Teléfono inválido (mínimo 9 dígitos)');
         }
       }

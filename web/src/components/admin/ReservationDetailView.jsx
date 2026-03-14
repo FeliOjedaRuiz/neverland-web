@@ -2221,6 +2221,12 @@ const ObservationsEdit = ({ current, currentCostoExtra, isAdmin, onCancel, onSav
 const ClientInfoEdit = ({ current, onCancel, onSave }) => {
 	const [formData, setFormData] = useState({ ...current });
 
+	const isSaveDisabled = 
+		!String(formData.nombreNiño || '').trim() || 
+		!String(formData.nombrePadre || '').trim() || 
+		!String(formData.telefono || '').trim() || 
+		!String(formData.email || '').trim();
+
 	return (
 		<div className="space-y-6">
 			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2312,8 +2318,9 @@ const ClientInfoEdit = ({ current, onCancel, onSave }) => {
 
 			<div className="flex gap-3 pt-4 border-t border-gray-100">
 				<button
+					disabled={isSaveDisabled}
 					onClick={() => onSave(formData)}
-					className="flex-1 py-4 bg-neverland-green text-white rounded-2xl font-black text-sm shadow-lg shadow-neverland-green/20 transition-all active:scale-95"
+					className={`flex-1 py-4 text-white rounded-2xl font-black text-sm transition-all active:scale-95 ${isSaveDisabled ? 'bg-gray-300 cursor-not-allowed' : 'bg-neverland-green shadow-lg shadow-neverland-green/20'}`}
 				>
 					Guardar
 				</button>
