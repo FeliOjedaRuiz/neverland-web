@@ -23,11 +23,11 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
         nombreNiño: 'Pedrito',
         nombrePadre: 'Juan Pérez',
         email: 'juan@example.com',
-        telefono: '123456789'
+        telefono: '123456789',
+        privacyPolicyConsent: true
       },
       detalles: {
-        niños: { cantidad: 15, menuId: 'menu-1' },
-        extras: { privacyPolicyConsent: true }
+        niños: { cantidad: 15, menuId: 'menu-1' }
       }
     };
 
@@ -63,11 +63,11 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
           nombreNiño: 'Lolito',
           nombrePadre: 'Cliente Tardío',
           email: 'tarde@example.com',
-          telefono: '987654321'
+          telefono: '987654321',
+          privacyPolicyConsent: true
         },
         detalles: {
-          niños: { cantidad: 20, menuId: 'menu-2' },
-          extras: { privacyPolicyConsent: true }
+          niños: { cantidad: 20, menuId: 'menu-2' }
         }
       });
 
@@ -79,8 +79,8 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
     it('Debería rechazar reserva sin nombre de niño', async () => {
       const res = await request(app).post('/api/v1/events').send({
         tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
-        cliente: { email: 'juan@example.com', telefono: '123456789' }, // Faltan nombres
-        detalles: { niños: { cantidad: 15, menuId: 'menu-1' }, extras: { privacyPolicyConsent: true } }
+        cliente: { email: 'juan@example.com', telefono: '123456789', privacyPolicyConsent: true }, // Faltan nombres
+        detalles: { niños: { cantidad: 15, menuId: 'menu-1' } }
       });
       expect(res.statusCode).toBe(400);
       expect(res.body.message).toMatch(/Datos del cliente incompletos/);
@@ -89,8 +89,8 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
     it('Debería rechazar un correo electrónico inválido', async () => {
       const res = await request(app).post('/api/v1/events').send({
         tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
-        cliente: { nombreNiño: 'Pedrito', nombrePadre: 'Juan Pérez', email: 'correo-falso', telefono: '123456789' },
-        detalles: { niños: { cantidad: 15, menuId: 'menu-1' }, extras: { privacyPolicyConsent: true } }
+        cliente: { nombreNiño: 'Pedrito', nombrePadre: 'Juan Pérez', email: 'correo-falso', telefono: '123456789', privacyPolicyConsent: true },
+        detalles: { niños: { cantidad: 15, menuId: 'menu-1' } }
       });
       expect(res.statusCode).toBe(400);
       expect(res.body.message).toMatch(/Email inválido/);
@@ -99,8 +99,8 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
     it('Debería rechazar una edad irreal (mayor a 99 años)', async () => {
       const res = await request(app).post('/api/v1/events').send({
         tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
-        cliente: { nombreNiño: 'Pedrito', edadNiño: 105, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789' },
-        detalles: { niños: { cantidad: 15, menuId: 'menu-1' }, extras: { privacyPolicyConsent: true } }
+        cliente: { nombreNiño: 'Pedrito', edadNiño: 105, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789', privacyPolicyConsent: true },
+        detalles: { niños: { cantidad: 15, menuId: 'menu-1' } }
       });
       expect(res.statusCode).toBe(400);
       expect(res.body.message).toMatch(/La edad debe ser de máximo 2 cifras/);
@@ -109,8 +109,8 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
     it('Debería rechazar reserva con más de 50 niños', async () => {
       const res = await request(app).post('/api/v1/events').send({
         tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
-        cliente: { nombreNiño: 'Pedrito', edadNiño: 5, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789' },
-        detalles: { niños: { cantidad: 51, menuId: 'menu-1' }, extras: { privacyPolicyConsent: true } }
+        cliente: { nombreNiño: 'Pedrito', edadNiño: 5, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789', privacyPolicyConsent: true },
+        detalles: { niños: { cantidad: 51, menuId: 'menu-1' } }
       });
       expect(res.statusCode).toBe(400);
       expect(res.body.message).toMatch(/Máximo 50 niños/);
@@ -119,11 +119,10 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
     it('Debería rechazar reserva con más de 40 adultos', async () => {
       const res = await request(app).post('/api/v1/events').send({
         tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
-        cliente: { nombreNiño: 'Pedrito', edadNiño: 5, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789' },
+        cliente: { nombreNiño: 'Pedrito', edadNiño: 5, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789', privacyPolicyConsent: true },
         detalles: {
           niños: { cantidad: 15, menuId: 'menu-1' },
-          adultos: { cantidad: 41 },
-          extras: { privacyPolicyConsent: true }
+          adultos: { cantidad: 41 }
         }
       });
       expect(res.statusCode).toBe(400);
@@ -133,14 +132,13 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
     it('Debería rechazar raciones de comida de adultos mayores a 20 unidades', async () => {
       const res = await request(app).post('/api/v1/events').send({
         tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
-        cliente: { nombreNiño: 'Pedrito', edadNiño: 5, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789' },
+        cliente: { nombreNiño: 'Pedrito', edadNiño: 5, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789', privacyPolicyConsent: true },
         detalles: {
           niños: { cantidad: 15, menuId: 'menu-1' },
           adultos: {
             cantidad: 20,
             comida: [{ item: 'Tortilla', cantidad: 21, precioUnitario: 10 }]
-          },
-          extras: { privacyPolicyConsent: true }
+          }
         }
       });
       expect(res.statusCode).toBe(400);
@@ -151,8 +149,8 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
       const longName = 'A'.repeat(101);
       const res = await request(app).post('/api/v1/events').send({
         tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
-        cliente: { nombreNiño: longName, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789' },
-        detalles: { niños: { cantidad: 15, menuId: 'menu-1' }, extras: { privacyPolicyConsent: true } }
+        cliente: { nombreNiño: longName, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789', privacyPolicyConsent: true },
+        detalles: { niños: { cantidad: 15, menuId: 'menu-1' } }
       });
       expect(res.statusCode).toBe(400);
       expect(res.body.message).toMatch(/Nombre del niño demasiado largo/);
@@ -176,8 +174,8 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
       const res = await request(app).post('/api/v1/events').send({
         tipo: 'reserva', fecha: '2025-05-20T00:00:00.000Z', // 20 May 2025 es Martes
         turno: 'T1',
-        cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789' },
-        detalles: { niños: { cantidad: 12, menuId: 'menu-1' }, extras: { privacyPolicyConsent: true } }
+        cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789', privacyPolicyConsent: true },
+        detalles: { niños: { cantidad: 12, menuId: 'menu-1' } }
       });
       expect(res.statusCode).toBe(201);
       expect(res.body.precioTotal).toBe(180);
@@ -188,8 +186,8 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
       const res = await request(app).post('/api/v1/events').send({
         tipo: 'reserva', fecha: '2025-05-24T00:00:00.000Z', // 24 May 2025 es Sábado
         turno: 'T1',
-        cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789' },
-        detalles: { niños: { cantidad: 12, menuId: 'menu-1' }, extras: { privacyPolicyConsent: true } }
+        cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789', privacyPolicyConsent: true },
+        detalles: { niños: { cantidad: 12, menuId: 'menu-1' } }
       });
       expect(res.body.precioTotal).toBe(204); // 180 base + 24 plus
     });
@@ -199,10 +197,10 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
       const res = await request(app).post('/api/v1/events').send({
         tipo: 'reserva', fecha: '2025-05-20T00:00:00.000Z',
         turno: 'T1',
-        cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789' },
+        cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789', privacyPolicyConsent: true },
         detalles: {
           niños: { cantidad: 20, menuId: 'menu-1' },
-          extras: { taller: 'Magia', privacyPolicyConsent: true }
+          extras: { taller: 'Magia' }
         },
         horario: { extensionMinutos: 30 }
       });
@@ -214,10 +212,10 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
       const res = await request(app).post('/api/v1/events').send({
         tipo: 'reserva', fecha: '2025-05-20T00:00:00.000Z',
         turno: 'T1',
-        cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789' },
+        cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789', privacyPolicyConsent: true },
         detalles: {
           niños: { cantidad: 15, menuId: 'menu-1' },
-          extras: { taller: 'Magia', privacyPolicyConsent: true }
+          extras: { taller: 'Magia' }
         }
       });
       expect(res.body.precioTotal).toBe(250);
@@ -240,7 +238,7 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
   describe('Consulta de Disponibilidad (Motor Principal)', () => {
     it('Debería reportar ocupado un turno proveniente de la base de datos local', async () => {
       // 1. Creamos un evento directamente en BD local
-      await Event.create({ tipo: 'reserva', fecha: '2025-10-10T00:00:00.000Z', turno: 'T3', estado: 'confirmado', detalles: { extras: { privacyPolicyConsent: true } } });
+      await Event.create({ tipo: 'reserva', fecha: '2025-10-10T00:00:00.000Z', turno: 'T3', estado: 'confirmado', cliente: { privacyPolicyConsent: true } });
 
       // 2. Solicitamos disponibilidad a esa fecha
       const res = await request(app).get('/api/v1/events/availability?fecha=2025-10-10');

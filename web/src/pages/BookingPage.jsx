@@ -322,7 +322,12 @@ const BookingPage = () => {
 				tipo: 'reserva',
 				fecha: formData.fecha,
 				turno: formData.turno,
-				cliente: formData.cliente,
+				cliente: {
+					...formData.cliente,
+					privacyPolicyConsent: consentData.privacyPolicy,
+					marketingConsent: consentData.marketing,
+					fechaConsentimiento: new Date().toISOString(),
+				},
 				precioTotal: calculateTotal(),
 				detalles: {
 					niños: formData.niños,
@@ -332,9 +337,6 @@ const BookingPage = () => {
 					},
 					extras: {
 						...formData.extras,
-						privacyPolicyConsent: consentData.privacyPolicy,
-						marketingConsent: consentData.marketing,
-						fechaConsentimiento: new Date().toISOString(),
 					},
 				},
 				horario: {

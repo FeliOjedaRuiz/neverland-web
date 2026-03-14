@@ -27,7 +27,13 @@ const eventSchema = new mongoose.Schema({
     edadNiño: { type: Number, max: 99 },
     nombrePadre: { type: String, maxlength: 100 },
     telefono: { type: String, maxlength: 20 },
-    email: { type: String, maxlength: 100 }
+    email: { type: String, maxlength: 100 },
+    privacyPolicyConsent: {
+      type: Boolean,
+      required: function () { return this.tipo === 'reserva'; }
+    },
+    marketingConsent: { type: Boolean, default: false },
+    fechaConsentimiento: { type: Date, default: Date.now }
   },
 
   // Configuración del evento
@@ -57,13 +63,7 @@ const eventSchema = new mongoose.Schema({
       precioPinataApplied: { type: Number }, // [NEW] Snapshot
       observaciones: { type: String, default: '', maxlength: 500 },
       alergenos: { type: String, default: '', maxlength: 500 },
-      costoExtra: { type: Number, default: 0, max: 999 },
-      privacyPolicyConsent: {
-        type: Boolean,
-        required: function () { return this.tipo === 'reserva'; }
-      },
-      marketingConsent: { type: Boolean, default: false },
-      fechaConsentimiento: { type: Date, default: Date.now }
+      costoExtra: { type: Number, default: 0, max: 999 }
     }
   },
 

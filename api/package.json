@@ -6,7 +6,6 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "seeds": "node bin/seeds.js",
     "test": "jest --setupFilesAfterEnv=./tests/setup.js"
   },
   "author": "Feliciano Ojeda Ruiz",
