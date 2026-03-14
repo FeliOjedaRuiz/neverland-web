@@ -319,6 +319,9 @@ module.exports.publicDetail = (req, res, next) => {
         cliente: {
           nombreNiño: event.cliente.nombreNiño,
           edadNiño: event.cliente.edadNiño,
+          nombrePadre: event.cliente.nombrePadre,
+          email: event.cliente.email,
+          telefono: event.cliente.telefono,
         },
         detalles: {
           niños: {
