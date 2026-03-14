@@ -1,14 +1,11 @@
 import axios from 'axios';
 
 const getApiBaseUrl = () => {
-  if (import.meta.env.PROD) return '/api/v1';
-
-  const envUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+  const envUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
   const currentHost = window.location.hostname;
 
-  // If we are accessing via IP (mobile testing) and the URL points to localhost,
-  // replace localhost with the current IP so the phone connects to the PC API.
-  if (currentHost !== 'localhost' && currentHost !== '127.0.0.1' && envUrl.includes('localhost')) {
+  // Prevent rewriting the URL on production if testing from mobile/IP in development
+  if (import.meta.env.DEV && currentHost !== 'localhost' && currentHost !== '127.0.0.1' && envUrl.includes('localhost')) {
     return envUrl.replace('localhost', currentHost);
   }
 
