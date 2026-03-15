@@ -52,9 +52,12 @@ router.patch('/events/:id', (req, res, next) => {
 }, events.update);
 router.delete('/events/:id', secure.isAdmin, events.delete);
 
+const upload = require('../config/cloudinary.config');
+
 // CONFIG
 router.get('/config', config.get);
 router.patch('/config', secure.isAdmin, config.update);
+router.post('/config/upload-image', secure.isAdmin, upload.single('image'), config.uploadImage);
 
 // WORKSHOPS
 router.get('/workshops', workshops.list);

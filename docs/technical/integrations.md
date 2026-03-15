@@ -21,6 +21,20 @@ El administrador puede bloquear turnos desde la App oficial de Google Calendar u
 
 ---
 
+## ☁️ Cloudinary Asset Management
+
+El sistema delega la gestión de imágenes a Cloudinary para optimizar el rendimiento y escalabilidad.
+
+### Configuración
+- **Almacenamiento**: Carpeta `neverland/activities`.
+- **Integración**: Multer + Cloudinary Storage.
+- **Flujo**:
+  1. El Admin sube una imagen desde el `ConfigurationPanel`.
+  2. El servidor procesa la subida y devuelve la URL segura.
+  3. La URL se almacena en el documento `Config` bajo el campo `imageUrl`.
+
+---
+
 ## 💬 WhatsApp Business Integration
 
 - **URLs Dinámicas**: El sistema construye enlaces `wa.me` con el desglose de la reserva.

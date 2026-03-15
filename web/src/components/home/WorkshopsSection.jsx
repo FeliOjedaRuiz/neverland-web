@@ -2,12 +2,12 @@ import React from 'react';
 import { Palette, Sparkles, Beaker } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
-import facePaintingImg from '../../assets/images/face_painting.png';
-import slimeImg from '../../assets/images/slime.png';
-import magicImg from '../../assets/images/magic.png';
+const facePaintingImg = 'https://res.cloudinary.com/duoshgr3h/image/upload/v1773576729/neverland/activities/hgbjmzrrbpw3hsgdbelk.jpg';
+const slimeImg = 'https://res.cloudinary.com/duoshgr3h/image/upload/v1773576731/neverland/activities/uegaynpkxz9nfwi8raxm.jpg';
+const magicImg = 'https://res.cloudinary.com/duoshgr3h/image/upload/v1773576730/neverland/activities/xksz1nlsrlnvry5zvusx.jpg';
 
 const WorkshopCard = ({ title, image, icon: Icon, description, delay }) => {
-	const { ref, controls, variants } = useScrollReveal(0.2);
+	const { ref, controls } = useScrollReveal(0.2);
 
 	return (
 		<motion.div
@@ -26,7 +26,7 @@ const WorkshopCard = ({ title, image, icon: Icon, description, delay }) => {
 		>
 			<div className="absolute inset-0 transition-transform duration-700 group-hover:scale-110">
 				<img src={image} alt={title} className="w-full h-full object-cover" />
-				<div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent group-hover:from-black/80 transition-all duration-300"></div>
+				<div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/40 to-transparent group-hover:from-black/80 transition-all duration-300"></div>
 			</div>
 
 			<div className="absolute inset-0 flex flex-col justify-end p-6 z-10">

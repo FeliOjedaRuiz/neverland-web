@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Image as ImageIcon } from 'lucide-react';
 import { safeParseDate } from '../../utils/safeDate';
 
 const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
@@ -104,7 +104,7 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 						</span>
 					)}
 			</p>
-			<div className="space-y-3">
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				{CHILDREN_MENUS.map((menu) => (
 					<div
 						key={menu.id || menu._id}
@@ -114,81 +114,77 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 								niños: { ...formData.niños, menuId: menu.id || menu._id },
 							})
 						}
-						className={`relative overflow-hidden rounded-2xl border-2 transition-all cursor-pointer ${
+						className={`relative overflow-hidden rounded-2xl border-2 transition-all cursor-pointer flex flex-col ${
 							String(formData.niños.menuId) === String(menu.id || menu._id)
-								? 'border-energy-orange bg-orange-50/30 shadow-md'
-								: 'border-orange-50 bg-white shadow-sm hover:border-orange-100'
+								? 'border-energy-orange bg-orange-50/30'
+								: 'border-white bg-white shadow-sm hover:border-orange-100 hover:shadow-md'
 						}`}
 					>
-						<div className="p-4 relative z-10">
-							<div className="flex justify-between items-start mb-2">
-								<span
-									className={`font-display font-black text-lg ${String(formData.niños.menuId) === String(menu.id || menu._id) ? 'text-energy-orange' : 'text-gray-800'}`}
-								>
-									{menu.nombre}
-								</span>
-								<div className="flex flex-col items-end">
-									<span
-										className={`font-black text-xl bg-white px-2 py-1 rounded-lg shadow-sm ${String(formData.niños.menuId) === String(menu.id || menu._id) ? 'text-energy-orange' : 'text-orange-300/80'}`}
-									>
-										{menu.precio}€
-									</span>
-									<span className="text-[11px] italic text-gray-400 mt-1 mr-1">
-										x niño
-									</span>
-								</div>
-							</div>
-							{formData.fecha &&
-								(() => {
-									const d = safeParseDate(formData.fecha);
-									return (
-										d && !isNaN(d.getTime()) && [0, 5, 6].includes(d.getDay())
-									);
-								})() && (
-									<div className="flex justify-end mb-2 -mt-1">
-										<span className="text-[10px] font-bold text-energy-orange bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100/50">
-											+1.50€ Vie a Dom
-										</span>
+						{/* Header with Image and Price */}
+						<div className="p-3 flex gap-4">
+							<div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100/50 shadow-sm relative">
+								{menu.imageUrl ? (
+									<img src={menu.imageUrl} alt={menu.nombre} className="w-full h-full object-cover" />
+								) : (
+									<div className="w-full h-full flex items-center justify-center text-gray-200">
+										<ImageIcon size={24} />
 									</div>
 								)}
-							<div className="text-sm text-gray-600 mb-1 space-y-2">
-								<p className="flex items-baseline gap-2 leading-tight">
-									<strong
-										className={`font-black uppercase text-[9px] tracking-widest shrink-0 ${String(formData.niños.menuId) === String(menu.id || menu._id) ? 'text-energy-orange' : 'text-orange-200'}`}
-									>
-										Principal
-									</strong>
-									<span className="font-bold text-gray-800">
+								{String(formData.niños.menuId) === String(menu.id || menu._id) && (
+									<div className="absolute inset-0 bg-energy-orange/10 flex items-center justify-center backdrop-blur-[1px]">
+										<CheckCircle className="text-white" size={28} fill="currentColor" stroke="#ff7d45" />
+									</div>
+								)}
+							</div>
+							
+							<div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+								<div className="flex justify-between items-start">
+									<h4 className={`font-display font-black text-sm sm:text-base leading-tight truncate pr-2 ${String(formData.niños.menuId) === String(menu.id || menu._id) ? 'text-energy-orange' : 'text-text-black'}`}>
+										{menu.nombre}
+									</h4>
+									<div className="flex flex-col items-end shrink-0">
+										<span className={`font-black text-base ${String(formData.niños.menuId) === String(menu.id || menu._id) ? 'text-energy-orange' : 'text-text-black'}`}>
+											{menu.precio}€
+										</span>
+									</div>
+								</div>
+
+								{/* Principal Dish Highlight */}
+								<div className="bg-gray-50/80 px-2 py-1 rounded-lg border border-gray-100/50">
+									<p className="text-[10px] font-bold text-gray-600 line-clamp-1">
+										<span className="text-energy-orange/60 font-black uppercase text-[8px] mr-1">Taller</span>
 										{menu.principal}
-									</span>
-								</p>
-								<div className="flex flex-wrap gap-1.5 pt-1">
-									{menu.resto
-										?.split('\n')
-										.filter((i) => i.trim())
-										.map((item, i) => (
-											<span
-												key={i}
-												className="bg-gray-100/60 text-[10px] px-2.5 py-1 rounded-full text-gray-500 font-bold flex items-center gap-1.5 border border-gray-100/50"
-											>
-												<div
-													className={`w-1 h-1 rounded-full ${String(formData.niños.menuId) === String(menu.id || menu._id) ? 'bg-energy-orange/40' : 'bg-orange-100'}`}
-												/>
-												{item.replace(/^-/, '').trim()}
-											</span>
-										))}
+									</p>
 								</div>
 							</div>
 						</div>
-						{String(formData.niños.menuId) === String(menu.id || menu._id) && (
-							<div className="absolute top-0 right-0 p-4">
-								<CheckCircle
-									className="text-energy-orange"
-									fill="currentColor"
-									stroke="white"
-								/>
+
+						{/* Bottom Details - Badges */}
+						<div className="px-3 pb-3">
+							<div className="flex flex-wrap gap-1.5 pt-2 border-t border-gray-100/50">
+								{menu.resto
+									?.split('\n')
+									.filter((i) => i.trim())
+									.map((item, i) => (
+										<span
+											key={i}
+											className="bg-white/60 text-[9px] px-2 py-0.5 rounded-full text-gray-500 font-bold border border-gray-100 shadow-sm flex items-center gap-1"
+										>
+											<div className="w-1 h-1 rounded-full bg-energy-orange/30" />
+											{item.replace(/^-/, '').trim()}
+										</span>
+									))}
+								{formData.fecha &&
+									(() => {
+										const d = safeParseDate(formData.fecha);
+										return d && !isNaN(d.getTime()) && [0, 5, 6].includes(d.getDay());
+									})() && (
+										<span className="text-[9px] bg-orange-50 text-energy-orange px-2 py-0.5 rounded-full font-black border border-orange-100 uppercase tracking-tighter shadow-sm">
+											+1.50€ Finde
+										</span>
+									)}
 							</div>
-						)}
+						</div>
 					</div>
 				))}
 			</div>

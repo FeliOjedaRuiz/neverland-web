@@ -84,3 +84,62 @@ Centraliza tanto la actividad comercial como el control de disponibilidad.
 ### Colección: `Configs`
 
 Almacena la configuración global comercial (precios, menús, raciones). Existe un **único documento** en esta colección.
+
+#### Esquema Completo
+```javascript
+{
+  menusNiños: [
+    {
+      id: Mixed,          // ID numérico (legacy) o String (MongoDB)
+      nombre: String,
+      precio: Number,
+      principal: String,  // Plato principal
+      resto: String,      // Acompañamientos/Bebida
+      imageUrl: String,   // URL de Cloudinary
+      suspended: Boolean, // Pausado temporalmente (no aparece en Booking)
+      active: Boolean     // Borrado lógico (no aparece en Admin)
+    }
+  ],
+  plusFinDeSemana: Number, // Recargo Vie-Dom por niño
+  preciosAdultos: [
+    {
+      id: String,
+      nombre: String,
+      precio: Number,
+      unidades: String,   // Ej: "10 unidades"
+      imageUrl: String,
+      suspended: Boolean,
+      active: Boolean
+    }
+  ],
+  workshops: [
+    {
+      id: String,
+      name: String,
+      priceBase: Number,  // Precio < 15 niños
+      pricePlus: Number,  // Precio >= 15 niños
+      desc: String,
+      imageUrl: String,
+      suspended: Boolean,
+      active: Boolean
+    }
+  ],
+  characters: [
+    {
+      id: String,
+      name: String,
+      imageUrl: String,
+      suspended: Boolean,
+      active: Boolean
+    }
+  ],
+  preciosExtras: {
+    tallerBase: Number,
+    tallerPlus: Number,
+    personaje: Number,
+    pinata: Number,
+    extension30: Number,
+    extension60: Number
+  }
+}
+```

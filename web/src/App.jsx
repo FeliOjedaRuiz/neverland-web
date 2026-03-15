@@ -108,11 +108,11 @@ class GlobalErrorBoundary extends React.Component {
 
 function App() {
 	return (
-		<GlobalErrorBoundary>
-			<Router>
+		<Router>
+			<GlobalErrorBoundary>
 				<Layout />
-			</Router>
-		</GlobalErrorBoundary>
+			</GlobalErrorBoundary>
+		</Router>
 	);
 }
 

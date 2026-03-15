@@ -25,6 +25,7 @@ import {
 	MessageSquare,
 	TimerReset,
 	Receipt,
+	Users,
 } from 'lucide-react';
 import { useNavigate, useParams, useOutletContext } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -98,9 +99,41 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 		}
 	};
 
+	// Transformation logic to ensure stable IDs and fields for list items
+	const transformConfig = (data) => {
+		const normalizeList = (list) =>
+			(list || []).map((item) => {
+				if (typeof item === 'string') {
+					return {
+						id: Date.now().toString() + Math.random(),
+						nombre: item,
+						name: item,
+						suspended: false,
+						imageUrl: '',
+					};
+				}
+				return {
+					...item,
+					id: String(item.id || item._id || ''),
+					nombre: item.nombre || item.name || '',
+					name: item.nombre || item.name || '',
+					precio: item.precio || item.price || 0,
+					price: item.precio || item.price || 0,
+					suspended: item.suspended || false,
+				};
+			});
+
+		if (data.menusNiños) data.menusNiños = normalizeList(data.menusNiños);
+		if (data.preciosAdultos) data.preciosAdultos = normalizeList(data.preciosAdultos);
+		if (data.workshops) data.workshops = normalizeList(data.workshops);
+		if (data.characters) data.characters = normalizeList(data.characters);
+
+		return data;
+	};
+
 	useEffect(() => {
 		if (contextConfig) {
-			setConfig(contextConfig);
+			setConfig(transformConfig(JSON.parse(JSON.stringify(contextConfig))));
 		}
 	}, [contextConfig]);
 
@@ -117,13 +150,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 
 				if (!config && !contextConfig) {
 					const res = await getConfig();
-					const data = res.data;
-					if (data.menusNiños) {
-						data.menusNiños = data.menusNiños.map((m) => ({
-							...m,
-							id: String(m.id || m._id || ''),
-						}));
-					}
+					const data = transformConfig(res.data);
 					if (isMounted) {
 						setConfig(data);
 						if (setContextConfig) setContextConfig(data);
@@ -323,7 +350,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 				<div className="flex items-center gap-3 p-4 bg-neverland-green text-white shrink-0 shadow-md relative z-20">
 					<div className="flex-1 min-w-0">
 						{/* Fila 1: Nombre y Edad */}
-						<h2 className="text-xl font-display font-black leading-tight break-words">
+						<h2 className="text-xl font-display font-black leading-tight wrap-break-word">
 							{reservation.cliente?.nombreNiño}
 							{reservation.cliente?.edadNiño
 								? `, ${reservation.cliente.edadNiño} años`
@@ -777,22 +804,38 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 
 								{/* Personaje */}
 								<div
-									className={`p-3 rounded-2xl border flex items-center gap-4 transition-all ${reservation.detalles?.extras?.personaje !== 'ninguno' ? 'bg-purple-50/50 border-purple-100' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
+									className={`p-3 rounded-[24px] border flex items-center gap-4 transition-all ${reservation.detalles?.extras?.personaje !== 'ninguno' ? 'bg-purple-50/50 border-purple-100 shadow-sm' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
 								>
 									<div
-										className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.personaje !== 'ninguno' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}
+										className={`w-12 h-12 rounded-2xl overflow-hidden shrink-0 shadow-inner flex items-center justify-center ${reservation.detalles?.extras?.personaje !== 'ninguno' ? 'bg-purple-100 border border-purple-200' : 'bg-gray-100'}`}
 									>
-										<Smile size={18} />
+										{(() => {
+											const activeChar = reservation.detalles?.extras?.personaje;
+											if (!activeChar || activeChar === 'ninguno') return <Smile size={20} className="text-gray-400" />;
+											
+											const characterData = config?.characters?.find(c => (c.nombre || c.name) === activeChar);
+											if (characterData?.imageUrl) {
+												return <img src={characterData.imageUrl} className="w-full h-full object-cover" alt={activeChar} />;
+											}
+											return <Smile size={20} className="text-purple-600" />;
+										})()}
 									</div>
 									<div className="min-w-0 flex flex-1 justify-between items-center">
-										<p className="text-[9px] text-gray-400 font-black uppercase tracking-tight">
-											Personaje
-										</p>
-										<p className="text-sm font-black text-gray-800 truncate">
-											{reservation.detalles?.extras?.personaje === 'ninguno'
-												? 'Sin personaje'
-												: reservation.detalles?.extras?.personaje}
-										</p>
+										<div>
+											<p className="text-[9px] text-gray-400 font-black uppercase tracking-tight mb-0.5">
+												Personaje
+											</p>
+											<p className="text-sm font-black text-gray-800 truncate">
+												{reservation.detalles?.extras?.personaje === 'ninguno'
+													? 'Sin personaje'
+													: reservation.detalles?.extras?.personaje}
+											</p>
+										</div>
+										{reservation.detalles?.extras?.personaje !== 'ninguno' && (
+											<span className="text-[10px] font-black text-purple-600 bg-purple-100 px-2 py-1 rounded-lg">
+												+{config?.preciosExtras?.personaje || 0}€
+											</span>
+										)}
 									</div>
 								</div>
 
@@ -855,22 +898,20 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 								)}
 							</div>
 
-							{/* Costo Extra Manual / Descuento */}
-							{(isAdmin || (reservation.detalles?.extras?.costoExtra && reservation.detalles.extras.costoExtra !== 0)) && (
-								<div className="mt-3 flex items-center justify-between p-4 bg-energy-orange/5 rounded-2xl border border-energy-orange/10">
-									<div className="flex items-center gap-3">
-										<div className="w-8 h-8 rounded-lg bg-energy-orange/10 text-energy-orange flex items-center justify-center">
-											<Receipt size={16} />
-										</div>
-										<p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-											{reservation.detalles?.extras?.costoExtra < 0 ? 'Descuento' : 'Extra Manual'}
-										</p>
+							{/* Costo Extra Manual / Descuento - Ultra Minimalist */}
+							{reservation.detalles?.extras?.costoExtra && reservation.detalles.extras.costoExtra !== 0 ? (
+								<div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between">
+									<div className="flex items-center gap-2">
+										<Receipt size={12} className="text-gray-400" />
+										<span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+											{reservation.detalles.extras.costoExtra < 0 ? 'Descuento' : 'Costo Extra'}
+										</span>
 									</div>
-									<p className={`text-sm font-black ${reservation.detalles?.extras?.costoExtra < 0 ? 'text-green-600' : 'text-energy-orange'}`}>
-										{reservation.detalles?.extras?.costoExtra > 0 ? '+' : ''}{reservation.detalles?.extras?.costoExtra || 0}€
-									</p>
+									<span className={`text-sm font-black ${reservation.detalles.extras.costoExtra < 0 ? 'text-green-600' : 'text-orange-500'}`}>
+										{reservation.detalles.extras.costoExtra > 0 ? '+' : ''}{reservation.detalles.extras.costoExtra}€
+									</span>
 								</div>
-							)}
+							) : null}
 						</div>
 					</section>
 
@@ -1133,7 +1174,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 
 								{activeModal === 'observations' && (
 									<ObservationsEdit
-										current={reservation.detalles.extras.observaciones}
+										current={reservation.detalles?.extras?.observaciones}
 										currentCostoExtra={reservation.detalles?.extras?.costoExtra ?? 0}
 										isAdmin={isAdmin}
 										onCancel={closeModals}
@@ -1142,7 +1183,9 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 											try {
 												const payload = {
 													detalles: {
+														...reservation.detalles,
 														extras: {
+															...(reservation.detalles?.extras || {}),
 															observaciones: newObs,
 															...(isAdmin && { costoExtra: newCostoExtra }),
 														},
@@ -1750,194 +1793,228 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 
 	return (
 		<div className="space-y-8 pb-4">
-			{/* Niños */}
-			<div className="space-y-4">
-				<h5 className="text-xs font-black text-neverland-green uppercase tracking-widest border-b border-neverland-green/10 pb-2">
+			<div className="space-y-6">
+				<h5 className="text-[10px] font-black text-neverland-green uppercase tracking-[0.2em] border-b border-neverland-green/10 pb-3 flex items-center gap-2">
+					<div className="w-1.5 h-1.5 rounded-full bg-neverland-green animate-pulse" />
 					Asistencia Infantil
 				</h5>
-				<div className="grid grid-cols-2 gap-4">
-					<div className="space-y-2">
-						<label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-							Cantidad de Niños
-						</label>
-						<div className="flex items-center bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden focus-within:ring-4 focus-within:ring-neverland-green/10 focus-within:border-neverland-green transition-all">
-							<button
-								onClick={() =>
-									setNiñosExt({
-										...niñosExt,
-										cantidad: Math.max(12, niñosExt.cantidad - 1),
-									})
-								}
-								className="px-4 py-3 hover:bg-white text-gray-400 font-bold transition-colors"
-							>
-								-
-							</button>
-							<input
-								type="number"
-								min="12"
-								max="50"
-								value={niñosExt.cantidad}
-								onChange={(e) => {
-									const val = Math.max(
-										0,
-										Math.min(50, parseInt(e.target.value) || 0),
-									);
-									setNiñosExt({
-										...niñosExt,
-										cantidad: val,
-									});
-								}}
-								className="w-full bg-transparent text-center font-bold outline-none py-3"
-							/>
-							<button
-								onClick={() =>
-									setNiñosExt({
-										...niñosExt,
-										cantidad: Math.min(50, niñosExt.cantidad + 1),
-									})
-								}
-								disabled={niñosExt.cantidad >= 50}
-								className="px-4 py-3 hover:bg-white text-gray-400 disabled:opacity-30 disabled:hover:bg-transparent font-bold transition-colors"
-							>
-								+
-							</button>
-						</div>
-					</div>
-					<div className="space-y-2">
-						<label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-							Nivel de Menú
-						</label>
-						<select
-							value={niñosExt.menuId}
-							onChange={(e) =>
-								setNiñosExt({ ...niñosExt, menuId: e.target.value })
-							}
-							className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all"
-						>
-							{(config?.menusNiños || []).map((m) => (
-								<option key={m.id || m._id} value={m.id || m._id}>
-									{m.nombre || m.name} ({m.precio || m.price}€)
-								</option>
-							))}
-						</select>
-					</div>
-				</div>
-
-				{/* Alérgenos Edit */}
-				<div className="space-y-2 pt-2">
-					<label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">
-						Alérgenos / Intolerancias
-					</label>
-					<textarea
-						value={alergenos}
-						onChange={(e) => setAlergenos(e.target.value.substring(0, 500))}
-						maxLength={500}
-						className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm font-bold text-text-black focus:outline-none focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green focus:bg-white transition-all resize-none min-h-[100px]"
-						placeholder="Indica alergias o intolerancias alimentarias..."
-					/>
-				</div>
-			</div>
-
-			{/* Adultos */}
-			<div className="space-y-4">
-				<div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline border-b-2 border-orange-100/50 pb-5 gap-4">
-					<div className="space-y-1">
-						<h5 className="text-sm font-display font-black text-energy-orange uppercase tracking-wider">
-							Adultos y Comida
-						</h5>
-						<p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1 wrap-break-word">
-							Gestión de asistentes y menú
-						</p>
-					</div>
-					<div className="flex items-center justify-between w-full sm:w-auto gap-4 bg-orange-50 p-2.5 rounded-2xl border border-orange-100">
-						<span className="text-[10px] font-black text-energy-orange uppercase pl-1">
-							Total Adultos:
-						</span>
-						<div className="flex items-center bg-white border border-energy-orange/30 rounded-xl overflow-hidden shadow-sm">
-							<button
-								onClick={() => setAdultosQty(Math.max(1, adultosQty - 1))}
-								className="px-4 py-2 hover:bg-orange-50 text-energy-orange font-black transition-colors"
-							>
-								-
-							</button>
-							<span className="px-5 py-2 font-display font-black text-base border-x border-orange-50 min-w-[56px] text-center text-text-black">
-								{adultosQty}
-							</span>
-							<button
-								onClick={() => setAdultosQty(Math.min(40, adultosQty + 1))}
-								disabled={adultosQty >= 40}
-								className="px-4 py-2 hover:bg-orange-50 text-energy-orange disabled:opacity-30 disabled:hover:bg-transparent font-black transition-colors"
-							>
-								+
-							</button>
-						</div>
-					</div>
-				</div>
-
-				<div className="space-y-3">
-					{adultosList.map((item, idx) => (
-						<div
-							key={idx}
-							className="flex items-center justify-between p-3 bg-gray-50 rounded-2xl border border-gray-100"
-						>
-							<div className="flex-1">
-								<p className="text-sm font-bold text-text-black">{item.item}</p>
-								<p className="text-[10px] text-gray-400 font-bold">
-									{item.precioUnitario}€ / ud.
-								</p>
-							</div>
-							<div className="flex items-center gap-3">
-								<div className="flex items-center bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-									<button
-										onClick={() => updateAdultQty(idx, item.cantidad - 1)}
-										className="px-3 py-1 hover:bg-gray-50 text-gray-400 font-bold"
-									>
-										-
-									</button>
-									<span className="px-3 py-1 font-bold text-sm border-x border-gray-100 min-w-[40px] text-center">
-										{item.cantidad}
-									</span>
-									<button
-										onClick={() => updateAdultQty(idx, item.cantidad + 1)}
-										className="px-3 py-1 hover:bg-gray-50 text-gray-400 font-bold"
-									>
-										+
-									</button>
-								</div>
+				
+				<div className="space-y-4">
+					<div className="flex flex-col gap-4">
+						<div className="space-y-2">
+							<label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">
+								¿Cuántos piratas vienen?
+							</label>
+							<div className="flex items-center bg-surface border-2 border-gray-100 rounded-[28px] p-1.5 shadow-sm focus-within:ring-4 focus-within:ring-neverland-green/5 focus-within:border-neverland-green/30 transition-all max-w-[180px]">
 								<button
-									onClick={() => removeAdultItem(idx)}
-									className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+									onClick={() =>
+										setNiñosExt({
+											...niñosExt,
+											cantidad: Math.max(12, niñosExt.cantidad - 1),
+										})
+									}
+									className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-neverland-green/10 hover:text-neverland-green transition-colors active:scale-90"
 								>
-									<Trash2 size={16} />
+									<span className="text-xl font-black leading-none">-</span>
+								</button>
+								<input
+									type="number"
+									min="12"
+									max="50"
+									value={niñosExt.cantidad}
+									onChange={(e) => {
+										const val = Math.max(0, Math.min(50, parseInt(e.target.value) || 0));
+										setNiñosExt({ ...niñosExt, cantidad: val });
+									}}
+									className="w-full bg-transparent text-center font-display font-black text-xl text-text-black outline-none"
+								/>
+								<button
+									onClick={() =>
+										setNiñosExt({
+											...niñosExt,
+											cantidad: Math.min(50, niñosExt.cantidad + 1),
+										})
+									}
+									disabled={niñosExt.cantidad >= 50}
+									className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-neverland-green/10 hover:text-neverland-green transition-colors disabled:opacity-30 active:scale-90"
+								>
+									<span className="text-xl font-black leading-none">+</span>
 								</button>
 							</div>
 						</div>
-					))}
-				</div>
 
-				{config?.preciosAdultos && (
-					<div className="pt-2">
-						<p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
-							Añadir Comida de Adultos
-						</p>
-						<div className="flex flex-wrap gap-2">
-							{config.preciosAdultos
-								.filter(
-									(opt) => !adultosList.some((a) => a.item === opt.nombre),
-								)
-								.map((opt) => (
-									<button
-										key={opt.id}
-										onClick={() => addAdultItem(opt)}
-										className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:border-energy-orange hover:text-energy-orange transition-all flex items-center gap-2"
-									>
-										<Plus size={12} />
-										{opt.nombre}
-									</button>
-								))}
+						{/* Visual Menu Selector for Kids */}
+						<div className="space-y-3">
+							<label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">
+								Selecciona el Banquete
+							</label>
+							<div className="grid grid-cols-1 gap-3">
+								{(config?.menusNiños || []).map((m) => {
+									const isSelected = String(m.id || m._id) === String(niñosExt.menuId);
+									const imageUrl = m.imageUrl || m.image;
+									return (
+										<div
+											key={m.id || m._id}
+											onClick={() => setNiñosExt({ ...niñosExt, menuId: m.id || m._id })}
+											className={`group flex items-center gap-4 p-3 rounded-[32px] border-2 transition-all cursor-pointer relative overflow-hidden ${
+												isSelected
+													? 'border-neverland-green bg-neverland-green/5 shadow-md shadow-neverland-green/5'
+													: 'border-gray-50 bg-gray-50 hover:bg-white hover:border-neverland-green/20'
+											}`}
+										>
+											<div className="relative w-20 h-20 rounded-2xl overflow-hidden shrink-0 bg-white border border-gray-100 shadow-sm">
+												{imageUrl ? (
+													<img src={imageUrl} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt={m.nombre || m.name} />
+												) : (
+													<div className="w-full h-full flex items-center justify-center text-gray-200">
+														<Pizza size={32} />
+													</div>
+												)}
+											</div>
+											<div className="flex-1 min-w-0 pr-8">
+												<h6 className={`font-display font-black text-base truncate mb-0.5 ${isSelected ? 'text-neverland-green' : 'text-text-black'}`}>
+													{m.nombre || m.name}
+												</h6>
+												<p className="text-[10px] font-bold text-gray-400 leading-tight line-clamp-2 italic pr-2">
+													"{m.descripcion || 'Menú tradicional Neverland'}"
+												</p>
+												<div className="mt-1.5 flex items-center gap-2">
+													<span className="text-[10px] font-black uppercase text-neverland-green bg-neverland-green/10 px-2.5 py-1 rounded-full border border-neverland-green/5">
+														{m.precio || m.price}€ / niño
+													</span>
+												</div>
+											</div>
+											<div className={`absolute right-4 transition-all duration-300 ${isSelected ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`}>
+												<CheckCircle size={28} className="text-neverland-green" fill="currentColor" stroke="white" />
+											</div>
+										</div>
+									);
+								})}
+							</div>
 						</div>
 					</div>
-				)}
+
+					{/* Alérgenos con diseño mejorado */}
+					<div className="pt-2">
+						<div className="flex items-center gap-2 mb-2 pl-1">
+							<AlertTriangle size={14} className="text-red-400" />
+							<label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+								Notas de Alérgenos
+							</label>
+						</div>
+						<textarea
+							value={alergenos}
+							onChange={(e) => setAlergenos(e.target.value.substring(0, 500))}
+							maxLength={500}
+							className="w-full bg-red-50/30 border-2 border-red-100/30 rounded-[28px] p-5 text-sm font-bold text-text-black placeholder:text-red-200 focus:outline-none focus:ring-4 focus:ring-red-500/5 focus:border-red-200 focus:bg-white transition-all resize-none min-h-[120px]"
+							placeholder="¿Alguna alergia que debamos vigilar, Capitán?"
+						/>
+					</div>
+				</div>
+			</div>
+
+			<div className="space-y-6 pt-2">
+				<h5 className="text-[10px] font-black text-energy-orange uppercase tracking-[0.2em] border-b border-orange-100 pb-3 flex items-center gap-2">
+					<div className="w-1.5 h-1.5 rounded-full bg-energy-orange animate-pulse" />
+					Adultos y Picoteo
+				</h5>
+				
+				<div className="space-y-5">
+					<div className="bg-orange-50/50 p-5 rounded-[32px] border-2 border-orange-100/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+						<div className="flex items-center gap-4">
+							<div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-energy-orange border border-orange-100/50">
+								<User size={28} />
+							</div>
+							<div>
+								<p className="font-display font-black text-lg text-text-black">Invitados Adultos</p>
+								<p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Acompañantes en el evento</p>
+							</div>
+						</div>
+						
+						<div className="flex items-center bg-white border-2 border-orange-200/50 rounded-2xl p-1.5 shadow-sm">
+							<button onClick={() => setAdultosQty(Math.max(1, adultosQty - 1))} className="w-10 h-10 rounded-xl flex items-center justify-center bg-orange-50/50 text-energy-orange hover:bg-energy-orange hover:text-white transition-all active:scale-90 font-black text-lg">-</button>
+							<span className="w-12 text-center font-display font-black text-xl text-text-black">{adultosQty}</span>
+							<button onClick={() => setAdultosQty(Math.min(40, adultosQty + 1))} className="w-10 h-10 rounded-xl flex items-center justify-center bg-orange-50/50 text-energy-orange hover:bg-energy-orange hover:text-white transition-all active:scale-90 font-black text-lg">+</button>
+						</div>
+					</div>
+
+					<div className="space-y-3">
+						<label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">
+							Comida Seleccionada ({adultosList.length})
+						</label>
+						<div className="space-y-2.5">
+							{adultosList.map((item, idx) => {
+								const configItem = config?.preciosAdultos?.find(p => p.nombre === item.item);
+								return (
+									<div key={idx} className="flex items-center gap-3 p-3 bg-white rounded-[24px] border-2 border-gray-100/50 shadow-sm animate-in slide-in-from-left-2 duration-300">
+										<div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-gray-50 bg-gray-50">
+											{configItem?.imageUrl ? (
+												<img src={configItem.imageUrl} className="w-full h-full object-cover" alt={item.item} />
+											) : (
+												<div className="w-full h-full flex items-center justify-center text-gray-200">
+													<Pizza size={24} />
+												</div>
+											)}
+										</div>
+										<div className="flex-1 min-w-0">
+											<p className="text-sm font-black text-text-black truncate">{item.item}</p>
+											<p className="text-[10px] font-bold text-gray-400">{item.precioUnitario}€ / unidad</p>
+										</div>
+										<div className="flex items-center border border-gray-100 rounded-xl bg-gray-50/50 overflow-hidden shadow-sm">
+											<button onClick={() => updateAdultQty(idx, item.cantidad - 1)} className="w-8 h-8 flex items-center justify-center hover:bg-white text-gray-400 font-black">-</button>
+											<span className="w-9 text-center text-xs font-black text-text-black">{item.cantidad}</span>
+											<button onClick={() => updateAdultQty(idx, item.cantidad + 1)} className="w-8 h-8 flex items-center justify-center hover:bg-white text-gray-400 font-black">+</button>
+										</div>
+										<button onClick={() => removeAdultItem(idx)} className="w-10 h-10 flex items-center justify-center bg-red-50 text-red-300 hover:text-red-500 hover:bg-red-100 rounded-xl transition-all active:scale-90">
+											<Trash2 size={18} />
+										</button>
+									</div>
+								);
+							})}
+							{adultosList.length === 0 && (
+								<div className="text-center py-6 bg-gray-50/30 rounded-3xl border-2 border-dashed border-gray-100">
+									<p className="text-xs font-bold text-gray-300 italic">No hay comida de adultos seleccionada</p>
+								</div>
+							)}
+						</div>
+					</div>
+
+						<div className="space-y-3">
+							<p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1 mt-6">
+								Añadir al Banquete
+							</p>
+							<div className="grid grid-cols-2 xs:grid-cols-3 gap-2.5">
+								{config.preciosAdultos
+									.filter((opt) => !adultosList.some((a) => a.item === opt.nombre || a.item === opt.name))
+									.map((opt) => (
+										<button
+											key={opt.id || opt.nombre || opt.name}
+											onClick={() => addAdultItem(opt)}
+											className="group flex flex-col p-2.5 bg-white border-2 border-gray-100 rounded-[28px] hover:border-energy-orange hover:shadow-lg hover:shadow-orange-500/5 transition-all active:scale-95 text-left"
+										>
+											<div className="relative aspect-square w-full rounded-2xl overflow-hidden mb-2 bg-gray-50">
+												{(opt.imageUrl || opt.image) ? (
+													<img src={opt.imageUrl || opt.image} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt={opt.nombre || opt.name} />
+												) : (
+													<div className="w-full h-full flex items-center justify-center text-gray-200">
+														<Plus size={20} />
+													</div>
+												)}
+												<div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+													<div className="bg-energy-orange text-white p-1 rounded-full shadow-lg">
+														<Plus size={12} strokeWidth={3} />
+													</div>
+												</div>
+											</div>
+											<div className="px-1 line-clamp-1">
+												<span className="text-[11px] font-black text-text-black group-hover:text-energy-orange transition-colors">{opt.nombre || opt.name}</span>
+												<div className="text-[9px] font-bold text-gray-400">{opt.precio || opt.price}€</div>
+											</div>
+										</button>
+									))}
+							</div>
+						</div>
+				</div>
 			</div>
 
 			<div className="flex gap-3 pt-6 border-t border-gray-100">
@@ -1980,126 +2057,214 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 // Sub-component for Extras Edit
 const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 	const [formData, setFormData] = useState({ ...current });
+	const [isTallerOpen, setIsTallerOpen] = useState(false);
+	const [isPersonajeOpen, setIsPersonajeOpen] = useState(false);
+
+	const selectedWs = config?.workshops?.find(ws => ws.name === formData.taller);
+	const selectedChar = config?.characters?.find(c => (c.nombre || c.name) === formData.personaje);
 
 	return (
 		<div className="space-y-8 pb-4">
-			<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-				{/* Taller */}
-				<div className="space-y-2">
-					<label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">
+			<div className="space-y-6">
+				{/* ACTIVIDAD / TALLER */}
+				<div className="space-y-3">
+					<h5 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2 pl-1">
+						<Sparkles size={14} />
 						Actividad Seleccionada
-					</label>
-					<select
-						value={formData.taller}
-						onChange={(e) =>
-							setFormData({ ...formData, taller: e.target.value })
-						}
-						className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all"
+					</h5>
+					
+					{/* Selected Card / Trigger */}
+					<div 
+						onClick={() => setIsTallerOpen(!isTallerOpen)}
+						className={`p-4 rounded-[32px] border-2 transition-all cursor-pointer flex items-center justify-between group ${
+							isTallerOpen ? 'border-blue-500 bg-white shadow-lg' : 'border-gray-100 bg-gray-50 hover:bg-white hover:border-blue-200'
+						}`}
 					>
-						<option value="ninguno">Sin actividad</option>
-						{config?.workshops?.map((ws) => (
-							<option key={ws.id} value={ws.name}>
-								{ws.name}
-							</option>
-						))}
-					</select>
+						<div className="flex items-center gap-4">
+							<div className="w-16 h-16 rounded-2xl overflow-hidden bg-white border border-gray-100 shrink-0">
+								{selectedWs?.imageUrl || selectedWs?.image ? (
+									<img src={selectedWs.imageUrl || selectedWs.image} className="w-full h-full object-cover" alt="" />
+								) : (
+									<div className="w-full h-full flex items-center justify-center text-gray-200">
+										{formData.taller === 'ninguno' ? <X size={24} /> : <Sparkles size={24} />}
+									</div>
+								)}
+							</div>
+							<div>
+								<p className="font-display font-black text-lg text-text-black">
+									{formData.taller === 'ninguno' ? 'Sin actividad especial' : formData.taller}
+								</p>
+								<p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+									{isTallerOpen ? 'Cerrar selector' : 'Pulsa para cambiar actividad'}
+								</p>
+							</div>
+						</div>
+						<div className={`p-2 rounded-full transition-transform duration-300 ${isTallerOpen ? 'rotate-180 bg-blue-500 text-white' : 'bg-white text-gray-300'}`}>
+							<ChevronDown size={20} />
+						</div>
+					</div>
+
+					{/* Collapsible Picker */}
+					{isTallerOpen && (
+						<div className="p-5 bg-gray-50 rounded-[32px] border-2 border-dashed border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in slide-in-from-top-4 duration-300">
+							{/* Opción Ninguno */}
+							<div
+								onClick={() => {
+									setFormData({ ...formData, taller: 'ninguno' });
+									setIsTallerOpen(false);
+								}}
+								className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
+									formData.taller === 'ninguno' ? 'border-blue-500' : 'border-transparent hover:border-blue-200'
+								}`}
+							>
+								<div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-300">
+									<X size={18} />
+								</div>
+								<span className="text-xs font-black text-text-black">Ninguna</span>
+							</div>
+							{config?.workshops?.map((ws) => (
+								<div
+									key={ws.id || ws._id}
+									onClick={() => {
+										setFormData({ ...formData, taller: ws.name });
+										setIsTallerOpen(false);
+									}}
+									className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
+										formData.taller === ws.name ? 'border-blue-500' : 'border-transparent hover:border-blue-200'
+									}`}
+								>
+									<div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100">
+										{ws.imageUrl || ws.image ? (
+											<img src={ws.imageUrl || ws.image} className="w-full h-full object-cover" alt="" />
+										) : (
+											<div className="w-full h-full flex items-center justify-center text-gray-100">
+												<Sparkles size={16} />
+											</div>
+										)}
+									</div>
+									<span className="text-xs font-black text-text-black truncate">{ws.name}</span>
+								</div>
+							))}
+						</div>
+					)}
 				</div>
 
-				{/* Personaje */}
-				<div className="space-y-2">
-					<label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">
-						Acompañamiento Personaje
-					</label>
-					<select
-						value={formData.personaje}
-						onChange={(e) =>
-							setFormData({ ...formData, personaje: e.target.value })
-						}
-						className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold focus:ring-4 focus:ring-neverland-green/10 focus:border-neverland-green outline-none transition-all"
+				{/* PERSONAJE */}
+				<div className="space-y-3">
+					<h5 className="text-[10px] font-black text-purple-500 uppercase tracking-[0.2em] flex items-center gap-2 pl-1">
+						<Users size={14} />
+						Personaje Seleccionado
+					</h5>
+					
+					{/* Selected Card / Trigger */}
+					<div 
+						onClick={() => setIsPersonajeOpen(!isPersonajeOpen)}
+						className={`p-4 rounded-[32px] border-2 transition-all cursor-pointer flex items-center justify-between group ${
+							isPersonajeOpen ? 'border-purple-500 bg-white shadow-lg' : 'border-gray-100 bg-gray-50 hover:bg-white hover:border-purple-200'
+						}`}
 					>
-						<option value="ninguno">Ninguno</option>
-						{config?.characters?.map((char, idx) => (
-							<option key={idx} value={char}>
-								{char}
-							</option>
-						))}
-					</select>
+						<div className="flex items-center gap-4">
+							<div className="w-16 h-16 rounded-2xl overflow-hidden bg-white border border-gray-100 shrink-0">
+								{selectedChar?.imageUrl || selectedChar?.image ? (
+									<img src={selectedChar.imageUrl || selectedChar.image} className="w-full h-full object-cover" alt="" />
+								) : (
+									<div className="w-full h-full flex items-center justify-center text-gray-200">
+										{formData.personaje === 'ninguno' ? <X size={24} /> : <Smile size={24} />}
+									</div>
+								)}
+							</div>
+							<div>
+								<p className="font-display font-black text-lg text-text-black">
+									{formData.personaje === 'ninguno' ? 'Sin personaje' : formData.personaje}
+								</p>
+								<p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+									{isPersonajeOpen ? 'Cerrar selector' : 'Pulsa para cambiar personaje'}
+								</p>
+							</div>
+						</div>
+						<div className={`p-2 rounded-full transition-transform duration-300 ${isPersonajeOpen ? 'rotate-180 bg-purple-500 text-white' : 'bg-white text-gray-300'}`}>
+							<ChevronDown size={20} />
+						</div>
+					</div>
+
+					{/* Collapsible Picker */}
+					{isPersonajeOpen && (
+						<div className="p-5 bg-gray-50 rounded-[32px] border-2 border-dashed border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in slide-in-from-top-4 duration-300">
+							{/* Opción Ninguno */}
+							<div
+								onClick={() => {
+									setFormData({ ...formData, personaje: 'ninguno' });
+									setIsPersonajeOpen(false);
+								}}
+								className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
+									formData.personaje === 'ninguno' ? 'border-purple-500' : 'border-transparent hover:border-purple-200'
+								}`}
+							>
+								<div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-300">
+									<X size={18} />
+								</div>
+								<span className="text-xs font-black text-text-black">Ninguno</span>
+							</div>
+							{config?.characters?.map((char, idx) => {
+								const name = char.nombre || char.name;
+								return (
+									<div
+										key={idx}
+										onClick={() => {
+											setFormData({ ...formData, personaje: name });
+											setIsPersonajeOpen(false);
+										}}
+										className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
+											formData.personaje === name ? 'border-purple-500' : 'border-transparent hover:border-purple-200'
+										}`}
+									>
+										<div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100">
+											{char.imageUrl || char.image ? (
+												<img src={char.imageUrl || char.image} className="w-full h-full object-cover" alt="" />
+											) : (
+												<div className="w-full h-full flex items-center justify-center text-gray-100">
+													<Smile size={16} />
+												</div>
+											)}
+										</div>
+										<span className="text-xs font-black text-text-black truncate">{name}</span>
+									</div>
+								);
+							})}
+						</div>
+					)}
 				</div>
 			</div>
 
 			{/* Piñata */}
-			<div
-				onClick={() => setFormData({ ...formData, pinata: !formData.pinata })}
-				className={`p-6 rounded-3xl border-2 transition-all cursor-pointer flex items-center justify-between ${
-					formData.pinata
-						? 'bg-energy-orange/5 border-energy-orange text-energy-orange shadow-inner'
-						: 'bg-gray-50 border-gray-100 text-gray-400 grayscale'
-				}`}
-			>
-				<div className="flex items-center gap-4">
-					<div
-						className={`w-12 h-12 rounded-2xl flex items-center justify-center ${formData.pinata ? 'bg-energy-orange/20' : 'bg-gray-200'}`}
-					>
-						<Package size={24} />
-					</div>
-					<div>
-						<p className="font-display font-black text-lg">Incluir Piñata</p>
-						<p className="text-xs opacity-70">
-							{formData.pinata ? 'Servicio incluido' : 'Servicio no incluido'}
-						</p>
-					</div>
-				</div>
+			<div className="pt-2">
 				<div
-					className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${formData.pinata ? 'border-energy-orange bg-energy-orange text-white' : 'border-gray-200 bg-white text-transparent'}`}
+					onClick={() => setFormData({ ...formData, pinata: !formData.pinata })}
+					className={`p-6 rounded-[32px] border-2 transition-all cursor-pointer flex items-center justify-between group overflow-hidden relative ${
+						formData.pinata
+							? 'bg-energy-orange/5 border-energy-orange shadow-md'
+							: 'bg-gray-50 border-gray-100 grayscale hover:grayscale-0 hover:bg-white hover:border-energy-orange/30'
+					}`}
 				>
-					<Check size={18} />
-				</div>
-			</div>
-
-			{/* Costo Extra (Admin only) */}
-			<div className="p-6 bg-energy-orange/5 border-2 border-dashed border-energy-orange/30 rounded-3xl space-y-4">
-				<div className="flex items-center gap-3">
-					<div className="w-10 h-10 bg-energy-orange/20 text-energy-orange rounded-xl flex items-center justify-center">
-						<Receipt size={20} />
+					<div className="flex items-center gap-5 relative z-10">
+						<div
+							className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${formData.pinata ? 'bg-energy-orange text-white shadow-lg' : 'bg-gray-200 text-gray-400 group-hover:bg-energy-orange/10 group-hover:text-energy-orange'}`}
+						>
+							<Package size={28} />
+						</div>
+						<div>
+							<p className={`font-display font-black text-xl ${formData.pinata ? 'text-text-black' : 'text-gray-400'}`}>Piñata de Neverland</p>
+							<p className="text-xs font-bold text-gray-400">
+								{formData.pinata ? 'Servicio especial incluido' : 'Toca para añadir al banquete'}
+							</p>
+						</div>
 					</div>
-					<div>
-						<h5 className="text-sm font-display font-black text-energy-orange uppercase tracking-wider">
-							Extra / Descuento Manual
-						</h5>
-						<p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
-							Solo visible para administradores
-						</p>
-					</div>
-				</div>
-
-				<div className="relative max-w-[200px]">
-					<input
-						type="number"
-						value={formData.extras?.costoExtra || 0}
-						max="999"
-						min="-999"
-						onChange={(e) => {
-							const val = Math.max(
-								-999,
-								Math.min(999, parseInt(e.target.value) || 0),
-							);
-							setFormData({
-								...formData,
-								extras: {
-									...formData.extras,
-									costoExtra: val,
-								},
-							});
-						}}
-						className="w-full bg-white border border-energy-orange/20 rounded-2xl pl-10 pr-4 py-4 font-black text-xl text-energy-orange focus:outline-none focus:ring-4 focus:ring-energy-orange/10 focus:border-energy-orange transition-all"
-					/>
-					<div className="absolute left-4 top-1/2 -translate-y-1/2 text-energy-orange/50 font-black text-xl">
-						€
+					<div
+						className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all relative z-10 ${formData.pinata ? 'border-energy-orange bg-energy-orange text-white' : 'border-gray-200 bg-white text-transparent'}`}
+					>
+						<Check size={20} strokeWidth={3} />
 					</div>
 				</div>
-				<p className="text-[10px] text-gray-400 italic pl-1">
-					Usa números negativos para aplicar un descuento (ej: -10).
-				</p>
 			</div>
 
 			<div className="flex gap-3 pt-6 border-t border-gray-100">
@@ -2107,7 +2272,7 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 					onClick={() => onSave(formData)}
 					className="flex-1 py-4 bg-neverland-green text-white rounded-2xl font-black text-sm shadow-lg shadow-neverland-green/20 transition-all active:scale-95"
 				>
-					Guardar
+					Guardar Cambios
 				</button>
 				<button
 					onClick={onCancel}
@@ -2123,7 +2288,6 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 // Sub-component for Observations Edit
 const ObservationsEdit = ({ current, currentCostoExtra, isAdmin, onCancel, onSave }) => {
 	const [obs, setObs] = useState(current || '');
-	// Use string so mobile can type '-', clear field, etc. Parse only on save.
 	const [costoExtraStr, setCostoExtraStr] = useState(
 		currentCostoExtra !== undefined && currentCostoExtra !== null
 			? String(currentCostoExtra)
@@ -2131,69 +2295,77 @@ const ObservationsEdit = ({ current, currentCostoExtra, isAdmin, onCancel, onSav
 	);
 
 	return (
-		<div className="space-y-6">
-			<div className="space-y-3">
-				<label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1">
-					Observaciones / Notas del Cliente
-				</label>
-				<div className="relative">
-					<div className="absolute top-4 left-4 text-blue-400">
-						<MessageSquare size={18} />
-					</div>
-					<textarea
-						value={obs}
-						onChange={(e) => setObs(e.target.value.substring(0, 500))}
-						maxLength={500}
-						className="w-full bg-gray-50 border border-gray-100 rounded-3xl pl-12 pr-4 py-4 text-sm font-bold text-text-black focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all resize-y min-h-[150px]"
-						placeholder="Alergias, peticiones especiales..."
-					/>
-					<div className="text-right mt-1">
-						<span className="text-[10px] text-gray-400 font-medium">
-							{obs.length}/500
-						</span>
-					</div>
-				</div>
-			</div>
-
-			{/* Costo Extra / Descuento — solo admins */}
-			{isAdmin && (
-				<div className="p-5 bg-energy-orange/5 border-2 border-dashed border-energy-orange/30 rounded-3xl space-y-3">
-					<div className="flex items-center gap-3">
-						<div className="w-8 h-8 rounded-lg bg-energy-orange/10 text-energy-orange flex items-center justify-center">
-							<Receipt size={16} />
-						</div>
-						<p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-							Extra / Descuento Manual (solo admin)
-						</p>
-					</div>
-					<div className="relative max-w-[180px]">
-						<span className="absolute left-3 top-1/2 -translate-y-1/2 text-energy-orange font-black text-lg">€</span>
-						<input
-							type="text"
-							inputMode="decimal"
-							value={costoExtraStr}
-							onChange={(e) => {
-								const raw = e.target.value;
-								// Allow: empty, '-', or a valid integer in range -999..999
-								if (raw === '' || raw === '-' || /^-?\d{1,3}$/.test(raw)) {
-									const num = parseInt(raw);
-									if (raw === '' || raw === '-' || (num >= -999 && num <= 999)) {
-										setCostoExtraStr(raw);
-									}
-								}
-							}}
-							onBlur={() => {
-								// Normalize on blur: '-' or '' => '0'
-								if (costoExtraStr === '' || costoExtraStr === '-') setCostoExtraStr('0');
-							}}
-							className="w-full pl-8 pr-3 py-3 bg-white border-2 border-energy-orange/20 focus:border-energy-orange rounded-xl font-black text-xl text-energy-orange outline-none transition-all"
+		<div className="space-y-8 pb-4">
+			<div className="space-y-6">
+				<div className="space-y-3">
+					<h5 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] border-b border-blue-50 pb-3 flex items-center gap-2">
+						<MessageSquare size={14} />
+						Observaciones
+					</h5>
+					<div className="relative group">
+						<textarea
+							value={obs}
+							onChange={(e) => setObs(e.target.value.substring(0, 500))}
+							maxLength={500}
+							className="w-full bg-gray-50 border-2 border-gray-100 rounded-[32px] p-6 text-sm font-bold text-text-black placeholder:text-gray-300 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-100 focus:bg-white transition-all resize-none min-h-[180px]"
+							placeholder="Decoración, peticiones especiales, etc..."
 						/>
+						<div className="absolute bottom-4 right-6">
+							<span className={`text-[10px] font-black uppercase tracking-widest ${obs.length > 450 ? 'text-red-400' : 'text-gray-300'}`}>
+								{obs.length}/500
+							</span>
+						</div>
 					</div>
-					<p className="text-[10px] text-gray-400 italic">
-						Usa negativos para descuentos (ej: -10). Se suma al total.
-					</p>
 				</div>
-			)}
+
+				{/* Costo Extra / Descuento — solo admins */}
+				{isAdmin && (
+					<div className="space-y-4">
+						<h5 className="text-[10px] font-black text-energy-orange uppercase tracking-[0.2em] border-b border-orange-50 pb-3 flex items-center gap-2">
+							<Receipt size={14} />
+							Costo Extra / Descuento
+						</h5>
+						<div className="p-6 bg-orange-50/30 border-2 border-orange-100/50 rounded-[32px] space-y-4">
+							<div className="flex items-center gap-4">
+								<div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-energy-orange border border-orange-100">
+									<Receipt size={24} />
+								</div>
+								<div>
+									<p className="font-display font-black text-base text-text-black">Extra / Descuento</p>
+									<p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Solo visible para administración</p>
+								</div>
+							</div>
+
+							<div className="flex items-center gap-4">
+								<div className="relative flex-1 max-w-[200px]">
+									<span className="absolute left-6 top-1/2 -translate-y-1/2 text-energy-orange font-black text-2xl">€</span>
+									<input
+										type="text"
+										inputMode="decimal"
+										value={costoExtraStr}
+										onChange={(e) => {
+											const raw = e.target.value;
+											if (raw === '' || raw === '-' || /^-?\d{0,3}$/.test(raw)) {
+												setCostoExtraStr(raw);
+											}
+										}}
+										onBlur={() => {
+											if (costoExtraStr === '' || costoExtraStr === '-') setCostoExtraStr('0');
+										}}
+										className="w-full pl-12 pr-6 py-5 bg-white border-2 border-orange-100 focus:border-energy-orange rounded-2xl font-black text-2xl text-energy-orange outline-none transition-all shadow-sm focus:shadow-md"
+									/>
+								</div>
+								<div className="flex-1">
+									<p className="text-[10px] font-bold text-gray-400 italic leading-snug">
+										Usa el signo <span className="text-energy-orange font-black">-</span> para aplicar descuentos. 
+										Este valor se suma o resta directamente al total final.
+									</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				)}
+			</div>
 
 			<div className="flex gap-3 pt-6 border-t border-gray-100">
 				<button
@@ -2204,7 +2376,7 @@ const ObservationsEdit = ({ current, currentCostoExtra, isAdmin, onCancel, onSav
 					}}
 					className="flex-1 py-4 bg-neverland-green text-white rounded-2xl font-black text-sm shadow-lg shadow-neverland-green/20 transition-all active:scale-95"
 				>
-					Guardar
+					Guardar Cambios
 				</button>
 				<button
 					onClick={onCancel}

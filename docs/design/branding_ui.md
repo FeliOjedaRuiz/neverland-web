@@ -112,6 +112,16 @@ export default {
 };
 ```
 
+### 6. Patrones de Interacción Avanzados
+
+Para mejorar la UX en móviles y escritorio, hemos implementado el patrón **"Selected Card + Collapsible Picker"**:
+
+- **Estado Inactivo**: Muestra una tarjeta premium con el ítem seleccionado (Imagen + Nombre + Precio).
+- **Interacción**: Al pulsar "Cambiar", se despliega una rejilla visual (Grid) con miniaturas y estados de carga.
+- **Feedback**: Uso intensivo de `framer-motion` para transiciones suaves y `lucide-react` para indicadores de estado (Loading, Success).
+
+---
+
 ### Acciones Pendientes
 
 1.  **Google Fonts**: Añadir el `<link>` en `index.html` para `Fredoka` y `Nunito`.

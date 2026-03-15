@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Minus, Plus } from 'lucide-react';
+import { Minus, Plus, Image as ImageIcon } from 'lucide-react';
 
 const Step4Adults = ({ formData, setFormData, ADULT_MENU_OPTIONS }) => {
 	return (
@@ -122,40 +122,54 @@ const Step4Adults = ({ formData, setFormData, ADULT_MENU_OPTIONS }) => {
 									: 'border-white bg-white shadow-sm'
 							}`}
 						>
-							<div className="flex justify-between items-start mb-1">
-								<div>
-									<p className="font-bold text-sm text-gray-800">
-										{item.nombre}
-									</p>
-									<p className="text-[10px] text-gray-500">{item.unidades}</p>
+							<div className="flex gap-4">
+								<div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100/50 shadow-sm">
+									{item.imageUrl ? (
+										<img src={item.imageUrl} alt={item.nombre} className="w-full h-full object-cover" />
+									) : (
+										<div className="w-full h-full flex items-center justify-center text-gray-200">
+											<ImageIcon size={24} />
+										</div>
+									)}
 								</div>
-								<span
-									className={`font-black text-base ${qty > 0 ? 'text-energy-orange' : 'text-gray-800'}`}
-								>
-									{item.precio}€
-								</span>
-							</div>
-							<div className="flex justify-end mt-1">
-								<div className="flex items-center gap-2 bg-white rounded-full p-0.5 shadow-sm border border-gray-100">
-									<button
-										onClick={() => updateQty(-1)}
-										className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${qty > 0 ? 'bg-orange-100 text-energy-orange' : 'bg-gray-50 text-gray-300'}`}
-										disabled={qty === 0}
-									>
-										<Minus size={12} />
-									</button>
-									<span
-										className={`text-base font-bold w-5 text-center ${qty > 0 ? 'text-energy-orange' : 'text-gray-300'}`}
-									>
-										{qty}
-									</span>
-									<button
-										onClick={() => updateQty(1)}
-										disabled={qty >= 20}
-										className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${qty >= 20 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-energy-orange text-white hover:bg-orange-600'}`}
-									>
-										<Plus size={12} />
-									</button>
+								<div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+									<div className="flex justify-between items-start">
+										<div className="min-w-0">
+											<p className="font-bold text-sm sm:text-base text-gray-800 leading-snug truncate">
+												{item.nombre}
+											</p>
+											<p className="text-[11px] text-gray-400 font-medium mt-0.5">{item.unidades}</p>
+										</div>
+										<span
+											className={`font-black text-base shrink-0 ml-2 ${qty > 0 ? 'text-energy-orange' : 'text-gray-800'}`}
+										>
+											{item.precio}€
+										</span>
+									</div>
+									
+									<div className="flex justify-end">
+										<div className="flex items-center gap-2 bg-white rounded-full p-0.5 shadow-sm border border-gray-100">
+											<button
+												onClick={() => updateQty(-1)}
+												className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${qty > 0 ? 'bg-orange-100 text-energy-orange' : 'bg-gray-50 text-gray-300'}`}
+												disabled={qty === 0}
+											>
+												<Minus size={12} />
+											</button>
+											<span
+												className={`text-base font-bold w-5 text-center ${qty > 0 ? 'text-energy-orange' : 'text-gray-300'}`}
+											>
+												{qty}
+											</span>
+											<button
+												onClick={() => updateQty(1)}
+												disabled={qty >= 20}
+												className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${qty >= 20 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-energy-orange text-white hover:bg-orange-600'}`}
+											>
+												<Plus size={12} />
+											</button>
+										</div>
+									</div>
 								</div>
 							</div>
 						</div>

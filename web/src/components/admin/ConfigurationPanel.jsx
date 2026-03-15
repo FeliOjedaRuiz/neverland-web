@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
 	Save,
 	Plus,
@@ -12,15 +13,22 @@ import {
 	ChevronDown,
 	Pizza,
 	Users,
+	Upload,
+	Image as ImageIcon,
+	ArrowLeft,
+	Eye,
+	EyeOff,
+	Calendar,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useOutletContext } from 'react-router-dom';
-import { getConfig, updateConfig } from '../../services/api';
+import { getConfig, updateConfig, uploadConfigImage } from '../../services/api';
 
 const ToggleSwitch = ({ active, onChange, title }) => {
 	return (
 		<button
 			onClick={onChange}
+			type="button"
 			title={title}
 			className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
 				active ? 'bg-neverland-green' : 'bg-gray-200'
@@ -38,13 +46,15 @@ const ToggleSwitch = ({ active, onChange, title }) => {
 const AccordionSection = ({
 	title,
 	subtitle,
-	icon: Icon,
+	icon,
 	color,
 	isOpen,
 	onToggle,
 	children,
 	action,
 }) => {
+	const SectionIcon = icon;
+	// motion is used in JSX below
 	return (
 		<div
 			className={`border-l-4 ${color} bg-surface rounded-3xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 ${isOpen ? 'shadow-lg' : ''}`}
@@ -55,7 +65,7 @@ const AccordionSection = ({
 			>
 				<div className="flex items-center gap-5">
 					<div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:scale-110 group-hover:bg-white group-hover:shadow-md transition-all">
-						<Icon size={24} />
+						<SectionIcon size={24} />
 					</div>
 					<div>
 						<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">
@@ -104,7 +114,11 @@ const ConfigurationPanel = () => {
 		characters: false,
 		others: false,
 	});
-	const [newCharacterName, setNewCharacterName] = useState('');
+	const [uploadingId, setUploadingId] = useState(null);
+	const [editingWorkshopIdx, setEditingWorkshopIdx] = useState(null);
+	const [editingAdultMenuIdx, setEditingAdultMenuIdx] = useState(null);
+	const [editingKidsMenuIdx, setEditingKidsMenuIdx] = useState(null);
+	const [editingCharacterIdx, setEditingCharacterIdx] = useState(null);
 
 	const toggleSection = (section, forceOpen = false) => {
 		setOpenSections((prev) => ({
@@ -113,22 +127,52 @@ const ConfigurationPanel = () => {
 		}));
 	};
 
+	// Close modal on back button (Native Navigation)
+	useEffect(() => {
+		if (editingWorkshopIdx !== null || editingAdultMenuIdx !== null || editingKidsMenuIdx !== null || editingCharacterIdx !== null) {
+			window.history.pushState({ modal: 'editing' }, '');
+			
+			const handlePopState = () => {
+				setEditingWorkshopIdx(null);
+				setEditingAdultMenuIdx(null);
+				setEditingKidsMenuIdx(null);
+				setEditingCharacterIdx(null);
+			};
+
+			window.addEventListener('popstate', handlePopState);
+			return () => window.removeEventListener('popstate', handlePopState);
+		}
+	}, [editingWorkshopIdx, editingAdultMenuIdx, editingKidsMenuIdx, editingCharacterIdx]);
+
 	// Transformation logic to ensure stable IDs and fields for list items
 	const transformConfig = (data) => {
 		const normalize = (list) =>
-			(list || []).map((item) => ({
-				...item,
-				id: item.id || item._id || Date.now().toString() + Math.random(),
-				nombre: item.nombre || item.name || '',
-				name: item.nombre || item.name || '',
-				precio: item.precio || item.price || 0,
-				price: item.precio || item.price || 0,
-			}));
+			(list || []).map((item) => {
+				if (typeof item === 'string') {
+					return {
+						id: Date.now().toString() + Math.random(),
+						nombre: item,
+						name: item,
+						suspended: false,
+						imageUrl: '',
+					};
+				}
+				return {
+					...item,
+					id: item.id || item._id || Date.now().toString() + Math.random(),
+					nombre: item.nombre || item.name || '',
+					name: item.nombre || item.name || '',
+					precio: item.precio || item.price || 0,
+					price: item.precio || item.price || 0,
+					suspended: item.suspended || false,
+				};
+			});
 
 		if (data.menusNiños) data.menusNiños = normalize(data.menusNiños);
 		if (data.preciosAdultos)
 			data.preciosAdultos = normalize(data.preciosAdultos);
 		if (data.workshops) data.workshops = normalize(data.workshops);
+		if (data.characters) data.characters = normalize(data.characters);
 
 		return data;
 	};
@@ -178,41 +222,72 @@ const ConfigurationPanel = () => {
 			toggleSection(sectionName, true);
 		}
 
-		// Add new item with a guaranteed UNIQUE ID
 		const newItem = {
 			...defaultObj,
 			id: Date.now().toString(),
-			isNew: true, // Marker for autofocu
 		};
 
-		const newList = [newItem, ...(config[field] || [])];
+		const newList = [...(config[field] || []), newItem];
 		const newConfig = { ...config, [field]: newList };
 		setConfig(newConfig);
+		return newList.length - 1; // Return the index of the newly added item
 	};
 
-	const removeItem = (field, index) => {
+	const removeItem = async (field, index) => {
 		if (window.confirm('¿Seguro que quieres eliminar este elemento?')) {
 			const newList = [...config[field]];
 			newList.splice(index, 1);
 			const newConfig = { ...config, [field]: newList };
 			setConfig(newConfig);
-			handleSave(newConfig);
+			await handleSave(newConfig);
+			return true;
 		}
+		return false;
 	};
 
-	const updateListItem = (field, index, key, value) => {
-		const newList = [...config[field]];
-		newList[index] = { ...newList[index], [key]: value };
-		setConfig({ ...config, [field]: newList });
+	const updateListItem = (field, index, keyOrUpdates, value) => {
+		setConfig((prev) => {
+			const newList = [...(prev[field] || [])];
+			if (typeof keyOrUpdates === 'object') {
+				newList[index] = { ...newList[index], ...keyOrUpdates };
+			} else {
+				newList[index] = { ...newList[index], [keyOrUpdates]: value };
+			}
+			return { ...prev, [field]: newList };
+		});
 	};
 
-	const handleAddCharacter = async () => {
-		if (!newCharacterName.trim()) return;
-		const newList = [newCharacterName.trim(), ...config.characters];
-		const newConfig = { ...config, characters: newList };
-		setConfig(newConfig);
-		setNewCharacterName('');
-		await handleSave(newConfig);
+
+	const handleImageUpload = async (e, field, index) => {
+		const file = e.target.files[0];
+		if (!file) return;
+
+		// Validate file type
+		if (!file.type.startsWith('image/')) {
+			toast.error('El archivo debe ser una imagen');
+			return;
+		}
+
+		// Validate file size (e.g., 20MB)
+		if (file.size > 20 * 1024 * 1024) {
+			toast.error('La imagen es demasiado grande (máx 20MB)');
+			return;
+		}
+
+		const itemId = config[field][index].id;
+		setUploadingId(itemId);
+
+		try {
+			const res = await uploadConfigImage(file);
+			const imageUrl = res.data.imageUrl;
+			updateListItem(field, index, 'imageUrl', imageUrl);
+			toast.success('Imagen subida correctamente');
+		} catch (err) {
+			console.error('Error uploading image:', err);
+			toast.error('Error al subir la imagen');
+		} finally {
+			setUploadingId(null);
+		}
 	};
 
 	// --- Change Detection Logic ---
@@ -296,181 +371,288 @@ const ConfigurationPanel = () => {
 							onToggle={() => toggleSection('kids')}
 							action={
 								<button
-									onClick={() =>
-										addItem(
-											'menusNiños',
-											{
-												nombre: '',
-												precio: 0,
-												principal: '',
-												resto: '',
-											},
-											'kids',
-										)
-									}
-									className="p-1.5 bg-neverland-green/10 text-neverland-green rounded-lg hover:bg-neverland-green hover:text-white transition-all shadow-sm"
+									onClick={(e) => {
+										e.stopPropagation();
+										toggleSection('kids', true);
+										const newIdx = addItem('menusNiños', {
+											nombre: 'Nuevo Menú',
+											precio: 10,
+											principal: '',
+											resto: '',
+											suspended: false,
+											imageUrl: ''
+										});
+										setEditingKidsMenuIdx(newIdx);
+									}}
+									className="p-1.5 bg-neverland-green text-white rounded-lg hover:scale-110 active:scale-95 transition-all shadow-md shadow-neverland-green/20"
 								>
-									<Plus size={16} />
+									<Plus size={18} />
 								</button>
 							}
 						>
-							<div className="grid grid-cols-1 lg:grid-cols-2 gap-4 py-2">
-								{(config.menusNiños || []).map((menu, idx) => (
-									<div
-										key={menu.id || idx}
-										className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative group hover:border-neverland-green/20 transition-all flex flex-col gap-4"
-									>
-										{/* Row 1: Name and Price */}
-										<div className="flex items-start gap-4">
-											<div className="flex-1">
-												<label className="text-[8px] font-black text-gray-300 uppercase tracking-widest block mb-1">
-													Nombre del Menú
-												</label>
-												<input
-													type="text"
-													value={menu.nombre}
-													placeholder="Nombre del menú..."
-													autoFocus={menu.isNew}
-													onChange={(e) => {
-														const newList = [...config.menusNiños];
-														newList[idx] = {
-															...newList[idx],
-															nombre: e.target.value,
-														};
-														setConfig({ ...config, menusNiños: newList });
-													}}
-													className="w-full p-0 bg-transparent border-none font-display font-black text-xl text-text-black outline-none placeholder:text-gray-300"
-												/>
-											</div>
-											<div className="bg-neverland-green/5 rounded-xl p-2 border border-neverland-green/10 shrink-0 w-20 flex flex-col items-center justify-center">
-												<label className="text-[8px] font-black text-neverland-green uppercase block leading-none mb-1.5">
-													Precio
-												</label>
-												<div className="flex items-center justify-center w-full">
-													<input
-														type="number"
-														value={menu.precio}
-														onChange={(e) => {
-															const newList = [...config.menusNiños];
-															newList[idx] = {
-																...newList[idx],
-																precio: parseFloat(e.target.value),
-															};
-															setConfig({ ...config, menusNiños: newList });
-														}}
-														className="w-full bg-transparent p-0 text-lg font-black text-neverland-green outline-none border-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-													/>
-													<span className="text-[10px] font-black text-neverland-green opacity-40 ml-0.5">
-														€
-													</span>
+							<div className="space-y-6 py-2">
+								{/* Pricing Context */}
+								<div className="bg-orange-50/30 p-5 rounded-3xl border border-orange-100/50 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm shadow-orange-500/5">
+									<div className="flex items-center gap-4">
+										<div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-energy-orange shadow-md shadow-orange-200/10">
+											<Calendar size={22} />
+										</div>
+										<div>
+											<p className="text-[9px] font-black text-energy-orange uppercase tracking-widest leading-none mb-1.5 opacity-70">Suplemento Especial</p>
+											<h4 className="font-display font-black text-sm sm:text-base text-text-black">Plus Viernes, Sábados y Domingos</h4>
+										</div>
+									</div>
+									<div className="flex items-center gap-2">
+										<div className="flex items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-gray-50">
+											<input
+												type="number"
+												step="0.5"
+												value={config.plusFinDeSemana}
+												onChange={(e) => setConfig({ ...config, plusFinDeSemana: parseFloat(e.target.value) })}
+												className="w-16 bg-transparent text-center font-display font-black text-lg text-energy-orange outline-none"
+											/>
+											<span className="text-[10px] font-black text-gray-300 uppercase pr-2">€ extra</span>
+										</div>
+										<button
+											onClick={() => handleSave()}
+											disabled={config.plusFinDeSemana === originalConfig?.plusFinDeSemana}
+											className={`p-3 rounded-2xl transition-all ${
+												config.plusFinDeSemana !== originalConfig?.plusFinDeSemana
+													? 'bg-neverland-green text-white shadow-lg shadow-neverland-green/20 hover:scale-105 active:scale-95 cursor-pointer'
+													: 'bg-gray-100 text-gray-300 cursor-not-allowed'
+											}`}
+											title="Guardar suplemento"
+										>
+											<Save size={18} />
+										</button>
+									</div>
+								</div>
+
+								{/* Kids Menus Grid */}
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+									{(config.menusNiños || []).map((menu, idx) => (
+										<div
+											key={menu.id || idx}
+											onClick={() => setEditingKidsMenuIdx(idx)}
+											className={`group relative overflow-hidden bg-white rounded-2xl border-2 transition-all cursor-pointer hover:shadow-xl hover:-translate-y-1 ${
+												menu.suspended ? 'border-gray-50 opacity-60' : 'border-gray-100 hover:border-neverland-green/30'
+											}`}
+										>
+											<div className="p-3 flex items-center gap-4">
+												<div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100/50">
+													{menu.imageUrl ? (
+														<img src={menu.imageUrl} alt={menu.nombre} className="w-full h-full object-cover" />
+													) : (
+														<div className="w-full h-full flex items-center justify-center text-gray-200">
+															<ImageIcon size={20} />
+														</div>
+													)}
+												</div>
+												<div className="flex-1 min-w-0">
+													<div className="flex justify-between items-start">
+														<h5 className="font-display font-black text-sm text-text-black group-hover:text-neverland-green transition-colors truncate pr-2">
+															{menu.nombre}
+														</h5>
+														<span className="font-black text-xs text-energy-orange bg-orange-50 px-2 py-0.5 rounded-lg shrink-0">
+															{menu.precio}€
+														</span>
+													</div>
+													<p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-1 line-clamp-1">
+														{menu.principal || 'Sin plato principal'}
+													</p>
 												</div>
 											</div>
 										</div>
-
-										{/* Row 2: Main Dish (Full Width now) */}
-										<div className="bg-gray-50 rounded-xl p-2 px-3 border border-gray-50">
-											<label className="text-[8px] font-black text-gray-400 uppercase block leading-none mb-1">
-												Plato Principal
-											</label>
-											<input
-												type="text"
-												value={menu.principal}
-												placeholder="Hamburguesa..."
-												onChange={(e) => {
-													const newList = [...config.menusNiños];
-													newList[idx] = {
-														...newList[idx],
-														principal: e.target.value,
-													};
-													setConfig({ ...config, menusNiños: newList });
-												}}
-												className="w-full bg-transparent p-0 text-sm font-bold text-gray-600 outline-none border-none"
-											/>
-										</div>
-
-										{/* Row 3: Others Textarea */}
-										<div className="bg-gray-50/50 rounded-xl p-3 px-3 border border-gray-100/50">
-											<label className="text-[8px] font-black text-gray-400 uppercase block leading-none mb-1.5">
-												Otros Detalles
-											</label>
-											<textarea
-												value={menu.resto}
-												rows={3}
-												placeholder="- Bebida, postre..."
-												onChange={(e) => {
-													const newList = [...config.menusNiños];
-													newList[idx] = {
-														...newList[idx],
-														resto: e.target.value,
-													};
-													setConfig({ ...config, menusNiños: newList });
-												}}
-												className="w-full bg-transparent p-0 text-sm font-medium text-gray-500 outline-none border-none resize-none leading-relaxed"
-											/>
-										</div>
-
-										{/* Row 4: Action Bar */}
-										<div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-1">
-											<div className="flex items-center gap-2">
-												{/* Status or other info can go here */}
-											</div>
-											<div className="flex items-center gap-1.5">
-												<button
-													onClick={() => handleSave()}
-													className={`p-1.5 rounded-lg transition-all ${
-														isItemChanged('menusNiños', menu)
-															? 'text-neverland-green bg-neverland-green/10 scale-110 shadow-sm'
-															: 'text-gray-300 hover:text-neverland-green hover:bg-gray-50'
-													}`}
-													title="Guardar"
-												>
-													<Save size={18} />
-												</button>
-												<button
-													onClick={() => removeItem('menusNiños', idx)}
-													className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-													title="Eliminar"
-												>
-													<Trash2 size={18} />
-												</button>
-											</div>
-										</div>
-									</div>
-								))}
-
-								{/* Weekend Plus Card - Refined */}
-								<div className="p-4 bg-energy-orange/5 rounded-2xl border border-energy-orange/10 flex flex-col justify-center items-center relative overflow-hidden group min-h-[140px]">
-									<div className="absolute -top-10 -right-10 w-32 h-32 bg-energy-orange/5 rounded-full blur-3xl group-hover:bg-energy-orange/10 transition-all" />
-									<div className="relative text-center">
-										<p className="text-[10px] font-black text-energy-orange uppercase tracking-[0.2em] mb-1 opacity-70">
-											Plus Findes / Festivos
-										</p>
-										<div className="flex items-center justify-center group">
-											<span className="text-xl font-black text-energy-orange/30 mr-1 mt-1">
-												+
-											</span>
-											<input
-												type="number"
-												step="0.1"
-												value={config.plusFinDeSemana}
-												onChange={(e) =>
-													setConfig({
-														...config,
-														plusFinDeSemana: parseFloat(e.target.value),
-													})
-												}
-												className="w-16 bg-transparent p-0 text-3xl font-display font-black text-energy-orange outline-none border-none ring-0 text-center"
-											/>
-											<span className="text-xl font-black text-energy-orange/30 ml-1 mt-1">
-												€
-											</span>
-										</div>
-										<p className="text-[10px] font-bold text-energy-orange/40 mt-1 italic max-w-[160px] mx-auto leading-tight">
-											Extra por niño en Vie, Sáb, Dom y Festivos
-										</p>
-									</div>
+									))}
 								</div>
 							</div>
+
+							{/* Kids Menu Modal Editor */}
+							<AnimatePresence>
+								{editingKidsMenuIdx !== null && (() => {
+									const menu = config.menusNiños[editingKidsMenuIdx];
+									const idx = editingKidsMenuIdx;
+									
+									return (
+										<motion.div
+											initial={{ opacity: 0 }}
+											animate={{ opacity: 1 }}
+											exit={{ opacity: 0 }}
+											className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-md bg-text-black/20 text-text-black"
+											onClick={(e) => {
+												if (e.target === e.currentTarget) {
+													setEditingKidsMenuIdx(null);
+													window.history.back();
+												}
+											}}
+										>
+											<motion.div
+												initial={{ scale: 0.95, y: 20 }}
+												animate={{ scale: 1, y: 0 }}
+												exit={{ scale: 0.95, y: 20 }}
+												className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+												onClick={(e) => e.stopPropagation()}
+											>
+												{/* Image Upload Area */}
+												<div className="relative w-full h-[140px] sm:h-[180px] bg-gray-100 overflow-hidden shrink-0">
+													{menu.imageUrl ? (
+														<>
+															<img 
+																src={menu.imageUrl} 
+																alt={menu.nombre} 
+																className="w-full h-full object-cover"
+															/>
+															<div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+															<div className="absolute bottom-3 left-6 right-6 flex items-end justify-between">
+																<label className="flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white rounded-xl transition-all cursor-pointer border border-white/30 group">
+																	<input
+																		type="file"
+																		className="hidden"
+																		accept="image/*"
+																		onChange={(e) => handleImageUpload(e, 'menusNiños', idx)}
+																	/>
+																	<Upload size={16} />
+																	<span className="font-display font-black text-[10px] uppercase tracking-wider">Cambiar Foto</span>
+																</label>
+															</div>
+														</>
+													) : (
+														<label className="w-full h-full cursor-pointer flex flex-col items-center justify-center gap-2 group/empty bg-blue-50/20">
+															<input
+																type="file"
+																className="hidden"
+																accept="image/*"
+																onChange={(e) => handleImageUpload(e, 'menusNiños', idx)}
+															/>
+															<div className="w-10 h-10 rounded-2xl bg-white text-blue-400 flex items-center justify-center shadow-lg group-hover/empty:scale-110 transition-all">
+																<ImageIcon size={20} />
+															</div>
+															<p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Añadir Foto del Plato</p>
+														</label>
+													)}
+													
+													{uploadingId === (menu.id || idx) && (
+														<div className="absolute inset-0 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center gap-2 z-20">
+															<Loader2 className="animate-spin text-blue-500" size={32} />
+															<p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Subiendo imagen...</p>
+														</div>
+													)}
+
+													<button 
+														onClick={() => {
+															setEditingKidsMenuIdx(null);
+															window.history.back();
+														}}
+														className="absolute top-3 right-3 z-30 p-1.5 bg-white/90 hover:bg-white text-text-black rounded-full shadow-lg transition-all border border-gray-100 group/close"
+													>
+														<X size={16} className="group-hover:scale-110 transition-transform" />
+													</button>
+												</div>
+
+												{/* Content Area */}
+												<div className="p-5 sm:p-7 flex flex-col gap-4 overflow-y-auto min-h-0">
+													<div className="flex justify-between items-center -mb-1">
+														<div className="w-full max-w-[70%]">
+															<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Nombre del Menú</label>
+															<input
+																type="text"
+																value={menu.nombre}
+																onChange={(e) => updateListItem('menusNiños', idx, 'nombre', e.target.value)}
+																className="w-full bg-transparent border-none font-display font-black text-xl text-text-black outline-none placeholder:text-gray-100 focus:text-neverland-green transition-colors"
+																placeholder="Ej: Menú 1..."
+															/>
+														</div>
+														<div className="bg-orange-50 px-4 py-1.5 rounded-2xl border border-orange-100/50 text-right">
+															<label className="text-[8px] font-black text-energy-orange uppercase tracking-widest block mb-0.5">Precio</label>
+															<div className="flex items-center gap-1 justify-end">
+																<input
+																	type="number"
+																	value={menu.precio}
+																	onChange={(e) => updateListItem('menusNiños', idx, 'precio', parseFloat(e.target.value))}
+																	className="w-14 bg-transparent text-right font-display font-black text-xl text-energy-orange outline-none"
+																/>
+																<span className="font-display font-black text-lg text-energy-orange space-x-0">€</span>
+															</div>
+														</div>
+													</div>
+
+													<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+														<div className="space-y-3">
+															<div>
+																<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
+																	<div className="w-1 bg-neverland-green h-3 rounded-full" /> Principal
+																</label>
+																<textarea
+																	rows={2}
+																	value={menu.principal}
+																	onChange={(e) => updateListItem('menusNiños', idx, 'principal', e.target.value)}
+																	className="w-full bg-gray-50/50 p-3 rounded-2xl text-xs font-bold text-gray-700 border border-transparent focus:bg-white focus:border-neverland-green/20 outline-none resize-none transition-all leading-tight"
+																	placeholder="Describe el plato fuerte..."
+																/>
+															</div>
+															
+															<div className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
+																<div className="flex items-center justify-between mb-1">
+																	<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Visibilidad</label>
+																	<ToggleSwitch
+																		active={!menu.suspended}
+																		onChange={() => {
+																			const newList = [...config.menusNiños];
+																			newList[idx] = { ...newList[idx], suspended: !newList[idx].suspended };
+																			setConfig({ ...config, menusNiños: newList });
+																			handleSave({ ...config, menusNiños: newList });
+																		}}
+																	/>
+																</div>
+																<p className="text-[7px] font-bold text-gray-400 leading-tight">Si lo ocultas, no aparecerá en el formulario de reserva.</p>
+															</div>
+														</div>
+
+														<div>
+															<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
+																<div className="w-1 bg-neverland-green h-3 rounded-full" /> También incluye
+															</label>
+															<textarea
+																rows={4}
+																value={menu.resto}
+																onChange={(e) => updateListItem('menusNiños', idx, 'resto', e.target.value)}
+																className="w-full h-[90px] bg-gray-50/50 p-3 rounded-2xl text-xs font-bold text-gray-500 border border-transparent focus:bg-white focus:border-neverland-green/20 outline-none resize-none transition-all leading-tight"
+																placeholder="Usa saltos de línea para el resto de elementos..."
+															/>
+														</div>
+													</div>
+
+													<div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-auto">
+														<button
+															onClick={async () => {
+																if (await removeItem('menusNiños', idx)) {
+																	setEditingKidsMenuIdx(null);
+																	window.history.back();
+																}
+															}}
+															className="flex items-center gap-2 px-3 py-2 text-red-500 hover:bg-red-50 rounded-xl transition-all font-display font-black text-[9px] uppercase tracking-wider"
+														>
+															<Trash2 size={14} /> Eliminar
+														</button>
+														<div className="flex items-center gap-3">
+															<button
+																onClick={() => handleSave()}
+																className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl transition-all font-display font-black text-[10px] uppercase tracking-wider shadow-lg ${
+																	isItemChanged('menusNiños', menu)
+																		? 'bg-neverland-green text-white shadow-neverland-green/20 hover:scale-105 active:scale-95'
+																		: 'bg-gray-100 text-gray-300 cursor-not-allowed'
+																}`}
+															>
+																<Save size={14} /> Guardar Cambios
+															</button>
+														</div>
+													</div>
+												</div>
+											</motion.div>
+										</motion.div>
+									);
+								})()}
+							</AnimatePresence>
 						</AccordionSection>
 
 						{/* Adult Menus */}
@@ -480,144 +662,247 @@ const ConfigurationPanel = () => {
 							icon={Utensils}
 							color="border-l-energy-orange"
 							isOpen={openSections.adults}
-							onToggle={() => toggleSection('adults')}
+							onToggle={() => {
+								toggleSection('adults');
+								if (openSections.adults) setEditingAdultMenuIdx(null);
+							}}
 							action={
 								<button
-									onClick={() =>
-										addItem(
+									onClick={(e) => {
+										e.stopPropagation();
+										const newIndex = addItem(
 											'preciosAdultos',
 											{
 												nombre: '',
 												precio: 0,
 												unidades: '',
+												isNew: true
 											},
 											'adults',
-										)
-									}
-									className="p-1.5 bg-neverland-green/10 text-neverland-green rounded-lg hover:bg-neverland-green hover:text-white transition-all shadow-sm shadow-neverland-green/5"
+										);
+										setEditingAdultMenuIdx(newIndex);
+										toggleSection('adults', true);
+									}}
+									className="p-1.5 bg-neverland-green/10 text-neverland-green rounded-lg hover:bg-neverland-green hover:text-white transition-all shadow-sm shadow-neverland-green/5 flex items-center justify-center"
 								>
-									<Plus size={16} />
+									<Plus size={18} />
 								</button>
 							}
 						>
-							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-2">
-								{(config.preciosAdultos || []).map((menu, idx) => (
-									<div
-										key={menu.id || idx}
-										className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative group hover:border-neverland-green/20 transition-all flex flex-col gap-4"
-									>
-										{/* Row 1: Name (Full Width) */}
-										<div className="w-full">
-											<input
-												type="text"
-												value={menu.nombre}
-												placeholder="Nombre del plato..."
-												autoFocus={menu.isNew}
-												onChange={(e) =>
-													updateListItem(
-														'preciosAdultos',
-														idx,
-														'nombre',
-														e.target.value,
-													)
-												}
-												className="w-full p-0 bg-transparent border-none font-display font-black text-xl text-text-black outline-none placeholder:text-gray-300"
-											/>
-										</div>
-
-										{/* Row 2: Data Grid */}
-										<div className="grid grid-cols-2 gap-3">
-											<div className="bg-gray-50 rounded-xl p-2 px-3 border border-gray-50">
-												<label className="text-[8px] font-black text-gray-400 uppercase block leading-none mb-1">
-													Unidades
-												</label>
-												<input
-													type="text"
-													value={menu.unidades}
-													placeholder="Ej: 12 uds"
-													onChange={(e) =>
-														updateListItem(
-															'preciosAdultos',
-															idx,
-															'unidades',
-															e.target.value,
-														)
-													}
-													className="w-full bg-transparent p-0 text-xs font-bold text-gray-600 outline-none border-none"
-												/>
+							<div className="py-2">
+								{/* Grid View */}
+								<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+									{(config.preciosAdultos || []).map((menu, idx) => (
+										<button
+											key={menu.id || idx}
+											onClick={() => setEditingAdultMenuIdx(idx)}
+											className="group flex items-center gap-4 p-3 bg-gray-50/50 hover:bg-white border border-transparent hover:border-neverland-green/10 rounded-3xl transition-all hover:shadow-xl hover:shadow-neverland-green/5 text-left"
+										>
+											<div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-200 shrink-0 shadow-inner">
+												{menu.imageUrl ? (
+													<img src={menu.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+												) : (
+													<div className="w-full h-full flex items-center justify-center text-gray-400">
+														<ImageIcon size={20} />
+													</div>
+												)}
 											</div>
-											<div className="bg-neverland-green/5 rounded-xl p-2 px-3 border border-neverland-green/10">
-												<label className="text-[8px] font-black text-neverland-green uppercase block leading-none mb-1">
-													Precio
-												</label>
-												<div className="flex items-center">
-													<input
-														type="number"
-														value={menu.precio}
-														onChange={(e) =>
-															updateListItem(
-																'preciosAdultos',
-																idx,
-																'precio',
-																parseFloat(e.target.value),
-															)
-														}
-														className="w-full bg-transparent p-0 text-sm font-black text-neverland-green outline-none border-none"
-													/>
-													<span className="text-[10px] font-black text-neverland-green opacity-40 ml-1">
-														€
-													</span>
+											<div className="flex-1 min-w-0">
+												<div className="flex items-center gap-2 mb-0.5">
+													<h4 className="font-display font-black text-sm text-text-black truncate group-hover:text-neverland-green transition-colors">
+														{menu.nombre || 'Sin nombre'}
+													</h4>
+													{menu.suspended && (
+														<span className="px-1.5 py-0.5 bg-gray-200 text-gray-500 rounded-md text-[8px] font-black uppercase">Oculto</span>
+													)}
 												</div>
+												<p className="text-[10px] font-medium text-gray-400 truncate">
+													{menu.precio}€ • {menu.unidades || 'Sin unidades'}
+												</p>
 											</div>
-										</div>
+											<div className="p-2 text-neverland-green/0 group-hover:text-neverland-green transition-all transform group-hover:translate-x-1">
+												<Settings2 size={18} />
+											</div>
+										</button>
+									))}
+								</div>
 
-										{/* Row 3: Action Bar */}
-										<div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-1">
-											<div className="flex items-center gap-2">
-												<span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-													Visible
-												</span>
-												<ToggleSwitch
-													active={!menu.suspended}
-													onChange={() => {
-														const newList = [...config.preciosAdultos];
-														newList[idx] = {
-															...newList[idx],
-															suspended: !newList[idx].suspended,
-														};
-														setConfig({ ...config, preciosAdultos: newList });
-														handleSave({ ...config, preciosAdultos: newList });
-													}}
-													title={
-														menu.suspended
-															? 'Activar (Suspendido)'
-															: 'Suspender (Ocultar a clientes)'
-													}
-												/>
-											</div>
-											<div className="flex items-center gap-1.5">
-												<button
-													onClick={() => handleSave()}
-													className={`p-1.5 rounded-lg transition-all ${
-														isItemChanged('preciosAdultos', menu)
-															? 'text-neverland-green bg-neverland-green/10 scale-110 shadow-sm'
-															: 'text-gray-300 hover:text-neverland-green hover:bg-gray-50'
-													}`}
-													title="Guardar"
-												>
-													<Save size={18} />
-												</button>
-												<button
-													onClick={() => removeItem('preciosAdultos', idx)}
-													className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-													title="Eliminar"
-												>
-													<Trash2 size={18} />
-												</button>
-											</div>
+								{/* Modal View */}
+								<AnimatePresence>
+									{editingAdultMenuIdx !== null && (
+										<div className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6 cursor-default" onClick={(e) => e.stopPropagation()}>
+											<motion.div
+												initial={{ opacity: 0 }}
+												animate={{ opacity: 1 }}
+												exit={{ opacity: 0 }}
+												onClick={() => setEditingAdultMenuIdx(null)}
+												className="absolute inset-0 bg-text-black/40 backdrop-blur-md"
+											/>
+											<motion.div
+												initial={{ opacity: 0, scale: 0.95, y: 20 }}
+												animate={{ opacity: 1, scale: 1, y: 0 }}
+												exit={{ opacity: 0, scale: 0.95, y: 20 }}
+												className="relative w-full max-w-2xl bg-white rounded-[32px] shadow-2xl overflow-hidden overflow-y-auto max-h-[92vh] flex flex-col"
+											>
+												{(() => {
+													const menu = config.preciosAdultos[editingAdultMenuIdx];
+													const idx = editingAdultMenuIdx;
+													return (
+														<div className="flex flex-col h-full">
+															<div className="relative w-full h-[140px] sm:h-[180px] bg-gray-50 overflow-hidden shrink-0">
+																{menu.imageUrl ? (
+																	<>
+																		<img
+																			src={menu.imageUrl}
+																			alt={menu.nombre}
+																			className="w-full h-full object-cover"
+																		/>
+																		<div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+																		<div className="absolute bottom-3 left-6 right-6 flex items-end justify-between">
+																			<label className="flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white rounded-xl transition-all cursor-pointer border border-white/30 group">
+																				<input
+																					type="file"
+																					className="hidden"
+																					accept="image/*"
+																					onChange={(e) => handleImageUpload(e, 'preciosAdultos', idx)}
+																				/>
+																				<Upload size={16} />
+																				<span className="font-display font-black text-[10px] uppercase tracking-wider">Cambiar Foto</span>
+																			</label>
+																		</div>
+																	</>
+																) : (
+																	<label className="w-full h-full cursor-pointer flex flex-col items-center justify-center gap-2 group/empty bg-neverland-green/5">
+																		<input
+																			type="file"
+																			className="hidden"
+																			accept="image/*"
+																			onChange={(e) => handleImageUpload(e, 'preciosAdultos', idx)}
+																		/>
+																		<div className="w-10 h-10 rounded-xl bg-white text-neverland-green flex items-center justify-center shadow-sm group-hover/empty:scale-110 transition-all">
+																			<ImageIcon size={20} />
+																		</div>
+																		<p className="text-[9px] font-black text-neverland-green uppercase tracking-widest">Subir Imagen</p>
+																	</label>
+																)}
+																{uploadingId === (menu.id || idx) && (
+																	<div className="absolute inset-0 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center gap-2 z-20">
+																		<Loader2 className="animate-spin text-neverland-green" size={24} />
+																		<p className="text-[9px] font-black text-neverland-green uppercase">Subiendo...</p>
+																	</div>
+																)}
+																	<button 
+																		onClick={() => setEditingAdultMenuIdx(null)}
+																		className="absolute top-3 right-3 z-30 p-1.5 bg-white/90 hover:bg-white text-text-black rounded-full shadow-lg transition-all border border-gray-100 group/close"
+																	>
+																		<X size={16} className="group-hover:scale-110 transition-transform" />
+																	</button>
+																</div>
+
+															{/* Content Area */}
+															<div className="p-5 sm:p-6 flex flex-col gap-4 overflow-y-auto">
+																<div className="flex items-center justify-between">
+																	<div className="flex items-center gap-2">
+																		{menu.suspended ? (
+																			<span className="px-2 py-0.5 bg-gray-100 text-gray-400 rounded-full text-[8px] font-black uppercase tracking-wider flex items-center gap-1">
+																				<EyeOff size={10} /> Oculta
+																			</span>
+																		) : (
+																			<span className="px-2 py-0.5 bg-neverland-green/10 text-neverland-green rounded-full text-[8px] font-black uppercase tracking-wider flex items-center gap-1">
+																				<Eye size={10} /> Activa
+																			</span>
+																		)}
+																	</div>
+																	<span className="text-[8px] font-black text-gray-300 uppercase tracking-widest">ID #{idx + 1}</span>
+																</div>
+
+																<div className="w-full">
+																	<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-0.5 px-1">
+																		Nombre del Plato
+																	</label>
+																	<textarea
+																		rows={1}
+																		value={menu.nombre}
+																		placeholder="Introduce un nombre..."
+																		autoFocus={menu.isNew}
+																		onChange={(e) => updateListItem('preciosAdultos', idx, 'nombre', e.target.value)}
+																		className="w-full bg-transparent border-none font-display font-black text-lg sm:text-xl text-text-black outline-none placeholder:text-gray-100 focus:text-neverland-green transition-colors resize-none leading-tight"
+																	/>
+																</div>
+
+																<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+																	<div className="flex flex-col gap-3">
+																		<div className="bg-gray-50/50 rounded-xl p-3 border border-gray-100/50">
+																			<label className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Unidades / Ración</label>
+																			<input
+																				type="text"
+																				value={menu.unidades}
+																				placeholder="Ej: 12 uds / Bandeja"
+																				onChange={(e) => updateListItem('preciosAdultos', idx, 'unidades', e.target.value)}
+																				className="w-full bg-transparent p-0 font-display font-black text-gray-700 outline-none text-sm"
+																			/>
+																		</div>
+																		<div className="bg-neverland-green/5 rounded-xl p-3 border border-neverland-green/10">
+																			<label className="text-[8px] font-black text-neverland-green uppercase block mb-0.5">Precio</label>
+																			<div className="flex items-center gap-0.5">
+																				<input
+																					type="number"
+																					value={menu.precio}
+																					onChange={(e) => updateListItem('preciosAdultos', idx, 'precio', parseFloat(e.target.value))}
+																					className="w-full bg-transparent p-0 font-display font-black text-neverland-green outline-none text-sm"
+																				/>
+																				<span className="text-[9px] font-black text-neverland-green opacity-40">€</span>
+																			</div>
+																		</div>
+																	</div>
+
+																	<div className="flex flex-col gap-3">
+																		<div className="flex items-center justify-between p-3 bg-gray-50/30 rounded-xl border border-gray-100/30 grow">
+																			<div className="flex flex-col">
+																				<span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Visibilidad</span>
+																				<span className="text-[9px] font-bold text-gray-500">{menu.suspended ? 'Solo Admin' : 'Público'}</span>
+																			</div>
+																			<ToggleSwitch
+																				active={!menu.suspended}
+																				onChange={() => {
+																					const newList = [...config.preciosAdultos];
+																					newList[idx] = { ...newList[idx], suspended: !newList[idx].suspended };
+																					setConfig({ ...config, preciosAdultos: newList });
+																					handleSave({ ...config, preciosAdultos: newList });
+																				}}
+																			/>
+																		</div>
+																	</div>
+																</div>
+
+																<div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-1">
+																	<button
+																		onClick={() => removeItem('preciosAdultos', idx).then(() => setEditingAdultMenuIdx(null))}
+																		className="flex items-center gap-1.5 px-2 py-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-all font-display font-black text-[8px] uppercase tracking-wider"
+																	>
+																		<Trash2 size={12} /> Borrar
+																	</button>
+																	<div className="flex items-center gap-2">
+																		<button
+																			onClick={() => handleSave()}
+																			className={`flex items-center gap-2 px-5 py-2 rounded-xl transition-all font-display font-black text-[9px] uppercase tracking-wider shadow-sm ${
+																				isItemChanged('preciosAdultos', menu)
+																					? 'bg-neverland-green text-white shadow-neverland-green/20 hover:scale-105 active:scale-95'
+																					: 'bg-gray-100 text-gray-300 cursor-not-allowed'
+																			}`}
+																		>
+																			<Save size={12} /> Guardar Cambios
+																		</button>
+																	</div>
+																</div>
+															</div>
+														</div>
+													);
+												})()}
+											</motion.div>
 										</div>
-									</div>
-								))}
+									)}
+								</AnimatePresence>
 							</div>
 						</AccordionSection>
 
@@ -628,218 +913,287 @@ const ConfigurationPanel = () => {
 							icon={Sparkles}
 							color="border-l-blue-400"
 							isOpen={openSections.workshops}
-							onToggle={() => toggleSection('workshops')}
+							onToggle={() => {
+								toggleSection('workshops');
+								if (openSections.workshops) setEditingWorkshopIdx(null);
+							}}
 							action={
 								<button
-									onClick={() =>
-										addItem(
+									onClick={(e) => {
+										e.stopPropagation();
+										const newIndex = addItem(
 											'workshops',
 											{
 												name: '',
 												priceBase: 0,
 												pricePlus: 0,
 												desc: '',
+												isNew: true
 											},
 											'workshops',
-										)
-									}
-									className="p-1.5 bg-blue-400/10 text-blue-500 rounded-lg hover:bg-blue-400 hover:text-white transition-all shadow-sm shadow-blue-400/5"
+										);
+										setEditingWorkshopIdx(newIndex);
+										toggleSection('workshops', true);
+									}}
+									className="p-1.5 bg-blue-400/10 text-blue-500 rounded-lg hover:bg-blue-400 hover:text-white transition-all shadow-sm shadow-blue-400/5 flex items-center justify-center"
 								>
-									<Plus size={16} />
+									<Plus size={18} />
 								</button>
 							}
 						>
-							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-2">
-								{(config.workshops || []).map((ws, idx) => (
-									<div
-										key={ws.id || idx}
-										className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative group hover:border-blue-200 transition-colors flex flex-col gap-4"
-									>
-										{/* Row 1: Name (Full Width) */}
-										<div className="w-full">
-											<input
-												type="text"
-												value={ws.name}
-												placeholder="Nombre de la actividad..."
-												autoFocus={ws.isNew}
-												onChange={(e) =>
-													updateListItem(
-														'workshops',
-														idx,
-														'name',
-														e.target.value,
-													)
-												}
-												className="w-full p-0 bg-transparent border-none font-display font-black text-xl text-text-black outline-none placeholder:text-gray-300"
-											/>
-										</div>
-
-										{/* Row 2: Description */}
-										<div className="relative group/desc">
-											<textarea
-												value={ws.desc || ''}
-												onChange={(e) => {
-													if (e.target.value.length <= 150) {
-														const newList = [...config.workshops];
-														newList[idx] = {
-															...newList[idx],
-															desc: e.target.value,
-														};
-														setConfig({ ...config, workshops: newList });
-													}
-												}}
-												placeholder="Breve descripción de la actividad..."
-												className="w-full bg-gray-50/50 p-3 rounded-2xl text-xs font-medium text-gray-600 border border-gray-100 focus:bg-white focus:border-blue-200 focus:shadow-sm outline-none resize-none transition-all placeholder:text-gray-300 min-h-[60px]"
-											/>
-											<div
-												className={`absolute bottom-2 right-2 text-[9px] font-black tracking-wider transition-colors pointer-events-none ${
-													(ws.desc?.length || 0) >= 140
-														? 'text-red-400'
-														: 'text-gray-300'
-												}`}
-											>
-												{ws.desc?.length || 0}/150
+							<div className="py-2">
+								{/* List View */}
+								<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+									{(config.workshops || []).map((ws, idx) => (
+										<button
+											key={ws.id || idx}
+											onClick={() => setEditingWorkshopIdx(idx)}
+											className="group flex items-center gap-4 p-3 bg-gray-50/50 hover:bg-white border border-transparent hover:border-blue-100 rounded-3xl transition-all hover:shadow-xl hover:shadow-blue-500/5 text-left"
+										>
+											<div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-200 shrink-0 shadow-inner">
+												{ws.imageUrl ? (
+													<img src={ws.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+												) : (
+													<div className="w-full h-full flex items-center justify-center text-gray-400">
+														<ImageIcon size={20} />
+													</div>
+												)}
 											</div>
-										</div>
-
-										{/* Row 3: Image URL */}
-										<div className="bg-gray-50/30 rounded-2xl p-2.5 border border-gray-100/50">
-											<div className="flex items-center gap-1.5 mb-1.5 px-1">
-												<label className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">
-													Imagen (URL)
-												</label>
-											</div>
-											<div className="flex gap-2 items-center">
-												<div className="w-10 h-10 rounded-lg bg-white border border-gray-100 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
-													{ws.imageUrl ? (
-														<img
-															src={ws.imageUrl}
-															alt="Preview"
-															className="w-full h-full object-cover"
-															onError={(e) => {
-																e.target.src = '';
-																e.target.parentElement.innerHTML =
-																	'<span class="text-[8px] text-red-300 font-bold">Error</span>';
-															}}
-														/>
-													) : (
-														<span className="text-[8px] text-gray-300 font-bold">
-															NO IMG
-														</span>
+											<div className="flex-1 min-w-0">
+												<div className="flex items-center gap-2 mb-0.5">
+													<h4 className="font-display font-black text-sm text-text-black truncate group-hover:text-blue-600 transition-colors">
+														{ws.name || 'Sin nombre'}
+													</h4>
+													{ws.suspended && (
+														<span className="px-1.5 py-0.5 bg-gray-200 text-gray-500 rounded-md text-[8px] font-black uppercase">Oculto</span>
 													)}
 												</div>
-												<input
-													type="text"
-													value={ws.imageUrl || ''}
-													placeholder="URL de la imagen (Cloudinary, etc)..."
-													onChange={(e) =>
-														updateListItem(
-															'workshops',
-															idx,
-															'imageUrl',
-															e.target.value,
-														)
-													}
-													className="flex-1 bg-transparent p-0 text-xs font-bold text-gray-600 outline-none border-none placeholder:text-gray-200"
-												/>
+												<p className="text-[10px] font-medium text-gray-400 truncate">
+													{ws.priceBase}€ / {ws.pricePlus}€
+												</p>
 											</div>
+											<div className="p-2 text-blue-500/0 group-hover:text-blue-500 transition-all transform group-hover:translate-x-1">
+												<Settings2 size={18} />
+											</div>
+										</button>
+									))}
+									
+									{/* Empty State List */}
+									{(!config.workshops || config.workshops.length === 0) && (
+										<div className="col-span-full py-10 text-center bg-gray-50/50 rounded-[32px] border border-dashed border-gray-200">
+											<Sparkles className="mx-auto text-gray-300 mb-3" size={32} />
+											<p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No hay actividades configuradas</p>
 										</div>
+									)}
+								</div>
 
-										{/* Row 4: Pricing Grid */}
-										<div className="grid grid-cols-2 gap-3">
-											<div className="bg-gray-50 rounded-xl p-2 px-3">
-												<label className="text-[8px] font-black text-gray-400 uppercase block leading-none mb-1">
-													Base (≤15)
-												</label>
-												<div className="flex items-center">
-													<input
-														type="number"
-														value={ws.priceBase}
-														onChange={(e) =>
-															updateListItem(
-																'workshops',
-																idx,
-																'priceBase',
-																parseFloat(e.target.value),
-															)
-														}
-														className="w-full bg-transparent p-0 font-bold text-gray-600 outline-none border-none"
-													/>
-													<span className="text-[10px] font-bold text-gray-300">
-														€
-													</span>
-												</div>
-											</div>
-											<div className="bg-blue-50/50 rounded-xl p-2 px-3 border border-blue-50">
-												<label className="text-[8px] font-black text-blue-400 uppercase block leading-none mb-1">
-													Plus (&gt;15)
-												</label>
-												<div className="flex items-center">
-													<input
-														type="number"
-														value={ws.pricePlus}
-														onChange={(e) =>
-															updateListItem(
-																'workshops',
-																idx,
-																'pricePlus',
-																parseFloat(e.target.value),
-															)
-														}
-														className="w-full bg-transparent p-0 font-bold text-blue-500 outline-none border-none"
-													/>
-													<span className="text-[10px] font-bold text-blue-200">
-														€
-													</span>
-												</div>
-											</div>
-										</div>
+								{/* Modal Detail View */}
+								<AnimatePresence>
+									{editingWorkshopIdx !== null && (
+										<div className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6">
+											{/* Backdrop */}
+											<motion.div 
+												initial={{ opacity: 0 }}
+												animate={{ opacity: 1 }}
+												exit={{ opacity: 0 }}
+												onClick={() => setEditingWorkshopIdx(null)}
+												className="absolute inset-0 bg-text-black/60 backdrop-blur-sm"
+											/>
 
-										{/* Row 5: Action Bar */}
-										<div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-1">
-											<div className="flex items-center gap-2">
-												<span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-													Visible
-												</span>
-												<ToggleSwitch
-													active={!ws.suspended}
-													onChange={() => {
-														const newList = [...config.workshops];
-														newList[idx] = {
-															...newList[idx],
-															suspended: !newList[idx].suspended,
-														};
-														setConfig({ ...config, workshops: newList });
-														handleSave({ ...config, workshops: newList });
-													}}
-													title={
-														ws.suspended
-															? 'Activar (Suspendido)'
-															: 'Suspender (Ocultar a clientes)'
-													}
-												/>
-											</div>
-											<div className="flex items-center gap-1.5">
-												<button
-													onClick={() => handleSave()}
-													className={`p-1.5 rounded-lg transition-all ${
-														isItemChanged('workshops', ws)
-															? 'text-blue-500 bg-blue-50/50 scale-110 shadow-sm'
-															: 'text-gray-300 hover:text-blue-500 hover:bg-gray-50'
-													}`}
-												>
-													<Save size={18} />
-												</button>
-												<button
-													onClick={() => removeItem('workshops', idx)}
-													className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-												>
-													<Trash2 size={18} />
-												</button>
-											</div>
+											{/* Modal Content */}
+											<motion.div 
+												initial={{ opacity: 0, scale: 0.95, y: 20 }}
+												animate={{ opacity: 1, scale: 1, y: 0 }}
+												exit={{ opacity: 0, scale: 0.95, y: 20 }}
+												className="relative w-full max-w-2xl bg-white rounded-[32px] shadow-2xl overflow-hidden overflow-y-auto max-h-[92vh] flex flex-col"
+											>
+												{(() => {
+													const ws = config.workshops[editingWorkshopIdx];
+													const idx = editingWorkshopIdx;
+													return (
+														<div className="flex flex-col h-full">
+															<div className="relative w-full h-[140px] sm:h-[180px] bg-gray-50 overflow-hidden shrink-0">
+																{ws.imageUrl ? (
+																	<>
+																		<img
+																			src={ws.imageUrl}
+																			alt={ws.name}
+																			className="w-full h-full object-cover"
+																		/>
+																		<div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+																		<div className="absolute bottom-3 left-6 right-6 flex items-end justify-between">
+																			<label className="flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white rounded-xl transition-all cursor-pointer border border-white/30 group">
+																				<input
+																					type="file"
+																					className="hidden"
+																					accept="image/*"
+																					onChange={(e) => handleImageUpload(e, 'workshops', idx)}
+																				/>
+																				<Upload size={16} />
+																				<span className="font-display font-black text-[10px] uppercase tracking-wider">Cambiar Foto</span>
+																			</label>
+																		</div>
+																	</>
+																) : (
+																	<label className="w-full h-full cursor-pointer flex flex-col items-center justify-center gap-2 group/empty bg-blue-50/20">
+																		<input
+																			type="file"
+																			className="hidden"
+																			accept="image/*"
+																			onChange={(e) => handleImageUpload(e, 'workshops', idx)}
+																		/>
+																		<div className="w-10 h-10 rounded-xl bg-white text-blue-400 flex items-center justify-center shadow-sm group-hover/empty:scale-110 transition-all">
+																			<ImageIcon size={20} />
+																		</div>
+																		<p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Subir Imagen</p>
+																	</label>
+																)}
+																{uploadingId === (ws.id || idx) && (
+																	<div className="absolute inset-0 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center gap-2 z-20">
+																		<Loader2 className="animate-spin text-blue-500" size={24} />
+																		<p className="text-[9px] font-black text-blue-600 uppercase">Subiendo...</p>
+																	</div>
+																)}
+																{/* Close Button UI Redesign - Top Right Floating */}
+																<button 
+																	onClick={() => setEditingWorkshopIdx(null)}
+																	className="absolute top-3 right-3 z-30 p-1.5 bg-white/90 hover:bg-white text-text-black rounded-full shadow-lg transition-all border border-gray-100 group/close"
+																>
+																	<X size={16} className="group-hover:scale-110 transition-transform" />
+																</button>
+															</div>
+
+															{/* Content Area - Compact Padding and Gaps */}
+															<div className="p-5 sm:p-6 flex flex-col gap-4 overflow-y-auto">
+																{/* Header Info */}
+																<div className="flex items-center justify-between">
+																	<div className="flex items-center gap-2">
+																		{ws.suspended ? (
+																			<span className="px-2 py-0.5 bg-gray-100 text-gray-400 rounded-full text-[8px] font-black uppercase tracking-wider flex items-center gap-1">
+																				<EyeOff size={10} /> Oculta
+																			</span>
+																		) : (
+																			<span className="px-2 py-0.5 bg-neverland-green/10 text-neverland-green rounded-full text-[8px] font-black uppercase tracking-wider flex items-center gap-1">
+																				<Eye size={10} /> Activa
+																			</span>
+																		)}
+																	</div>
+																	<span className="text-[8px] font-black text-gray-300 uppercase tracking-widest">ID #{idx + 1}</span>
+																</div>
+
+																{/* Name Input */}
+																<div className="w-full">
+																	<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-0.5 px-1">
+																		Título
+																	</label>
+																	<textarea
+																		rows={1}
+																		value={ws.name}
+																		placeholder="Introduce un nombre..."
+																		autoFocus={ws.isNew}
+																		onChange={(e) => updateListItem('workshops', idx, 'name', e.target.value)}
+																		className="w-full bg-transparent border-none font-display font-black text-lg sm:text-xl text-text-black outline-none placeholder:text-gray-100 focus:text-blue-600 transition-colors resize-none leading-tight"
+																	/>
+																</div>
+
+																<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+																	{/* Description */}
+																	<div className="relative">
+																		<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-0.5 px-1">
+																			Descripción
+																		</label>
+																		<textarea
+																			value={ws.desc || ''}
+																			onChange={(e) => {
+																				if (e.target.value.length <= 150) {
+																					updateListItem('workshops', idx, 'desc', e.target.value);
+																				}
+																			}}
+																			placeholder="Máximo 150 caracteres..."
+																			className="w-full bg-gray-50/50 p-3 rounded-xl text-[10px] font-medium text-gray-500 border border-transparent focus:bg-white focus:border-blue-100 outline-none resize-none transition-all h-[70px] leading-relaxed"
+																		/>
+																		<div className={`absolute bottom-2 right-3 text-[7px] font-black ${ (ws.desc?.length || 0) >= 140 ? 'text-red-400' : 'text-gray-200' }`}>
+																			{ws.desc?.length || 0}/150
+																		</div>
+																	</div>
+
+																	{/* Pricing & State */}
+																	<div className="flex flex-col gap-3">
+																		<div className="grid grid-cols-2 gap-2">
+																			<div className="bg-gray-50/50 rounded-xl p-3 border border-gray-100/50">
+																				<label className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Precio Base</label>
+																				<div className="flex items-center gap-0.5">
+																					<input
+																						type="number"
+																						value={ws.priceBase}
+																						onChange={(e) => updateListItem('workshops', idx, 'priceBase', parseFloat(e.target.value))}
+																						className="w-full bg-transparent p-0 font-display font-black text-gray-700 outline-none text-sm"
+																					/>
+																					<span className="text-[9px] font-black text-gray-300">€</span>
+																				</div>
+																			</div>
+																			<div className="bg-blue-50/30 rounded-xl p-3 border border-blue-100/20">
+																				<label className="text-[8px] font-black text-blue-400 uppercase block mb-0.5">Precio Plus</label>
+																				<div className="flex items-center gap-0.5">
+																					<input
+																						type="number"
+																						value={ws.pricePlus}
+																						onChange={(e) => updateListItem('workshops', idx, 'pricePlus', parseFloat(e.target.value))}
+																						className="w-full bg-transparent p-0 font-display font-black text-blue-500 outline-none text-sm"
+																					/>
+																					<span className="text-[9px] font-black text-blue-300">€</span>
+																				</div>
+																			</div>
+																		</div>
+
+																		<div className="flex items-center justify-between p-3 bg-gray-50/30 rounded-xl border border-gray-100/30">
+																			<div className="flex flex-col">
+																				<span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Visibilidad</span>
+																				<span className="text-[9px] font-bold text-gray-500">{ws.suspended ? 'Solo Admin' : 'Público'}</span>
+																			</div>
+																			<ToggleSwitch
+																				active={!ws.suspended}
+																				onChange={() => {
+																					const newList = [...config.workshops];
+																					newList[idx] = { ...newList[idx], suspended: !newList[idx].suspended };
+																					setConfig({ ...config, workshops: newList });
+																					handleSave({ ...config, workshops: newList });
+																				}}
+																			/>
+																		</div>
+																	</div>
+																</div>
+
+																{/* Footer Actions */}
+																<div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-1">
+																	<button
+																		onClick={() => removeItem('workshops', idx).then(() => setEditingWorkshopIdx(null))}
+																		className="flex items-center gap-1.5 px-2 py-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-all font-display font-black text-[8px] uppercase tracking-wider"
+																	>
+																		<Trash2 size={12} /> Borrar
+																	</button>
+																	
+																	<div className="flex items-center gap-2">
+																		<button
+																			onClick={() => handleSave()}
+																			className={`flex items-center gap-2 px-5 py-2 rounded-xl transition-all font-display font-black text-[9px] uppercase tracking-wider shadow-sm ${
+																				isItemChanged('workshops', ws)
+																					? 'bg-blue-500 text-white shadow-blue-500/20 hover:scale-105 active:scale-95'
+																					: 'bg-gray-100 text-gray-300 cursor-not-allowed'
+																			}`}
+																		>
+																			<Save size={12} /> Guardar Cambios
+																		</button>
+																	</div>
+																</div>
+															</div>
+														</div>
+													);
+												})()}
+											</motion.div>
 										</div>
-									</div>
-								))}
+									)}
+								</AnimatePresence>
 							</div>
 						</AccordionSection>
 
@@ -851,63 +1205,215 @@ const ConfigurationPanel = () => {
 							color="border-l-purple-500"
 							isOpen={openSections.characters}
 							onToggle={() => toggleSection('characters')}
+							action={
+								<button
+									onClick={(e) => {
+										e.stopPropagation();
+										toggleSection('characters', true);
+										const newIdx = addItem('characters', {
+											nombre: 'Nuevo Personaje',
+											name: 'Nuevo Personaje',
+											suspended: false,
+											imageUrl: ''
+										}, 'characters');
+										setEditingCharacterIdx(newIdx);
+									}}
+									className="p-1.5 bg-purple-500 text-white rounded-lg hover:scale-110 active:scale-95 transition-all shadow-md shadow-purple-500/20"
+								>
+									<Plus size={18} />
+								</button>
+							}
 						>
-							<div className="flex flex-col gap-4 py-2">
-								<div className="flex gap-2">
-									<input
-										type="text"
-										value={newCharacterName}
-										onChange={(e) => setNewCharacterName(e.target.value)}
-										onKeyDown={(e) => e.key === 'Enter' && handleAddCharacter()}
-										placeholder="Añadir nuevo personaje..."
-										className="flex-1 bg-gray-50/50 p-3 rounded-2xl text-sm font-display font-bold text-text-black border border-gray-100 focus:bg-white focus:border-purple-200 focus:shadow-sm outline-none transition-all placeholder:text-gray-300"
-									/>
-									<button
-										onClick={handleAddCharacter}
-										disabled={!newCharacterName.trim()}
-										className="p-3 bg-purple-500/10 text-purple-500 rounded-2xl hover:bg-purple-500 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-purple-500/5"
-									>
-										<Plus size={20} />
-									</button>
+							<div className="py-2">
+								{/* Characters Grid */}
+								<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+									{(config.characters || []).map((char, idx) => (
+										<button
+											key={char.id || idx}
+											onClick={() => setEditingCharacterIdx(idx)}
+											className={`group flex items-center gap-4 p-3 bg-gray-50/50 hover:bg-white border border-transparent hover:border-purple-200/30 rounded-3xl transition-all hover:shadow-xl hover:shadow-purple-500/5 text-left ${
+												char.suspended ? 'opacity-50' : ''
+											}`}
+										>
+											<div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-200 shrink-0 shadow-inner">
+												{char.imageUrl ? (
+													<img src={char.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+												) : (
+													<div className="w-full h-full flex items-center justify-center text-gray-400">
+														<ImageIcon size={20} />
+													</div>
+												)}
+											</div>
+											<div className="flex-1 min-w-0">
+												<div className="flex items-center gap-2 mb-0.5">
+													<h4 className="font-display font-black text-sm text-text-black truncate group-hover:text-purple-600 transition-colors">
+														{char.nombre || char.name || 'Sin nombre'}
+													</h4>
+													{char.suspended && (
+														<span className="px-1.5 py-0.5 bg-gray-200 text-gray-500 rounded-md text-[8px] font-black uppercase">Oculto</span>
+													)}
+												</div>
+												<p className="text-[10px] font-medium text-gray-400 uppercase tracking-widest">
+													Catálogo Animación
+												</p>
+											</div>
+											<div className="p-2 text-purple-500/0 group-hover:text-purple-500 transition-all transform group-hover:translate-x-1">
+												<Settings2 size={18} />
+											</div>
+										</button>
+									))}
 								</div>
 
-								<div className="bg-gray-50 p-6 rounded-[32px] flex flex-wrap gap-2">
-									{(config.characters || []).map((char, idx) => (
-										<div
-											key={idx}
-											className="group flex items-center gap-2 px-4 py-2 bg-white border border-gray-100 rounded-2xl text-[11px] font-black text-gray-700 hover:border-purple-200 hover:bg-purple-50 transition-all cursor-default shadow-sm shadow-black/5 animate-in zoom-in-95 duration-200"
-										>
-											{char}
-											<button
-												onClick={async () => {
-													if (
-														window.confirm(
-															`¿Seguro quieres eliminar a ${char}?`,
-														)
-													) {
-														const newList = [...config.characters];
-														newList.splice(idx, 1);
-														const newConfig = {
-															...config,
-															characters: newList,
-														};
-														setConfig(newConfig);
-														await handleSave(newConfig);
+								{/* Character Modal Editor */}
+								<AnimatePresence>
+									{editingCharacterIdx !== null && (() => {
+										const char = config.characters[editingCharacterIdx];
+										const idx = editingCharacterIdx;
+										
+										return (
+											<motion.div
+												initial={{ opacity: 0 }}
+												animate={{ opacity: 1 }}
+												exit={{ opacity: 0 }}
+												className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-md bg-text-black/20 text-text-black"
+												onClick={(e) => {
+													if (e.target === e.currentTarget) {
+														setEditingCharacterIdx(null);
+														window.history.back();
 													}
 												}}
-												className="text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full p-0.5 transition-all ml-1"
 											>
-												<X size={14} />
-											</button>
-										</div>
-									))}
+												<motion.div
+													initial={{ scale: 0.95, y: 20 }}
+													animate={{ scale: 1, y: 0 }}
+													exit={{ scale: 0.95, y: 20 }}
+													className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+													onClick={(e) => e.stopPropagation()}
+												>
+													{/* Image Upload Area */}
+													<div className="relative w-full h-[140px] sm:h-[180px] bg-gray-100 overflow-hidden shrink-0">
+														{char.imageUrl ? (
+															<>
+																<img 
+																	src={char.imageUrl} 
+																	alt={char.nombre || char.name} 
+																	className="w-full h-full object-cover"
+																/>
+																<div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+																<div className="absolute bottom-3 left-6 right-6 flex items-end justify-between">
+																	<label className="flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white rounded-xl transition-all cursor-pointer border border-white/30 group">
+																		<input
+																			type="file"
+																			className="hidden"
+																			accept="image/*"
+																			onChange={(e) => handleImageUpload(e, 'characters', idx)}
+																		/>
+																		<Upload size={16} />
+																		<span className="font-display font-black text-[10px] uppercase tracking-wider">Cambiar Foto</span>
+																	</label>
+																</div>
+															</>
+														) : (
+															<label className="w-full h-full cursor-pointer flex flex-col items-center justify-center gap-2 group/empty bg-purple-50/20">
+																<input
+																	type="file"
+																	className="hidden"
+																	accept="image/*"
+																	onChange={(e) => handleImageUpload(e, 'characters', idx)}
+																/>
+																<div className="w-10 h-10 rounded-2xl bg-white text-purple-400 flex items-center justify-center shadow-lg group-hover/empty:scale-110 transition-all">
+																	<ImageIcon size={20} />
+																</div>
+																<p className="text-[9px] font-black text-purple-400 uppercase tracking-widest">Añadir Foto del Personaje</p>
+															</label>
+														)}
+														
+														{uploadingId === (char.id || idx) && (
+															<div className="absolute inset-0 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center gap-2 z-20">
+																<Loader2 className="animate-spin text-purple-500" size={32} />
+																<p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Subiendo imagen...</p>
+															</div>
+														)}
 
-									{(config.characters || []).length === 0 && (
-										<div className="w-full text-center py-4 text-gray-300 text-xs italic">
-											No hay personajes añadidos
-										</div>
-									)}
-								</div>
+														<button 
+															onClick={() => {
+																setEditingCharacterIdx(null);
+																window.history.back();
+															}}
+															className="absolute top-3 right-3 z-30 p-1.5 bg-white/90 hover:bg-white text-text-black rounded-full shadow-lg transition-all border border-gray-100 group/close"
+														>
+															<X size={16} className="group-hover:scale-110 transition-transform" />
+														</button>
+													</div>
+
+													{/* Content Area */}
+													<div className="p-5 sm:p-7 flex flex-col gap-4 overflow-y-auto min-h-0">
+														<div className="flex justify-between items-center -mb-1">
+															<div className="w-full">
+																<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1 px-1">Nombre del Personaje</label>
+																<input
+																	type="text"
+																	value={char.nombre || char.name}
+																	onChange={(e) => {
+																		updateListItem('characters', idx, {
+																			nombre: e.target.value,
+																			name: e.target.value,
+																		});
+																	}}
+																	className="w-full bg-transparent border-none font-display font-black text-2xl text-text-black outline-none placeholder:text-gray-100 focus:text-purple-600 transition-colors"
+																	placeholder="Nombre del personaje..."
+																/>
+															</div>
+														</div>
+
+														<div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 mt-2">
+															<div className="flex items-center justify-between mb-1">
+																<div className="flex flex-col">
+																	<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Visibilidad</label>
+																	<span className="text-[9px] font-bold text-gray-500">{char.suspended ? 'Oculto en Reserva' : 'Público'}</span>
+																</div>
+																<ToggleSwitch
+																	active={!char.suspended}
+																	onChange={() => updateListItem('characters', idx, 'suspended', !char.suspended)}
+																/>
+															</div>
+															<p className="text-[7px] font-bold text-gray-400 leading-tight">Si lo ocultas, no aparecerá en el catálogo de visitas durante la reserva.</p>
+														</div>
+
+														<div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-auto">
+															<button
+																onClick={async () => {
+																	if (await removeItem('characters', idx)) {
+																		setEditingCharacterIdx(null);
+																		window.history.back();
+																	}
+																}}
+																className="flex items-center gap-2 px-3 py-2 text-red-500 hover:bg-red-50 rounded-xl transition-all font-display font-black text-[9px] uppercase tracking-wider"
+															>
+																<Trash2 size={12} /> Eliminar Personaje
+															</button>
+															
+															<button
+																onClick={() => {
+																	handleSave();
+																	setEditingCharacterIdx(null);
+																	window.history.back();
+																}}
+																className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl transition-all font-display font-black text-[10px] uppercase tracking-widest shadow-lg ${
+																	isItemChanged('characters', char)
+																		? 'bg-purple-600 text-white shadow-purple-200 hover:scale-105 active:scale-95'
+																		: 'bg-gray-100 text-gray-300 cursor-not-allowed'
+																}`}
+															>
+																<Save size={14} /> Guardar
+															</button>
+														</div>
+													</div>
+												</motion.div>
+											</motion.div>
+										);
+									})()}
+								</AnimatePresence>
 							</div>
 						</AccordionSection>
 

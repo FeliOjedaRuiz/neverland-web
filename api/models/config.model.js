@@ -8,6 +8,8 @@ const configSchema = new mongoose.Schema({
       precio: Number,
       principal: String,
       resto: String, // Multiline text for other items
+      imageUrl: String,
+      suspended: { type: Boolean, default: false },
       active: { type: Boolean, default: true } // [NEW] Soft delete
     }
   ],
@@ -18,6 +20,8 @@ const configSchema = new mongoose.Schema({
       nombre: String,
       precio: Number,
       unidades: String, // Ej: "10 unidades por ración"
+      imageUrl: String,
+      suspended: { type: Boolean, default: false },
       active: { type: Boolean, default: true } // [NEW] Soft delete
     }
   ],
@@ -29,10 +33,19 @@ const configSchema = new mongoose.Schema({
       pricePlus: Number,
       desc: String,
       imageUrl: String,
-      active: { type: Boolean, default: true } // [NEW] Soft delete
+      suspended: { type: Boolean, default: false },
+      active: { type: Boolean, default: true }
     }
   ],
-  characters: [String], // Simple list of names
+  characters: [
+    {
+      id: String,
+      name: String,
+      imageUrl: String,
+      suspended: { type: Boolean, default: false },
+      active: { type: Boolean, default: true }
+    }
+  ],
   preciosExtras: {
     tallerBase: { type: Number, default: 25 }, // Hasta 15 niños
     tallerPlus: { type: Number, default: 30 }, // 16 o más

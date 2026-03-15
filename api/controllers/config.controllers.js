@@ -20,9 +20,9 @@ module.exports.get = (req, res, next) => {
           { id: 'bocadillos', nombre: 'Bocadillos', precio: 14, unidades: '12 Unidades' }
         ],
         workshops: [
-          { id: 'pintacaras', name: 'Pintacaras', priceBase: 25, pricePlus: 30, desc: 'Maquillaje de fantasía para todos.', imageUrl: '/src/assets/images/face_painting.png' },
-          { id: 'slime', name: 'Taller de Slime', priceBase: 25, pricePlus: 30, desc: '¡Creación de slime pegajoso y divertido!', imageUrl: '/src/assets/images/slime.png' },
-          { id: 'magia', name: 'Show de Magia', priceBase: 25, pricePlus: 30, desc: 'Trucos increíbles para sorprender.', imageUrl: '/src/assets/images/magic.png' }
+          { id: 'pintacaras', name: 'Pintacaras', priceBase: 25, pricePlus: 30, desc: 'Maquillaje de fantasía para todos.', imageUrl: 'https://res.cloudinary.com/duoshgr3h/image/upload/v1773576729/neverland/activities/hgbjmzrrbpw3hsgdbelk.jpg' },
+          { id: 'slime', name: 'Taller de Slime', priceBase: 25, pricePlus: 30, desc: '¡Creación de slime pegajoso y divertido!', imageUrl: 'https://res.cloudinary.com/duoshgr3h/image/upload/v1773576731/neverland/activities/uegaynpkxz9nfwi8raxm.jpg' },
+          { id: 'magia', name: 'Show de Magia', priceBase: 25, pricePlus: 30, desc: 'Trucos increíbles para sorprender.', imageUrl: 'https://res.cloudinary.com/duoshgr3h/image/upload/v1773576730/neverland/activities/xksz1nlsrlnvry5zvusx.jpg' }
         ],
         characters: [
           'Mickey', 'Minnie', 'Goofy', 'Donald', 'Daysi', 'Sonic', 'Stich', 'Marshall', 'Sky',
@@ -52,4 +52,11 @@ module.exports.update = (req, res, next) => {
   Config.findOneAndUpdate({}, req.body, { new: true, upsert: true, runValidators: true })
     .then(config => res.json(config))
     .catch(next);
+};
+
+module.exports.uploadImage = (req, res, next) => {
+  if (!req.file) {
+    return next(createError(400, 'No file uploaded'));
+  }
+  res.json({ imageUrl: req.file.path });
 };

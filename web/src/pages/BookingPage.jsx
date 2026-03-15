@@ -119,15 +119,28 @@ const BookingPage = () => {
 					const data = res.data;
 					// Normalización simplificada
 					const normalizeList = (list) =>
-						(list || []).map((item) => ({
-							...item,
-							id: String(item.id || item._id || ''),
-						}));
+						(list || []).map((item) => {
+							if (typeof item === 'string') {
+								return {
+									id: Date.now().toString() + Math.random(),
+									nombre: item,
+									name: item,
+									suspended: false,
+									imageUrl: '',
+								};
+							}
+							return {
+								...item,
+								id: String(item.id || item._id || ''),
+							};
+						});
 
 					if (data.menusNiños) data.menusNiños = normalizeList(data.menusNiños);
 					if (data.workshops) data.workshops = normalizeList(data.workshops);
 					if (data.preciosAdultos)
 						data.preciosAdultos = normalizeList(data.preciosAdultos);
+					if (data.characters)
+						data.characters = normalizeList(data.characters);
 
 					setPrices((prev) => ({ ...prev, ...data }));
 

@@ -56,6 +56,15 @@ export const checkAvailability = (params) => api.get('/events/availability', { p
 // Config
 export const getConfig = () => api.get('/config');
 export const updateConfig = (data) => api.patch('/config', data);
+export const uploadConfigImage = (file) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  return api.post('/config/upload-image', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
 
 // Workshops
 export const getWorkshops = () => api.get('/workshops');
