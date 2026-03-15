@@ -30,9 +30,9 @@ Proceso de despliegue seguro (`npm run ship`), integración continua con Vercel/
 ---
 
 ## 🚀 Estado del Sistema
-- **Versión Actual**: v1.8 (Marzo 2026)
+- **Versión Actual**: v1.9 (Marzo 2026)
 - **Stack**: Node.js, Express, MongoDB Atlas, React (Vite).
-- **Última Mejora**: Integración completa con Cloudinary para gestión de activos multimedia y rediseño interactivo de selección de menús y actividades (UI Premium).
+- **Última Mejora**: Corrección crítica de edición pública y optimización de resiliencia en la autenticación de visitantes. Integración previa de Cloudinary y rediseño interactivo (v1.8).
 
 ---
 _Para realizar cambios en la lógica o el esquema, favor de consultar el documento técnico correspondiente._

@@ -322,6 +322,9 @@ module.exports.publicDetail = (req, res, next) => {
           nombrePadre: event.cliente.nombrePadre,
           email: event.cliente.email,
           telefono: event.cliente.telefono,
+          privacyPolicyConsent: event.cliente.privacyPolicyConsent,
+          marketingConsent: event.cliente.marketingConsent,
+          fechaConsentimiento: event.cliente.fechaConsentimiento,
         },
         detalles: {
           niños: {

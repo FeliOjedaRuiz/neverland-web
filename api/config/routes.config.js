@@ -38,16 +38,20 @@ router.get('/events', secure.isAdmin, events.list);
 router.get('/events/:id/public', events.publicDetail); // NEW: Public-safe detail
 router.get('/events/:id', secure.isAdmin, events.detail); // Sensitive full detail
 router.patch('/events/:id', (req, res, next) => {
-	// Attempt authentication but don't fail if token is missing
+	// Attempt authentication but don't fail if token is missing or invalid
 	const token = req.headers.authorization?.split(" ")?.[1];
 	if (token) {
-		return secure.auth(req, res, () => {
-			// After auth, if role is admin, let it pass. 
-			// If it's a "user" role, the controller will handle the restriction.
-			next();
-		});
+		try {
+			const decoded = jwt.verify(token, process.env.JWT_SECRET);
+			return usersMid.checkUserForAuth(decoded.sub)(req, res, () => {
+				next();
+			});
+		} catch (err) {
+			// Invalid or expired token - proceed as anonymous
+			console.warn('Invalid token provided for PATCH /events, proceeding as anonymous');
+		}
 	}
-	// No token? Proceed as anonymous/customer
+	// No token or invalid token? Proceed as anonymous/customer
 	next();
 }, events.update);
 router.delete('/events/:id', secure.isAdmin, events.delete);

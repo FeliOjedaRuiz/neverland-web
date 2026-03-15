@@ -39,3 +39,17 @@ module.exports.clientExists = (req, res, next) => {
     })
     .catch(next);
 };
+
+module.exports.checkUserForAuth = (userId) => (req, res, next) => {
+  User.findById(userId)
+    .then((user) => {
+      if (user) {
+        req.user = user;
+      }
+      next();
+    })
+    .catch(() => {
+      // Ignore errors (like invalid ID format) and just proceed as anonymous
+      next();
+    });
+};

@@ -12,6 +12,7 @@
 - **Calculo de Precios**: Implementación de Snapshots (`Applied`) para evitar cambios retroactivos al editar precios globales.
 - **Zonas Horarias**: Normalización a medianoche local para cálculo de Plus de Fin de Semana.
 - **Estandarización**: Formato uniforme para arrays de comida de adultos.
+- **Edición Pública**: Inclusión de campos obligatorios de consentimiento (`privacyPolicyConsent`) en el detalle público para evitar errores de validación en Mongoose durante actualizaciones de clientes no administradores.
 
 ## 3. Robustez y Control de Errores
 
@@ -23,3 +24,8 @@
 - **RGPD**: Movimiento de consentimientos al objeto `cliente` para cumplimiento normativo y coherencia lógica.
 - **Limpieza**: Eliminación de dependencias muertas (Tailwind utilities en web) y scripts obsoletos (`seed.js`).
 - **Migración**: Script `migrate_consents.js` ejecutado para actualizar datos históricos en producción.
+
+## 5. Refactorización (Marzo 2026 - v1.9)
+
+- **Autenticación Resiliente**: Middleware de actualización de eventos mejorado para ignorar tokens inválidos/caducados en rutas que permiten acceso público, evitando redirecciones erróneas al login para visitantes.
+- **Robustez de API**: Normalización de la respuesta de `publicDetail` para garantizar simetría con los requerimientos del modelo de datos.
