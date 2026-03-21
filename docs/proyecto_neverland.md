@@ -30,9 +30,9 @@ Proceso de despliegue seguro (`npm run ship`), integración continua con Vercel/
 ---
 
 ## 🚀 Estado del Sistema
-- **Versión Actual**: v1.9 (Marzo 2026)
+- **Versión Actual**: v1.9.5 (Marzo 2026)
 - **Stack**: Node.js, Express, MongoDB Atlas, React (Vite).
-- **Última Mejora**: Corrección crítica de edición pública y optimización de resiliencia en la autenticación de visitantes. Integración previa de Cloudinary y rediseño interactivo (v1.8).
+- **Última Mejora**: Refinamiento de la Invitación Digital (acceso controlado, IDs únicos) y optimización del cálculo de precios con lógica de respaldo dinámica. Rediseño estético del Administrador y flujos de invitación optimizados (v1.9).
 
 ---
 _Para realizar cambios en la lógica o el esquema, favor de consultar el documento técnico correspondiente._

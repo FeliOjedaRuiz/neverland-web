@@ -44,6 +44,7 @@ Centraliza tanto la actividad comercial como el control de disponibilidad.
     niños: {
       cantidad: Number,
       menuId: String,
+      menuNombre: String,     // Snapshot del nombre del menú (v1.9)
       precioApplied: Number
     },
     adultos: {
@@ -75,7 +76,8 @@ Centraliza tanto la actividad comercial como el control de disponibilidad.
     costoExtension: Number
   },
   precioTotal: Number,
-  publicId: String,
+  publicId: String,          // URL corta para acceso (6 chars)
+  invitationId: String,      // ID único para invitación (8 chars)
   googleEventId: String,
   notasAdmin: String
 }
