@@ -30,6 +30,35 @@ const InvitationPage = () => {
       .finally(() => setLoading(false));
   }, [id]);
 
+  useEffect(() => {
+    if (!invitation) return;
+    
+    const title = `¡Invitación de ${invitation.cliente.nombreNiño}!`;
+    document.title = title;
+    
+    // Best-effort dynamic O-G update
+    const updateMeta = (property, content) => {
+      let element = document.querySelector(`meta[property="${property}"]`) || 
+                    document.querySelector(`meta[name="${property}"]`);
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute('property', property);
+        document.head.appendChild(element);
+      }
+      element.setAttribute('content', content);
+    };
+
+    const ogImage = `${window.location.origin}/images/invitacion_og_share.png`;
+    updateMeta('og:title', title);
+    updateMeta('og:image', ogImage);
+    updateMeta('og:description', `¡Estás invitado al cumple de ${invitation.cliente.nombreNiño} en Neverland!`);
+    updateMeta('twitter:image', ogImage);
+    
+    return () => {
+      document.title = "Neverland - Parque Infantil y Celebraciones";
+    };
+  }, [invitation]);
+
   if (loading) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#FDEBD0]">
