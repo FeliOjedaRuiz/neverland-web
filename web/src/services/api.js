@@ -49,6 +49,7 @@ export const getMonthlyAvailability = (year, month) => api.get('/events/availabi
 export const getReservations = (params) => api.get('/events', { params });
 export const getReservationById = (id) => api.get(`/events/${id}`);
 export const getPublicReservationById = (id) => api.get(`/events/${id}/public`);
+export const getInvitationDetails = (id) => api.get(`/events/invitation/${id}`);
 export const updateReservation = (id, data) => api.patch(`/events/${id}`, data);
 export const deleteReservation = (id) => api.delete(`/events/${id}`);
 export const checkAvailability = (params) => api.get('/events/availability', { params });

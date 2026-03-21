@@ -78,6 +78,7 @@ const eventSchema = new mongoose.Schema({
   // Finanzas y Sincronización
   precioTotal: { type: Number, default: 0 },
   publicId: { type: String, unique: true },
+  invitationId: { type: String, unique: true, sparse: true },
   googleEventId: String, // ID devuelto por Google Calendar API
   notasAdmin: { type: String, maxlength: 500 },    // Para uso interno del salón
 }, {
@@ -92,9 +93,9 @@ const eventSchema = new mongoose.Schema({
   }
 });
 
-// Generate a random 6-character alphanumeric publicId
+// Generate a random 6-character alphanumeric publicId and 8-character invitationId
 eventSchema.pre('save', async function (next) {
-  if (this.isNew && !this.publicId) {
+  if (!this.publicId) {
     let isUnique = false;
     let newId;
     while (!isUnique) {
@@ -104,6 +105,19 @@ eventSchema.pre('save', async function (next) {
     }
     this.publicId = newId;
   }
+
+  // Generate invitationId only for reservations
+  if (this.tipo === 'reserva' && !this.invitationId) {
+    let isUniqueInv = false;
+    let newInvId;
+    while (!isUniqueInv) {
+      newInvId = Math.random().toString(36).substring(2, 10).toLowerCase();
+      const existing = await mongoose.models.Event.findOne({ invitationId: newInvId });
+      if (!existing) isUniqueInv = true;
+    }
+    this.invitationId = newInvId;
+  }
+
   next();
 });
 

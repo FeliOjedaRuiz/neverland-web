@@ -26,6 +26,8 @@ import {
 	TimerReset,
 	Receipt,
 	Users,
+    Copy,
+    ExternalLink
 } from 'lucide-react';
 import { useNavigate, useParams, useOutletContext } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -196,9 +198,11 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 		setIsUpdating(true);
 		setIsStatusMenuOpen(false);
 		try {
-			await updateReservation(reservation.id, { estado: newStatus });
-			setReservation({ ...reservation, estado: newStatus });
-			toast.success(`Estado actualizado a ${newStatus}`);
+			const res = await updateReservation(reservation.id, { estado: newStatus });
+			if (res.data) {
+				setReservation(res.data);
+				toast.success(`Estado actualizado a ${newStatus}`);
+			}
 		} catch (err) {
 			console.error('Error updating status:', err);
 			toast.error('Error al actualizar el estado');
@@ -347,7 +351,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 				)}
 
 				{/* Header con fondo verde */}
-				<div className="flex items-center gap-3 p-4 bg-neverland-green text-white shrink-0 shadow-md relative z-20">
+				<div className="flex items-center gap-3 p-4 bg-neverland-green text-white shrink-0 relative z-20">
 					<div className="flex-1 min-w-0">
 						{/* Fila 1: Nombre y Edad */}
 						<h2 className="text-xl font-display font-black leading-tight wrap-break-word">
@@ -470,6 +474,63 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 						)}
 					</div>
 				</div>
+
+				{/* Invitation Buttons Row - Centered and visible for both Admin and Visitor if confirmed */}
+				{(reservation.estado === 'confirmado' || reservation.estado === 'confirmada') && reservation.invitationId && (
+					<div className="bg-neverland-green text-white pb-4 px-4 -mt-1 relative z-10">
+						<div className="flex items-center justify-center gap-3 pt-1">
+							<a 
+								href={`/invitacion/${reservation.invitationId}`}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="flex items-center gap-1.5 px-4 py-2 bg-energy-orange hover:bg-energy-orange/90 text-white rounded-2xl text-[9px] font-black uppercase transition-all active:scale-95 shadow-lg shadow-black/10"
+							>
+								<ExternalLink size={12} /> Ver invitación
+							</a>
+							<button 
+								onClick={() => {
+									const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.');
+									const baseUrl = isLocal ? window.location.origin : 'https://neverlandcullarvega.es';
+									const link = `${baseUrl}/invitacion/${reservation.invitationId}`;
+									
+									const handleSuccess = () => toast.success('Enlace copiado');
+									const handleError = () => toast.error('Error al copiar el enlace');
+
+									if (navigator.clipboard && navigator.clipboard.writeText) {
+										navigator.clipboard.writeText(link).then(handleSuccess).catch(() => {
+											try {
+												const el = document.createElement('textarea');
+												el.value = link;
+												document.body.appendChild(el);
+												el.select();
+												document.execCommand('copy');
+												document.body.removeChild(el);
+												handleSuccess();
+											} catch {
+												handleError();
+											}
+										});
+									} else {
+										try {
+											const el = document.createElement('textarea');
+											el.value = link;
+											document.body.appendChild(el);
+											el.select();
+											document.execCommand('copy');
+											document.body.removeChild(el);
+											handleSuccess();
+										} catch {
+											handleError();
+										}
+									}
+								}}
+								className="flex items-center gap-1.5 px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-yellow-950 rounded-2xl text-[9px] font-black uppercase transition-all active:scale-95 shadow-lg shadow-black/10"
+							>
+								<Copy size={12} /> Copiar enlace
+							</button>
+						</div>
+					</div>
+				)}
 
 				{/* Content */}
 				<div className="flex-1 overflow-y-auto p-6 space-y-8 bg-cream-bg">
@@ -925,19 +986,27 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 
 							<div className="space-y-3">
 								{/* Niños */}
-								<div className="flex justify-between items-center text-sm">
-									<span className="text-gray-600 font-medium">
-										{reservation.detalles?.niños?.cantidad || 0} Niños ×{' '}
-										{(reservation.detalles?.niños?.precioApplied || 0).toFixed(2)}€
-									</span>
-									<span className="font-black text-text-black">
-										{(
-											(reservation.detalles?.niños?.cantidad || 0) *
-											(reservation.detalles?.niños?.precioApplied || 0)
-										).toFixed(2)}
-										€
-									</span>
-								</div>
+								{(() => {
+									const cantidad = reservation.detalles?.niños?.cantidad || 0;
+									let precioUnitario = reservation.detalles?.niños?.precioApplied;
+									if (precioUnitario == null || precioUnitario === 0) {
+										const currentMenuId = String(reservation.detalles?.niños?.menuId || '');
+										const menu = config?.menusNiños?.find((m) => String(m.id || m._id) === currentMenuId);
+										precioUnitario = menu ? (menu.precio || menu.price || 0) : 0;
+									}
+									const totalNinos = cantidad * precioUnitario;
+									
+									return (
+										<div className="flex justify-between items-center text-sm">
+											<span className="text-gray-600 font-medium">
+												{cantidad} Niños × {precioUnitario.toFixed(2)}€
+											</span>
+											<span className="font-black text-text-black">
+												{totalNinos.toFixed(2)}€
+											</span>
+										</div>
+									);
+								})()}
 
 								{/* Plus Fin de Semana */}
 								{(() => {
@@ -986,41 +1055,71 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 								})()}
 
 								{/* Taller */}
-								{reservation.detalles?.extras?.taller !== 'ninguno' &&
-									reservation.detalles?.extras?.precioTallerApplied > 0 && (
-										<div className="flex justify-between items-center text-sm">
-											<span className="text-gray-600 font-medium">
-												Actividad ({reservation.detalles.extras.taller})
-											</span>
-											<span className="font-black text-text-black">
-												{reservation.detalles.extras.precioTallerApplied.toFixed(2)}€
-											</span>
-										</div>
-									)}
+								{reservation.detalles?.extras?.taller && reservation.detalles.extras.taller !== 'ninguno' && (() => {
+									let pTaller = reservation.detalles.extras.precioTallerApplied;
+									if (pTaller == null || pTaller === 0) {
+										const tallerInfo = config?.workshops?.find(w => w.nombre === reservation.detalles.extras.taller);
+										if (tallerInfo) {
+											const cant = reservation.detalles?.niños?.cantidad || 0;
+											pTaller = cant > 15 ? (tallerInfo.precioPlus || tallerInfo.pricePlus || 0) : (tallerInfo.precioBase || tallerInfo.priceBase || 0);
+										} else {
+											pTaller = 0;
+										}
+									}
+									if (pTaller > 0) {
+										return (
+											<div className="flex justify-between items-center text-sm">
+												<span className="text-gray-600 font-medium">
+													Actividad ({reservation.detalles.extras.taller})
+												</span>
+												<span className="font-black text-text-black">
+													{pTaller.toFixed(2)}€
+												</span>
+											</div>
+										);
+									}
+									return null;
+								})()}
 
 								{/* Personaje */}
-								{reservation.detalles?.extras?.personaje !== 'ninguno' &&
-									reservation.detalles?.extras?.precioPersonajeApplied > 0 && (
-										<div className="flex justify-between items-center text-sm">
-											<span className="text-gray-600 font-medium">
-												Personaje ({reservation.detalles.extras.personaje})
-											</span>
-											<span className="font-black text-text-black">
-												{reservation.detalles.extras.precioPersonajeApplied.toFixed(2)}€
-											</span>
-										</div>
-									)}
+								{reservation.detalles?.extras?.personaje && reservation.detalles.extras.personaje !== 'ninguno' && (() => {
+									let pPersonaje = reservation.detalles.extras.precioPersonajeApplied;
+									if (pPersonaje == null || pPersonaje === 0) {
+										pPersonaje = config?.preciosExtras?.personaje || 0;
+									}
+									if (pPersonaje > 0) {
+										return (
+											<div className="flex justify-between items-center text-sm">
+												<span className="text-gray-600 font-medium">
+													Personaje ({reservation.detalles.extras.personaje})
+												</span>
+												<span className="font-black text-text-black">
+													{pPersonaje.toFixed(2)}€
+												</span>
+											</div>
+										);
+									}
+									return null;
+								})()}
 
 								{/* Piñata */}
-								{reservation.detalles?.extras?.pinata &&
-									reservation.detalles?.extras?.precioPinataApplied > 0 && (
-										<div className="flex justify-between items-center text-sm">
-											<span className="text-gray-600 font-medium">Piñata</span>
-											<span className="font-black text-text-black">
-												{reservation.detalles.extras.precioPinataApplied.toFixed(2)}€
-											</span>
-										</div>
-									)}
+								{reservation.detalles?.extras?.pinata && (() => {
+									let pPinata = reservation.detalles.extras.precioPinataApplied;
+									if (pPinata == null || pPinata === 0) {
+										pPinata = config?.preciosExtras?.pinata || 0;
+									}
+									if (pPinata > 0) {
+										return (
+											<div className="flex justify-between items-center text-sm">
+												<span className="text-gray-600 font-medium">Piñata</span>
+												<span className="font-black text-text-black">
+													{pPinata.toFixed(2)}€
+												</span>
+											</div>
+										);
+									}
+									return null;
+								})()}
 
 								{/* Extensión */}
 								{reservation.horario?.extensionMinutos > 0 &&

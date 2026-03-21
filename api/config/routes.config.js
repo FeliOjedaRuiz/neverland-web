@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 
 const users = require('../controllers/users.controllers');
 const events = require('../controllers/events.controllers');
@@ -36,6 +37,7 @@ router.get('/events/availability', events.checkAvailability);
 router.post('/events', events.create); // Clients can create reservations
 router.get('/events', secure.isAdmin, events.list);
 router.get('/events/:id/public', events.publicDetail); // NEW: Public-safe detail
+router.get('/events/invitation/:invitationId', events.getInvitation); // NEW: Invitation safe detail
 router.get('/events/:id', secure.isAdmin, events.detail); // Sensitive full detail
 router.patch('/events/:id', (req, res, next) => {
 	// Attempt authentication but don't fail if token is missing or invalid

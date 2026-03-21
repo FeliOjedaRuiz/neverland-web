@@ -17,6 +17,7 @@ import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import ServerError from './pages/ServerError';
+import InvitationPage from './pages/InvitationPage';
 // import CustomerReservationDetail from './pages/CustomerReservationDetail'; // Removed unified view
 import RequireAuth from './components/admin/RequireAuth';
 import { Toaster } from 'react-hot-toast';
@@ -33,6 +34,7 @@ function Layout() {
 	const isAdminPath = location.pathname.startsWith('/admin');
 	const isBookingPath = location.pathname === '/booking';
 	const isHomePage = location.pathname === '/';
+	const isInvitationPath = location.pathname.startsWith('/invitacion');
 
 	useEffect(() => {
 		if (location.hash) {
@@ -48,13 +50,14 @@ function Layout() {
 	return (
 		<div className="min-h-screen font-sans bg-cream-bg flex flex-col overflow-x-hidden">
 			<Toaster position="top-center" reverseOrder={false} />
-			{!isAdminPath && <Navbar />}
+			{!isAdminPath && !isInvitationPath && <Navbar />}
 			<main className="grow">
 				<Routes>
 					<Route path="/" element={<HomePage />} />
 					<Route path="/booking" element={<BookingPage />} />
 					<Route path="/admin/login" element={<LoginPage />} />
 					<Route path="/mi-reserva/:id" element={<ReservationDetailView />} />
+					<Route path="/invitacion/:id" element={<InvitationPage />} />
 					<Route
 						path="/admin/dashboard"
 						element={<Navigate to="/admin" replace />}
@@ -83,8 +86,7 @@ function Layout() {
 				</Routes>
 			</main>
 
-			{!isAdminPath && !isBookingPath && <Footer />}
-			{/* {isBookingPath && <MinimalFooter />} */}
+			{!isAdminPath && !isBookingPath && !isInvitationPath && <Footer />}
 			{isHomePage && <WhatsAppButton />}
 		</div>
 	);

@@ -311,6 +311,7 @@ module.exports.publicDetail = (req, res, next) => {
       const publicData = {
         id: event.id,
         publicId: event.publicId,
+        invitationId: event.invitationId,
         fecha: event.fecha,
         turno: event.turno,
         estado: event.estado,
@@ -330,10 +331,34 @@ module.exports.publicDetail = (req, res, next) => {
           niños: {
             cantidad: event.detalles.niños.cantidad,
             menuId: event.detalles.niños.menuId,
-            menuNombre: event.detalles.niños.menuNombre
+            menuNombre: event.detalles.niños.menuNombre,
+            precioApplied: event.detalles.niños.precioApplied
           },
           adultos: event.detalles.adultos,
           extras: event.detalles.extras
+        }
+      };
+      res.json(publicData);
+    })
+    .catch(next);
+};
+
+module.exports.getInvitation = (req, res, next) => {
+  Event.findOne({ invitationId: req.params.invitationId })
+    .then(event => {
+      if (!event) return next(createError(404, 'Invitación no encontrada'));
+      if (event.estado !== 'confirmado' && event.estado !== 'confirmada') {
+        return next(createError(403, 'Esta invitación no está activa o ya no es válida'));
+      }
+      
+      const publicData = {
+        id: event.id,
+        fecha: event.fecha,
+        turno: event.turno,
+        horario: event.horario,
+        cliente: {
+          nombreNiño: event.cliente.nombreNiño,
+          edadNiño: event.cliente.edadNiño,
         }
       };
       res.json(publicData);
