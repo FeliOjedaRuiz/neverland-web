@@ -382,7 +382,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 											
 											// Para el mensaje de WhatsApp, queremos que el cliente siempre reciba la URL real de producción
 											const baseUrl = 'https://neverlandcullarvega.es';
-											const detalleUrl = `${baseUrl}/reserva/${reservation.publicId}`;
+											const detalleUrl = `${baseUrl}/mi-reserva/${reservation.publicId}`;
 											const invitacionUrl = reservation.invitationId ? `${baseUrl}/invitacion/${reservation.invitationId}` : null;
 											
 											const startTime = reservation.horario?.inicio;
