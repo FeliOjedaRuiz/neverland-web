@@ -11,6 +11,7 @@ import Footer from './components/layout/Footer';
 import MinimalFooter from './components/layout/MinimalFooter';
 import WhatsAppButton from './components/common/WhatsAppButton';
 import HomePage from './pages/HomePage';
+import PwaUpdater from './components/common/PwaUpdater';
 
 import BookingPage from './pages/BookingPage';
 import LoginPage from './pages/LoginPage';
@@ -50,6 +51,7 @@ function Layout() {
 	return (
 		<div className="min-h-screen font-sans bg-cream-bg flex flex-col overflow-x-hidden">
 			<Toaster position="top-center" reverseOrder={false} />
+			<PwaUpdater />
 			{!isAdminPath && !isInvitationPath && <Navbar />}
 			<main className="grow">
 				<Routes>

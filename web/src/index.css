@@ -18,6 +18,17 @@
 
 body {
 	@apply bg-cream-bg text-text-black antialiased font-sans;
+	padding-top: env(safe-area-inset-top);
+	padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* PWA UI/UX Improvements */
+* {
+	-webkit-tap-highlight-color: transparent;
+}
+
+button, a {
+	touch-action: manipulation;
 }
 
 section[id] {

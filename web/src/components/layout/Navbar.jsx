@@ -270,11 +270,11 @@ const Navbar = () => {
 								FAQ
 							</Link>
 
-							<div className="w-full pt-4 px-4">
+							<div className="w-full pt-4 px-4 flex flex-col gap-3">
 								<Link
 									to="/booking"
 									onClick={() => setIsOpen(false)}
-									className="block w-full bg-energy-orange text-white px-5 py-4 rounded-2xl font-display font-black shadow-lg shadow-energy-orange/20"
+									className="block text-center w-full bg-energy-orange text-white px-5 py-4 rounded-2xl font-display font-black shadow-lg shadow-energy-orange/20"
 								>
 									Reservar Ahora
 								</Link>

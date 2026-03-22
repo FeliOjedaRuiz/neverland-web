@@ -10,9 +10,10 @@ import {
 	X,
 } from 'lucide-react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { getConfig } from '../services/api';
 import ServerError from './ServerError';
+import InstallPwaPrompt from '../components/common/InstallPwaPrompt';
 
 const SidebarContent = ({
 	sidebarItems,
@@ -56,7 +57,8 @@ const SidebarContent = ({
 				})}
 			</nav>
 
-			<div className="p-4 border-t border-gray-100 space-y-1">
+			<div className="p-4 border-t border-gray-100 space-y-2">
+				<InstallPwaPrompt className="w-full justify-center md:hidden" />
 				<button
 					onClick={() => {
 						navigate('/');
@@ -210,12 +212,15 @@ const AdminDashboard = () => {
 							</p>
 						</div>
 					</div>
-					<button
-						onClick={() => setIsMobileMenuOpen(true)}
-						className="p-2 text-gray-600 hover:text-neverland-green md:hidden"
-					>
-						<Menu size={24} />
-					</button>
+					<div className="flex items-center gap-4">
+						<InstallPwaPrompt variant="button" className="hidden md:flex" />
+						<button
+							onClick={() => setIsMobileMenuOpen(true)}
+							className="p-2 text-gray-600 hover:text-neverland-green md:hidden"
+						>
+							<Menu size={24} />
+						</button>
+					</div>
 				</header>
 
 				{/* Scrollable Content Area */}
