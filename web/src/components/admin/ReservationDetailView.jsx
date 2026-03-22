@@ -55,6 +55,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 	const [activeModal, setActiveModal] = useState(null); // 'client', 'datetime', 'menus', 'extras'
 	const [config, setConfig] = useState(contextConfig);
 	const [loading, setLoading] = useState(!propReservation);
+	const [showConfirmSuccessModal, setShowConfirmSuccessModal] = useState(false);
 
 	const isAdmin = React.useMemo(
 		() =>
@@ -91,9 +92,10 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 	}, [activeModal, showDeleteConfirm]);
 
 	const closeModals = () => {
-		if (activeModal || showDeleteConfirm) {
+		if (activeModal || showDeleteConfirm || showConfirmSuccessModal) {
 			setActiveModal(null);
 			setShowDeleteConfirm(false);
+			setShowConfirmSuccessModal(false);
 			// If we manually close and the current state is the modal state, go back to clean up history
 			if (window.history.state?.isModal) {
 				window.history.back();
@@ -202,6 +204,11 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 			if (res.data) {
 				setReservation(res.data);
 				toast.success(`Estado actualizado a ${newStatus}`);
+				
+				// Abrir modal de éxito si el estado es confirmado
+				if (newStatus === 'confirmado' || newStatus === 'confirmada') {
+					setShowConfirmSuccessModal(true);
+				}
 			}
 		} catch (err) {
 			console.error('Error updating status:', err);
@@ -345,6 +352,73 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 								>
 									No, mantenerla
 								</button>
+							</div>
+						</div>
+					</div>
+				)}
+
+				{/* Modal de Éxito al Confirmar Reserva */}
+				{showConfirmSuccessModal && (
+					<div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all animate-in fade-in duration-300">
+						<div className="bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl animate-in zoom-in-95 duration-300 relative overflow-hidden">
+							
+							<div className="relative z-10">
+								<div className="w-20 h-20 bg-neverland-green/10 text-neverland-green rounded-3xl flex items-center justify-center mx-auto mb-6 animate-bounce-subtle">
+									<CheckCircle size={40} />
+								</div>
+								
+								<h3 className="text-2xl font-display font-black text-text-black text-center mb-2">
+									¡Reserva confirmada!
+								</h3>
+								<p className="text-gray-500 text-sm text-center mb-8 px-2 leading-relaxed">
+									Los detalles se han guardado correctamente y el turno ya está bloqueado para <span className="font-bold text-neverland-green">{reservation.cliente?.nombreNiño}</span>.
+								</p>
+
+								<div className="flex flex-col gap-3">
+									<button
+										onClick={() => {
+											const phone = String(reservation.cliente?.telefono || '').replace(/\D/g, '');
+											const date = (safeParseDate(reservation.fecha) || new Date()).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+											
+											// Para el mensaje de WhatsApp, queremos que el cliente siempre reciba la URL real de producción
+											const baseUrl = 'https://neverlandcullarvega.es';
+											const detalleUrl = `${baseUrl}/reserva/${reservation.publicId}`;
+											const invitacionUrl = reservation.invitationId ? `${baseUrl}/invitacion/${reservation.invitationId}` : null;
+											
+											const startTime = reservation.horario?.inicio;
+
+											let message = `¡Hola! 👋 tu solicitud de reserva en Neverland ha sido confirmada. ✨\n\n📝 *En este enlace puedes ver todos los detalles y hacer modificaciones hasta 3 días antes:*\n🔗 ${detalleUrl}\n`;
+											
+											if (invitacionUrl) {
+												message += `\n💌 *Y en este otro puedes ver la invitación personalizada:*\n🔗 ${invitacionUrl}\n`;
+											}
+											
+											message += `\n¡Nos vemos el ${date} a las 🕒 ${startTime}! 🥳\nMuchas gracias. ❤️`;
+											
+											window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+											setShowConfirmSuccessModal(false);
+										}}
+										className="w-full py-4 bg-neverland-green hover:bg-neverland-green/90 text-white rounded-2xl font-black text-sm shadow-xl shadow-neverland-green/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											width="18"
+											height="18"
+											viewBox="0 0 24 24"
+											fill="currentColor"
+											className="shrink-0"
+										>
+											<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+										</svg>
+										Enviar WhatsApp de confirmación
+									</button>
+									<button
+										onClick={() => setShowConfirmSuccessModal(false)}
+										className="w-full py-4 text-gray-400 hover:text-gray-600 font-bold text-xs uppercase tracking-widest transition-all active:scale-95"
+									>
+										Cerrar
+									</button>
+								</div>
 							</div>
 						</div>
 					</div>
