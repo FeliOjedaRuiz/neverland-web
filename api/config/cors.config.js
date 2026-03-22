@@ -2,21 +2,29 @@ const cors = require("cors");
 
 module.exports = cors({
   credentials: true,
-  origin: (origin, callback) => {
-    const envOrigins = process.env.CORS_ORIGIN 
-      ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-      : [];
+	origin: (origin, callback) => {
+		const envOrigins = process.env.CORS_ORIGIN
+			? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
+			: [];
 
-    const allowedOrigins = [
-      ...envOrigins,
-      "http://localhost:5173",
-      "http://localhost:3000"
-    ].filter(Boolean);
+		const allowedOrigins = [
+			...envOrigins,
+			'http://localhost:5173',
+			'http://localhost:3000',
+			'https://neverlandcullarvega.es',
+		].filter(Boolean);
 
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+		const isVercelOrigin = origin && origin.endsWith('.vercel.app');
+
+		if (
+			!origin ||
+			allowedOrigins.includes(origin) ||
+			isVercelOrigin ||
+			process.env.NODE_ENV !== 'production'
+		) {
+			callback(null, true);
+		} else {
+			callback(new Error('Not allowed by CORS'));
+		}
+	},
 });
