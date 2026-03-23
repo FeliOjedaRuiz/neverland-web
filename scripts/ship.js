@@ -22,7 +22,10 @@ console.log('🚢 --- NEVERLAND SHIP SCRIPT --- 🚢');
 // 1. Tests de Frontend
 runStep('Frontend Tests', 'npm run test:run', WEB_DIR);
 
-// 2. Tests de Backend
+// 2. Linting de Frontend
+runStep('Frontend Linting', 'npm run lint', WEB_DIR);
+
+// 3. Tests de Backend
 runStep('Backend Tests', 'npm test', API_DIR);
 
 // 3. Git Commit (solo si los tests pasaron)

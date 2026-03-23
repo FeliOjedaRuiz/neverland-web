@@ -13,6 +13,7 @@
 - **Zonas Horarias**: Normalización a medianoche local para cálculo de Plus de Fin de Semana.
 - **Estandarización**: Formato uniforme para arrays de comida de adultos.
 - **Edición Pública**: Inclusión de campos obligatorios de consentimiento (`privacyPolicyConsent`) en el detalle público para evitar errores de validación en Mongoose durante actualizaciones de clientes no administradores.
+- **Importaciones Críticas**: Implementación de `Import Guardian` test e integración de `npm run lint` en el script de despliegue (`ship.js`) tras detectar un fallo en producción por falta de importación de `motion`. Esto asegura que errores de referencia no lleguen a desplegarse.
 
 ## 3. Robustez y Control de Errores
 
