@@ -29,19 +29,24 @@ export default defineConfig({
 				],
 				icons: [
 					{
-						src: 'images/Portada-PWA.png',
+						src: 'pwa-icon.svg',
+						sizes: 'any',
+						type: 'image/svg+xml',
+					},
+					{
+						src: 'pwa-icon.svg',
 						sizes: '192x192',
-						type: 'image/png',
+						type: 'image/svg+xml',
 					},
 					{
-						src: 'images/Portada-PWA.png',
+						src: 'pwa-icon.svg',
 						sizes: '512x512',
-						type: 'image/png',
+						type: 'image/svg+xml',
 					},
 					{
-						src: 'images/Portada-PWA.png',
+						src: 'pwa-icon.svg',
 						sizes: '512x512',
-						type: 'image/png',
+						type: 'image/svg+xml',
 						purpose: 'any maskable',
 					},
 				],
