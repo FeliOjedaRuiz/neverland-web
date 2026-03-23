@@ -28,10 +28,4 @@ export const StarBurst = ({ size = 40, color = '#F9C835', opacity = 0.25, style 
   </svg>
 );
 
-// ─────────────────────────────────────────────
-// Time util for invitations
-// ─────────────────────────────────────────────
-export const getExtendedTimeLabel = (horario) => {
-  if (!horario?.inicio || !horario?.fin) return null;
-  return { from: horario.inicio, to: horario.fin };
-};
+// (getExtendedTimeLabel moved to utils/bookingUtils.js)

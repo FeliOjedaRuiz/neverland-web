@@ -109,6 +109,15 @@ export const validateBookingStep = (step, formData) => {
     return obs.length <= 500 && alg.length <= 500;
   }
 
+
   return true;
+};
+
+/**
+ * Time util for reservations/invitations.
+ */
+export const getExtendedTimeLabel = (horario) => {
+  if (!horario?.inicio || !horario?.fin) return null;
+  return { from: horario.inicio, to: horario.fin };
 };
 

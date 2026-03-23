@@ -2,7 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Clock, MapPin, ChevronDown } from 'lucide-react';
 import { formatLongSafeDate } from '../../utils/safeDate';
-import { FloatingIcon, StarBurst, getExtendedTimeLabel } from './InvitationUIElements';
+import { FloatingIcon, StarBurst } from './InvitationUIElements';
+import { getExtendedTimeLabel } from '../../utils/bookingUtils';
 import { PirateShipIcon, TreasureMapIcon, FairyDustIcon, TropicalLeafIcon, CompassIcon, PocketWatchIcon, MagicStarIcon } from './NeverlandIcons';
 
 const InvitacionSection = ({ invitation }) => {
