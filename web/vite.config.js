@@ -20,13 +20,6 @@ export default defineConfig({
 				start_url: '/?pwa=1',
 				shortcuts: [
 					{
-						name: 'Administración',
-						short_name: 'Admin',
-						description: 'Acceder directamente al panel de control',
-						url: '/admin',
-						icons: [{ src: 'pwa-icon.svg', sizes: '192x192' }],
-					},
-					{
 						name: 'Reservar un Evento',
 						short_name: 'Reservar',
 						description: 'Hacer una reserva directamente',
