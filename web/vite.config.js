@@ -8,7 +8,7 @@ export default defineConfig({
 	plugins: [
 		react(),
 		VitePWA({
-			registerType: 'prompt',
+			registerType: 'autoUpdate',
 			includeAssets: ['neverland_logo.svg', 'pwa-icon.svg'],
 			manifest: {
 				name: 'Neverland - Parque Infantil',
