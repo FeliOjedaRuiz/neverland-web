@@ -9,7 +9,7 @@ export default defineConfig({
 		react(),
 		VitePWA({
 			registerType: 'autoUpdate',
-			includeAssets: ['neverland_logo.svg', 'pwa-icon.svg'],
+			includeAssets: ['neverland_logo.svg', 'pwa-icon.svg', 'images/Portada-PWA.png'],
 			manifest: {
 				name: 'Neverland - Parque Infantil',
 				short_name: 'Neverland',
@@ -44,6 +44,22 @@ export default defineConfig({
 						type: 'image/svg+xml',
 						purpose: 'any maskable',
 					},
+				],
+				screenshots: [
+					{
+						src: 'images/Portada-PWA.png',
+						sizes: '1080x1080',
+						type: 'image/png',
+						form_factor: 'wide',
+						label: 'Neverland - Donde los sueños se hacen realidad'
+					},
+					{
+						src: 'images/Portada-PWA.png',
+						sizes: '1080x1080',
+						type: 'image/png',
+						form_factor: 'narrow',
+						label: 'Neverland - Parque Infantil'
+					}
 				],
 			},
 		}),
