@@ -10,7 +10,7 @@ import {
 	X,
 } from 'lucide-react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { getConfig } from '../services/api';
 import ServerError from './ServerError';
 import InstallPwaPrompt from '../components/common/InstallPwaPrompt';
