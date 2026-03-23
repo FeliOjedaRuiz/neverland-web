@@ -4,8 +4,9 @@ const getApiBaseUrl = () => {
   const envUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
   const currentHost = window.location.hostname;
 
-  // Prevent rewriting the URL on production if testing from mobile/IP in development
-  if (import.meta.env.DEV && currentHost !== 'localhost' && currentHost !== '127.0.0.1' && envUrl.includes('localhost')) {
+  // Replace localhost with the current IP if we are accessing from another device
+  // even in production builds (preview mode) if the URL is pointing to localhost
+  if (currentHost !== 'localhost' && currentHost !== '127.0.0.1' && envUrl.includes('localhost')) {
     return envUrl.replace('localhost', currentHost);
   }
 

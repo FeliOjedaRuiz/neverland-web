@@ -9,7 +9,7 @@ export default defineConfig({
 		react(),
 		VitePWA({
 			registerType: 'prompt',
-			includeAssets: ['neverland_logo.svg'],
+			includeAssets: ['neverland_logo.svg', 'pwa-icon.svg'],
 			manifest: {
 				name: 'Neverland - Parque Infantil',
 				short_name: 'Neverland',
@@ -17,19 +17,36 @@ export default defineConfig({
 				theme_color: '#24635a',
 				background_color: '#fdebd0',
 				display: 'standalone',
+				start_url: '/?pwa=1',
+				shortcuts: [
+					{
+						name: 'Administración',
+						short_name: 'Admin',
+						description: 'Acceder directamente al panel de control',
+						url: '/admin',
+						icons: [{ src: 'pwa-icon.svg', sizes: '192x192' }],
+					},
+					{
+						name: 'Reservar un Evento',
+						short_name: 'Reservar',
+						description: 'Hacer una reserva directamente',
+						url: '/booking',
+						icons: [{ src: 'pwa-icon.svg', sizes: '192x192' }],
+					},
+				],
 				icons: [
 					{
-						src: 'neverland_logo.svg',
+						src: 'pwa-icon.svg',
 						sizes: '192x192',
 						type: 'image/svg+xml',
 					},
 					{
-						src: 'neverland_logo.svg',
+						src: 'pwa-icon.svg',
 						sizes: '512x512',
 						type: 'image/svg+xml',
 					},
 					{
-						src: 'neverland_logo.svg',
+						src: 'pwa-icon.svg',
 						sizes: '512x512',
 						type: 'image/svg+xml',
 						purpose: 'any maskable',

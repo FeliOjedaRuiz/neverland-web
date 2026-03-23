@@ -30,9 +30,9 @@ Proceso de despliegue seguro (`npm run ship`), integración continua con Vercel/
 ---
 
 ## 🚀 Estado del Sistema
-- **Versión Actual**: v1.9.5 (Marzo 2026)
-- **Stack**: Node.js, Express, MongoDB Atlas, React (Vite).
-- **Última Mejora**: Refinamiento de la Invitación Digital (acceso controlado, IDs únicos) y optimización del cálculo de precios con lógica de respaldo dinámica. Rediseño estético del Administrador y flujos de invitación optimizados (v1.9).
+- **Versión Actual**: v1.9.6 (Marzo 2026)
+- **Stack**: Node.js, Express, MongoDB Atlas, React (Vite), VitePWA.
+- **Última Mejora**: Implementación de PWA completa (v1.9.6) con sistema de instalación personalizado, iconos adaptativos, accesos directos (shortcuts) y redirección inteligente para administradores. Refinamiento de la Invitación Digital y lógica de precios dinámica (v1.9.5).
 
 ---
 _Para realizar cambios en la lógica o el esquema, favor de consultar el documento técnico correspondiente._

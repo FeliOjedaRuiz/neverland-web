@@ -25,3 +25,12 @@ Proceso de 8 pasos optimizado para conversión:
 - **Mi Reserva**: Link único para consulta de estado por parte del cliente.
 - **Add to Calendar**: Botón para que el cliente agende su reserva en su calendario personal.
 - **Límites de Seguridad**: Validaciones de máximos (Niños: 50, Adultos: 40) para proteger el layout y la operatividad.
+
+## 4. Aplicación Web Progresiva (PWA)
+
+El sistema Neverland ha sido transformado en una PWA nativa para mejorar la recurrencia:
+- **Instalabilidad**: Botón personalizado en el Panel de Admin y meta-tags para iOS/Android.
+- **Iconografía Acolchada**: Uso de `pwa-icon.svg` con márgenes de seguridad para evitar cortes en sistemas de máscara (Android Adaptive Icons).
+- **Acceso Directo Admin**: Lógica de redirección inteligente (`/?pwa=1`) que lleva a los administradores directamente al panel si ya están logueados.
+- **App Shortcuts**: Menús rápidos al mantener pulsado el icono (Administración, Reservas).
+- **Gestión de Actualizaciones**: Sistema de notificaciones (Toast) cuando hay una nueva versión disponible.
