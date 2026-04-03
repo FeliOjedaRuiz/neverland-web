@@ -34,3 +34,4 @@ El sistema Neverland ha sido transformado en una PWA nativa para mejorar la recu
 - **Acceso Directo Admin**: Lógica de redirección inteligente (`/?pwa=1`) que lleva a los administradores directamente al panel si ya están logueados.
 - **App Shortcuts**: Menús rápidos al mantener pulsado el icono (Administración, Reservas).
 - **Gestión de Actualizaciones**: Sistema de notificaciones (Toast) cuando hay una nueva versión disponible.
+1

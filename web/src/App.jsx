@@ -49,7 +49,7 @@ function Layout() {
 	}, [location]);
 
 	return (
-		<div className="min-h-screen font-sans bg-cream-bg flex flex-col overflow-x-hidden">
+		<div className="min-h-dvh font-sans bg-cream-bg flex flex-col overflow-x-hidden">
 			<Toaster position="top-center" reverseOrder={false} />
 			<PwaUpdater />
 			{!isAdminPath && !isInvitationPath && <Navbar />}

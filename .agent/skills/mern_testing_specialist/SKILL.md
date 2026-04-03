@@ -1,3 +1,8 @@
+---
+name: mern_testing_specialist
+description: Experto en pruebas de integración y validación de flujos de datos para el ecosistema Neverland (Node.js, Express, MongoDB).
+---
+
 # MERN Testing Specialist
 
 Experto en pruebas de integración y validación de flujos de datos para el ecosistema Neverland (Node.js, Express, MongoDB).

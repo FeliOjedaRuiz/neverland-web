@@ -80,6 +80,9 @@ const HeroSection = () => {
 					}}
 				/>
 
+				<h1 className="sr-only">
+					Neverland Parque Infantil y Centro de Celebración de Cumpleaños en Cúllar Vega
+				</h1>
 				<p className="mt-4 text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-display font-semibold text-white max-w-2xl mx-auto mb-10 drop-shadow-lg tracking-wide">
 					Donde los sueños se hacen realidad y la diversión nunca termina.
 				</p>

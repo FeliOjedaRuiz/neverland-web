@@ -371,6 +371,25 @@ module.exports.update = (req, res, next) => {
     .then(async (event) => {
       if (!event) throw createError(404, 'Evento no encontrado');
 
+      // --- SCHEMA COMPATIBILITY SHIM ---
+      // Reservas creadas desde el despliegue antiguo (fly.dev) almacenaron los campos
+      // de consentimiento legal en detalles.extras en lugar de en cliente.
+      // Este bloque los migra al lugar correcto si aún están en la posición antigua.
+      if (event.tipo === 'reserva') {
+        const extras = event.detalles?.extras;
+        if (extras && extras.privacyPolicyConsent !== undefined && event.cliente?.privacyPolicyConsent === undefined) {
+          console.warn(`[SCHEMA_SHIM] Evento ${event.publicId}: migrando consentimientos de detalles.extras a cliente.`);
+          event.cliente = event.cliente || {};
+          event.cliente.privacyPolicyConsent = extras.privacyPolicyConsent;
+          event.cliente.marketingConsent = extras.marketingConsent ?? false;
+          event.cliente.fechaConsentimiento = extras.fechaConsentimiento ?? new Date();
+          event.detalles.extras.privacyPolicyConsent = undefined;
+          event.detalles.extras.marketingConsent = undefined;
+          event.detalles.extras.fechaConsentimiento = undefined;
+          await event.save();
+        }
+      }
+
       // --- PERMISSION & WINDOW CHECK ---
       const isAdmin = req.user && req.user.role === 'admin';
 

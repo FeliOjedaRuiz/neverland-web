@@ -1,3 +1,8 @@
+---
+name: webapp_testing_expert
+description: Especialista en asegurar que el flujo de reservas de Neverland sea infalible mediante pruebas automatizadas de extremo a extremo (E2E).
+---
+
 # WebApp Testing Expert (Playwright)
 
 Especialista en asegurar que el flujo de reservas de Neverland sea infalible mediante pruebas automatizadas de extremo a extremo (E2E).

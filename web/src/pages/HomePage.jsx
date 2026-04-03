@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import SEO from '../components/common/SEO';
 import HeroSection from '../components/home/HeroSection';
 import MenusSection from '../components/home/MenusSection';
 import WorkshopsSection from '../components/home/WorkshopsSection';
@@ -24,6 +25,22 @@ function HomePage() {
 
 	return (
 		<>
+			<SEO 
+				title="Inicio" 
+				schema={{
+					"@context": "https://schema.org",
+					"@type": "LocalBusiness",
+					"name": "Neverland",
+					"image": "https://neverlandcullarvega.es/neverland_og.png",
+					"description": "El mejor parque infantil y centro de celebraciones en Cúllar Vega (Granada).",
+					"address": {
+						"@type": "PostalAddress",
+						"addressLocality": "Cúllar Vega",
+						"addressRegion": "Granada",
+						"addressCountry": "ES"
+					}
+				}}
+			/>
 			<HeroSection />
 			<ServicesSection />
 			<FacilitiesSection />

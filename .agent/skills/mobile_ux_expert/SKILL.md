@@ -1,3 +1,8 @@
+---
+name: mobile_ux_expert
+description: Experto en diseño Mobile-First y resolución de problemas específicos de Safari en iOS para la plataforma Neverland.
+---
+
 # Mobile UX Expert (Safari/iOS Specialist)
 
 Experto en diseño Mobile-First y resolución de problemas específicos de Safari en iOS para la plataforma Neverland.

@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Bloquear directorios privados o de administración para evitar indexación de datos sensibles
+Disallow: /admin/
+Disallow: /mi-reserva/
+Disallow: /invitacion/
+
+Sitemap: https://neverlandcullarvega.es/sitemap.xml

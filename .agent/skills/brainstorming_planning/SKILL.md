@@ -1,3 +1,8 @@
+---
+name: brainstorming_planning
+description: Especialista en la fase de concepción y arquitectura para nuevas funcionalidades de Neverland.
+---
+
 # Brainstorming & Planning
 
 Especialista en la fase de concepción y arquitectura para nuevas funcionalidades de Neverland.

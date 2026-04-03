@@ -7,7 +7,7 @@ const ServerError = () => {
 	const navigate = useNavigate();
 
 	return (
-		<div className="min-h-screen bg-cream-bg relative overflow-hidden flex items-center justify-center px-6">
+		<div className="min-h-dvh bg-cream-bg relative overflow-hidden flex items-center justify-center px-6">
 			{/* Grid de Fondo */}
 			<div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5" />
 			<div className="absolute -top-32 -right-32 w-96 h-96 bg-red-400/10 rounded-full blur-[100px] pointer-events-none" />

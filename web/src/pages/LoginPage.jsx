@@ -44,7 +44,7 @@ const LoginPage = () => {
 	};
 
 	return (
-		<div className="min-h-screen bg-cream-bg flex items-center justify-center p-4">
+		<div className="min-h-dvh bg-cream-bg flex items-center justify-center p-4">
 			<div className="max-w-md w-full bg-surface rounded-3xl shadow-soft p-8 sm:p-12 border border-white/50">
 				<div className="text-center mb-10">
 					<div className="w-20 h-20 bg-neverland-green/10 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-sm">

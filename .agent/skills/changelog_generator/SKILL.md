@@ -1,3 +1,8 @@
+---
+name: changelog_generator
+description: Especialista en documentar la evolución técnica del proyecto Neverland, transformando cambios de código en resúmenes legibles para el equipo.
+---
+
 # Changelog Generator
 
 Especialista en documentar la evolución técnica del proyecto Neverland, transformando cambios de código en resúmenes legibles para el equipo.

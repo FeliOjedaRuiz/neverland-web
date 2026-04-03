@@ -7,7 +7,7 @@ const NotFound = () => {
 	const navigate = useNavigate();
 
 	return (
-		<div className="min-h-screen bg-cream-bg relative overflow-hidden flex items-center justify-center px-6">
+		<div className="min-h-dvh bg-cream-bg relative overflow-hidden flex items-center justify-center px-6">
 			{/* Decoración de fondo */}
 			<div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neverland-green/10 rounded-full blur-3xl mix-blend-multiply animate-pulse" />
 			<div

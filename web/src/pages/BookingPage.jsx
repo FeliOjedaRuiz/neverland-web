@@ -14,6 +14,11 @@ import {
 	getConfig,
 	getMonthlyAvailability,
 } from '../services/api';
+import {
+	calculateBookingTotal,
+	validateBookingStep,
+} from '../utils/bookingUtils';
+import SEO from '../components/common/SEO';
 
 // Components
 import BookingHeader from '../components/booking/BookingHeader';
@@ -28,10 +33,6 @@ import Step7Extras from '../components/booking/Step7Extras';
 import Step8Summary from '../components/booking/Step8Summary';
 import BookingSuccess from '../components/booking/BookingSuccess';
 import DataProtectionModal from '../components/booking/DataProtectionModal';
-import {
-	calculateBookingTotal,
-	validateBookingStep,
-} from '../utils/bookingUtils';
 
 // --- Constants & Data ---
 
@@ -399,6 +400,10 @@ const BookingPage = () => {
 
 	return (
 		<div className="pt-16 sm:pt-20 pb-0 flex flex-col bg-calendar-bg sm:bg-cream-bg overflow-hidden fixed inset-0 w-full">
+			<SEO 
+				title="Reservar Cumpleaños" 
+				description="Reserva la fecha perfecta para tu evento en Neverland Cúllar Vega. Selecciona menús infantiles, talleres, pintacaras o visitas de personajes."
+			/>
 			<BookingHeader stage={currentStage} stepsList={stepsList} />
 			<div className="flex-1 px-0 sm:px-4 pb-0 min-h-0 relative flex flex-col">
 				<div className="bg-calendar-bg sm:rounded-3xl sm:shadow-soft h-full flex flex-col relative overflow-hidden sm:border-t sm:border-x sm:border-white/50">
