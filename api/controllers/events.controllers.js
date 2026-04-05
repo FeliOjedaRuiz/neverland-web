@@ -2,6 +2,7 @@ const Event = require('../models/event.model');
 const createError = require('http-errors');
 const googleService = require('../services/google.service');
 const mailer = require('../config/mailer.config');
+const pushService = require('../services/push.service');
 
 const Config = require('../models/config.model');
 
@@ -221,6 +222,11 @@ module.exports.create = (req, res, next) => {
           // Send confirmation email
           if (event.tipo === 'reserva' && event.cliente?.email) {
             await mailer.sendBookingConfirmationEmail(event);
+          }
+
+          // Notificar al admin vía Push (fire & forget, no bloquea la respuesta)
+          if (event.tipo === 'reserva') {
+            pushService.notifyNewBooking(event);
           }
 
           return res.status(201).json(event);

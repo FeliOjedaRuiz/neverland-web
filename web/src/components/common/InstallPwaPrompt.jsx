@@ -52,7 +52,7 @@ export default function InstallPwaPrompt({ className = '', variant = 'button' })
 	return (
 		<button
 			onClick={handleInstallClick}
-			className={`flex items-center gap-2 bg-energy-orange text-white px-4 py-2 rounded-full font-bold hover:bg-orange-600 transition-colors shadow-sm ${className}`}
+			className={`flex items-center justify-center gap-2 bg-energy-orange text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors shadow-sm font-display ${className}`}
 		>
 			<Download size={18} />
 			<span>Instalar App</span>

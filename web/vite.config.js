@@ -8,8 +8,18 @@ export default defineConfig({
 	plugins: [
 		react(),
 		VitePWA({
-			registerType: 'autoUpdate',
-			includeAssets: ['neverland_logo.svg', 'pwa-icon.svg', 'images/Portada-PWA.png'],
+			registerType: 'prompt',
+			strategies: 'injectManifest',
+			srcDir: 'src',
+			filename: 'sw.js',
+			injectManifest: {
+				injectionPoint: 'self.__WB_MANIFEST',
+			},
+			devOptions: {
+				enabled: false,
+				type: 'module',
+			},
+			includeAssets: ['neverland_logo.svg', 'pwa-icon.svg', 'apple-touch-icon.png', 'images/Portada-PWA.png'],
 			manifest: {
 				name: 'Neverland - Parque Infantil',
 				short_name: 'Neverland',

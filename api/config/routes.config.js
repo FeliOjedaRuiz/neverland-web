@@ -6,6 +6,7 @@ const users = require('../controllers/users.controllers');
 const events = require('../controllers/events.controllers');
 const config = require('../controllers/config.controllers');
 const workshops = require('../controllers/workshops.controllers');
+const push = require('../controllers/push.controllers');
 
 const secure = require('../middlewares/secure.mid');
 const usersMid = require('../middlewares/users.mid');
@@ -70,5 +71,10 @@ router.get('/workshops', workshops.list);
 router.post('/workshops', secure.isAdmin, workshops.create);
 router.patch('/workshops/:id', secure.isAdmin, workshops.update);
 router.delete('/workshops/:id', secure.isAdmin, workshops.delete);
+
+// PUSH NOTIFICATIONS
+router.get('/push/public-key', push.getPublicKey); // Pública: el admin la necesita antes de autenticarse con push
+router.post('/push/subscribe', secure.isAdmin, push.subscribe);
+router.delete('/push/unsubscribe', secure.isAdmin, push.unsubscribe);
 
 module.exports = router;

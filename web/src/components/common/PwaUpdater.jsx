@@ -7,7 +7,7 @@ export default function PwaUpdater() {
 	const location = useLocation();
 	const {
 		offlineReady: [offlineReady, setOfflineReady],
-		needRefresh: [needRefresh, setNeedRefresh],
+		needRefresh: [needRefresh],
 		updateServiceWorker,
 	} = useRegisterSW({
 		onRegistered(r) {
@@ -35,38 +35,38 @@ export default function PwaUpdater() {
 		}
 	}, [offlineReady, setOfflineReady]);
 
-	// Lógica de actualización inteligente
+	// Lógica de actualización única y limpia
 	useEffect(() => {
-		if (needRefresh) {
-			const isBooking = location.pathname.includes('/booking');
-			const isAdmin = location.pathname.startsWith('/admin');
+		if (!needRefresh) return;
 
-			if (!isBooking) {
-				// En Home o Admin: Actualizamos al instante
-				toast('Actualizando Neverland con mejoras mágicas...', {
-					icon: '✨',
-					duration: 2500,
-					style: {
-						borderRadius: '16px',
-						background: '#24635a',
-						color: '#fff',
-						fontWeight: 'bold'
-					}
-				});
+		const isProtectedArea = location.pathname.includes('/booking') || location.pathname.startsWith('/admin');
 
-				// Pequeño retraso para que lean el mensaje y luego refrescamos
-				setTimeout(() => {
-					updateServiceWorker(true);
-				}, 2000);
-			} else {
-				// En reserva: No refrescamos para no borrar sus datos
-				// Pero avisamos de forma sutil
-				toast('Hay una nueva versión disponible. Se aplicará al terminar tu reserva.', {
-					icon: '🚀',
-					duration: 6000,
-					position: 'bottom-center'
-				});
-			}
+		// Limpiamos cualquier toast previo para evitar duplicados
+		toast.dismiss();
+
+		if (!isProtectedArea) {
+			// En Home: Actualización silenciosa/rápida con aviso elegante
+			toast('✨ Actualizando Neverland con mejoras mágicas...', {
+				duration: 3000,
+				style: { borderRadius: '16px', background: '#24635a', color: '#fff' }
+			});
+			setTimeout(() => updateServiceWorker(true), 2000);
+		} else {
+			// En Admin/Booking: Botón manual para no interrumpir
+			toast((t) => (
+				<div className="flex items-center gap-4">
+					<span className="text-sm font-medium">🚀 Nueva versión disponible</span>
+					<button 
+						onClick={() => {
+							toast.dismiss(t.id);
+							updateServiceWorker(true);
+						}}
+						className="bg-neverland-green text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-md"
+					>
+						ACTUALIZAR
+					</button>
+				</div>
+			), { duration: Infinity, position: 'bottom-center' });
 		}
 	}, [needRefresh, location.pathname, updateServiceWorker]);
 

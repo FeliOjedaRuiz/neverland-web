@@ -35,7 +35,28 @@ El sistema delega la gestión de imágenes a Cloudinary para optimizar el rendim
 
 ---
 
-## 💬 WhatsApp Business Integration
+---
 
-- **URLs Dinámicas**: El sistema construye enlaces `wa.me` con el desglose de la reserva.
-- **Confirmación**: Se ofrece al cliente un botón de "Avisar por WhatsApp" al finalizar la reserva.
+## 🔔 Notificaciones Push Nativas (VitePWA + Web-Push)
+
+El sistema integra notificaciones push en tiempo real para alertar a los administradores sobre nuevas reservas sin necesidad de tener la App abierta.
+
+### Configuración Técnica
+- **Protocolo**: VAPID (Voluntary Application Server Identification).
+- **Backend**: Librería `web-push` en Node.js.
+- **Frontend**: API `PushManager` del navegador coordinada por el Service Worker (`sw.js`).
+- **Almacenamiento**: Colección `pushsubscriptions` en MongoDB.
+
+### Flujo de Notificación
+1. **Suscripción**: Los administradores activan el botón "Notificaciones" en el Panel. El navegador solicita permiso y genera un `endpoint` único que se guarda en la base de datos vinculado a la sesión.
+2. **Evento**: Al crearse una nueva reserva (controller `events`), se dispara el servicio `push.service`.
+3. **Payload**: Se construye un objeto dinámico con:
+   - `title`: '🎉 ¡Nueva Reserva!'
+   - `body`: '{Nombre del Niño} — {Fecha Formateada} ({Turno})'
+   - `data.url`: Enlace directo al `/admin` para gestión rápida.
+4. **Broadcast**: El servidor envía el mensaje a todos los dispositivos suscritos almacenados en la base de datos.
+5. **Recepción**: El Service Worker intercepta el evento `push`, muestra la notificación visual y gestiona el clic para redirigir a la App.
+
+### Gestión de Errores y Limpieza
+- Si el navegador rechaza el permiso, se muestra feedback visual en la UI.
+- Las suscripciones inválidas (cuando el usuario desinstala o bloquea) se limpian automáticamente al detectar fallos de envío desde el backend.

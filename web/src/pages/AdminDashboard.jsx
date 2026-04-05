@@ -8,12 +8,15 @@ import {
 	Search,
 	Menu,
 	X,
+	Bell,
+	BellOff,
 } from 'lucide-react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getConfig } from '../services/api';
 import ServerError from './ServerError';
 import InstallPwaPrompt from '../components/common/InstallPwaPrompt';
+import usePushNotifications from '../hooks/usePushNotifications';
 
 const SidebarContent = ({
 	sidebarItems,
@@ -21,6 +24,11 @@ const SidebarContent = ({
 	handleLogout,
 	currentPath,
 	onNavigate,
+	isSupported,
+	isSubscribed,
+	isLoading,
+	subscribe,
+	unsubscribe,
 }) => {
 	return (
 		<div className="h-full flex flex-col">
@@ -59,6 +67,24 @@ const SidebarContent = ({
 
 			<div className="p-4 border-t border-gray-100 space-y-2">
 				<InstallPwaPrompt className="w-full justify-center md:hidden" />
+				
+				{isSupported && (
+					<button
+						onClick={() => {
+							if (isSubscribed) unsubscribe(); else subscribe();
+						}}
+						disabled={isLoading}
+						className={`w-full md:hidden flex items-center justify-center gap-3 px-4 py-2 rounded-full text-sm font-medium transition-all font-display shadow-sm ${
+							isSubscribed
+								? 'bg-neverland-green text-white hover:bg-neverland-green/90'
+								: 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+						} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+					>
+						{isSubscribed ? <Bell size={18} /> : <BellOff size={18} />}
+						{isLoading ? 'Cargando...' : isSubscribed ? 'Notificaciones ON' : 'Activar Notificaciones'}
+					</button>
+				)}
+
 				<button
 					onClick={() => {
 						navigate('/');
@@ -92,6 +118,7 @@ const AdminDashboard = () => {
 	const location = useLocation();
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const [config, setConfig] = useState(null);
+	const { isSupported, isSubscribed, isLoading, subscribe, unsubscribe } = usePushNotifications();
 
 	const sidebarItems = [
 		{ id: 'reservas', label: 'Bandeja de Entrada', icon: Inbox },
@@ -138,6 +165,11 @@ const AdminDashboard = () => {
 		navigate,
 		handleLogout,
 		currentPath: location.pathname,
+		isSupported,
+		isSubscribed,
+		isLoading,
+		subscribe,
+		unsubscribe,
 	};
 
 	return (
@@ -214,6 +246,25 @@ const AdminDashboard = () => {
 					</div>
 					<div className="flex items-center gap-4">
 						<InstallPwaPrompt variant="button" className="hidden md:flex" />
+						{/* Botón de activación de notificaciones push */}
+						{isSupported && (
+							<button
+								id="push-notifications-toggle"
+								onClick={isSubscribed ? unsubscribe : subscribe}
+								disabled={isLoading}
+								title={isSubscribed ? 'Desactivar notificaciones' : 'Activar notificaciones de nuevas reservas'}
+								className={`hidden md:flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm font-medium font-display transition-all shadow-sm ${
+									isSubscribed
+										? 'bg-neverland-green text-white hover:bg-neverland-green/90'
+										: 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+								} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+							>
+								{isSubscribed ? <Bell size={18} /> : <BellOff size={18} />}
+								<span className="hidden lg:inline">
+									{isLoading ? 'Cargando...' : isSubscribed ? 'Notificaciones ON' : 'Notificaciones OFF'}
+								</span>
+							</button>
+						)}
 						<button
 							onClick={() => setIsMobileMenuOpen(true)}
 							className="p-2 text-gray-600 hover:text-neverland-green md:hidden"
