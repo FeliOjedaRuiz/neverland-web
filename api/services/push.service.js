@@ -45,7 +45,7 @@ const notifyNewBooking = async (event) => {
 			title: '🎉 ¡Nueva Reserva!',
 			body: `${nombre} — ${fechaStr}${turno ? ` (${turno})` : ''}`,
 			badge: '/notification-badge.png',
-			data: { url: '/admin' }
+			data: { url: event._id ? `/admin/evento/${event._id}` : '/admin' }
 		});
 
 		const results = await Promise.allSettled(
