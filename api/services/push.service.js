@@ -44,6 +44,7 @@ const notifyNewBooking = async (event) => {
 		const payload = JSON.stringify({
 			title: '🎉 ¡Nueva Reserva!',
 			body: `${nombre} — ${fechaStr}${turno ? ` (${turno})` : ''}`,
+			badge: '/notification-badge.png',
 			data: { url: '/admin' }
 		});
 

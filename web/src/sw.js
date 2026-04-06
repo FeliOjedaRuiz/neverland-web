@@ -50,7 +50,7 @@ self.addEventListener('push', (event) => {
 			title: 'Neverland',
 			body: text,
 			icon: '/apple-touch-icon.png',
-			badge: '/apple-touch-icon.png',
+			badge: '/notification-badge.png',
 			data: { url: '/admin' },
 		};
 	}
@@ -58,7 +58,7 @@ self.addEventListener('push', (event) => {
 	const options = {
 		body: data.body,
 		icon: data.icon || '/apple-touch-icon.png',
-		badge: data.badge || '/apple-touch-icon.png',
+		badge: data.badge || '/notification-badge.png',
 		data: data.data || {},
 		vibrate: [200, 100, 200],
 		requireInteraction: true, // Forzamos para que no se oculte sola en Windows
