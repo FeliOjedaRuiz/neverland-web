@@ -2,48 +2,38 @@ import React, { useState, useEffect } from 'react';
 import { Download, MonitorSmartphone, Share } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-let globalDeferredPrompt = null;
-let globalIsVisible = false;
-const listeners = new Set();
-
-if (typeof window !== 'undefined') {
-	window.addEventListener('beforeinstallprompt', (e) => {
-		e.preventDefault();
-		globalDeferredPrompt = e;
-		globalIsVisible = true;
-		listeners.forEach((listener) => listener(true, e));
-	});
-
-	window.addEventListener('appinstalled', () => {
-		globalDeferredPrompt = null;
-		globalIsVisible = false;
-		listeners.forEach((listener) => listener(false, null));
-	});
-}
-
 export default function InstallPwaPrompt({ className = '', variant = 'button' }) {
 	const isIosDevice = typeof window !== 'undefined' && /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
 	const isStandalone = typeof window !== 'undefined' && (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches);
 	const showIosPrompt = isIosDevice && !isStandalone;
 
-	const [deferredPrompt, setDeferredPrompt] = useState(globalDeferredPrompt);
-	const [isVisible, setIsVisible] = useState(showIosPrompt || globalIsVisible);
+	const [deferredPrompt, setDeferredPrompt] = useState(null);
+	const [isVisible, setIsVisible] = useState(showIosPrompt);
 	const [isIos] = useState(showIosPrompt);
 
 	useEffect(() => {
-		const handleStateChange = (visible, prompt) => {
-			setIsVisible(visible || showIosPrompt);
-			setDeferredPrompt(prompt);
+		const handleReady = () => {
+			setDeferredPrompt(window.pwaInstallEvent);
+			setIsVisible(true);
 		};
 
-		listeners.add(handleStateChange);
-		// Sincronizar inmediatamente por si cambió justo antes del mount
-		handleStateChange(globalIsVisible, globalDeferredPrompt);
+		const handleInstalled = () => {
+			setDeferredPrompt(null);
+			setIsVisible(false);
+		};
+
+		if (window.pwaInstallEvent) {
+			handleReady();
+		}
+
+		window.addEventListener('pwa-install-ready', handleReady);
+		window.addEventListener('pwa-installed', handleInstalled);
 
 		return () => {
-			listeners.delete(handleStateChange);
+			window.removeEventListener('pwa-install-ready', handleReady);
+			window.removeEventListener('pwa-installed', handleInstalled);
 		};
-	}, [showIosPrompt]);
+	}, []);
 
 	const handleInstallClick = async () => {
 		if (isIos) {
@@ -72,10 +62,9 @@ export default function InstallPwaPrompt({ className = '', variant = 'button' })
 		deferredPrompt.prompt();
 		const { outcome } = await deferredPrompt.userChoice;
 		if (outcome === 'accepted') {
-			globalIsVisible = false;
 			setIsVisible(false);
 		}
-		globalDeferredPrompt = null;
+		window.pwaInstallEvent = null;
 		setDeferredPrompt(null);
 	};
 
