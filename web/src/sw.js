@@ -73,8 +73,12 @@ self.addEventListener('push', (event) => {
 	);
 });
 
-// Listener para pruebas visuales directas desde Consola
+// Listener para mensajes y actualizaciones del SW
 self.addEventListener('message', (event) => {
+	if (event.data && event.data.type === 'SKIP_WAITING') {
+		self.skipWaiting();
+	}
+	
 	if (event.data && event.data.type === 'TEST_VISUAL') {
 		console.log('[SW] Mensaje de test visual recibido.');
 		self.registration.showNotification('¡TEST VISUAL!', {
