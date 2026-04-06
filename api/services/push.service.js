@@ -5,17 +5,28 @@ const vapidEmail = (process.env.VAPID_EMAIL || '').startsWith('mailto:')
 	? process.env.VAPID_EMAIL
 	: `mailto:${process.env.VAPID_EMAIL || 'hola@neverlandcullarvega.es'}`;
 
-webPush.setVapidDetails(
-	vapidEmail,
-	process.env.VAPID_PUBLIC_KEY,
-	process.env.VAPID_PRIVATE_KEY
-);
+const publicKey = process.env.VAPID_PUBLIC_KEY;
+const privateKey = process.env.VAPID_PRIVATE_KEY;
+
+if (publicKey && privateKey) {
+	try {
+		webPush.setVapidDetails(vapidEmail, publicKey, privateKey);
+	} catch (err) {
+		console.warn('[Push] ADVERTENCIA: Error al configurar web-push:', err.message);
+	}
+} else {
+	console.warn('[Push] ADVERTENCIA: VAPID_PUBLIC_KEY o VAPID_PRIVATE_KEY no están definidos. Las notificaciones push requerirán configuración de variables de entorno.');
+}
 
 /**
  * Envía una notificación push a todos los administradores suscritos.
  * @param {object} event - El evento/reserva recién creado.
  */
 const notifyNewBooking = async (event) => {
+	if (!publicKey || !privateKey) {
+		console.warn('[Push] Se omite notificación: claves VAPID no configuradas en el servidor.');
+		return;
+	}
 	try {
 		const subscriptions = await PushSubscription.find({ role: 'admin' });
 

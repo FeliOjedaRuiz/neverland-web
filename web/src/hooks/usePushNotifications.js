@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'react-hot-toast';
 import api from '../services/api';
 
 /**
@@ -61,12 +62,26 @@ const usePushNotifications = () => {
 			// 1. Pedir permiso
 			const permission = await Notification.requestPermission();
 			if (permission !== 'granted') {
+				toast.error('Permiso para notificaciones denegado.');
 				console.warn('[Push] Permiso denegado por el usuario.');
+				setIsLoading(false);
 				return;
 			}
 
 			// 2. Obtener VAPID public key del backend
-			const { data } = await api.get('/push/public-key');
+			let data;
+			try {
+				const response = await api.get('/push/public-key');
+				data = response.data;
+			} catch (error) {
+				console.error('[Push] Fetch public key error:', error);
+				// Check for 404 specifically since it happens if the backend isn't updated
+				if (error.response?.status === 404) {
+					throw new Error('El backend de notificaciones no está disponible (ruta no encontrada). Por favor, asegúrate de haber desplegado el servidor.');
+				}
+				throw new Error('Error de conexión al obtener la clave pública.');
+			}
+			
 			const applicationServerKey = urlBase64ToUint8Array(data.publicKey);
 
 			// 3. Suscribirse vía Service Worker
@@ -79,9 +94,11 @@ const usePushNotifications = () => {
 			// 4. Enviar la suscripción al backend para guardarla
 			await api.post('/push/subscribe', subscription.toJSON());
 			setIsSubscribed(true);
+			toast.success('Notificaciones activadas con éxito.');
 			console.log('[Push] Suscripción guardada correctamente.');
 		} catch (err) {
 			console.error('[Push] Error al suscribirse:', err.message);
+			toast.error(`Error al activar notificaciones: ${err.message}`);
 		} finally {
 			setIsLoading(false);
 		}
@@ -104,10 +121,12 @@ const usePushNotifications = () => {
 				// Luego cancelar en el navegador
 				await subscription.unsubscribe();
 				setIsSubscribed(false);
+				toast.success('Notificaciones desactivadas.');
 				console.log('[Push] Suscripción cancelada.');
 			}
 		} catch (err) {
 			console.error('[Push] Error al cancelar suscripción:', err.message);
+			toast.error('Error al desactivar notificaciones.');
 		} finally {
 			setIsLoading(false);
 		}
