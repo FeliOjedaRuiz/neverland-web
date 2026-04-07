@@ -405,12 +405,16 @@ module.exports.update = (req, res, next) => {
           throw createError(403, 'No tienes permiso para cambiar el estado de la reserva');
         }
 
-        // 2. 72h window check
+        // 2. 72h window check with shift-precision
+        const [h, m] = (SHIFTS[event.turno]?.start || [0, 0]);
         const eventDate = new Date(event.fecha);
+        eventDate.setHours(h, m, 0, 0);
+        
         const now = new Date();
         const diffHours = (eventDate - now) / (1000 * 60 * 60);
+
         if (diffHours < 72) {
-          throw createError(403, 'Las reservas solo pueden modificarse hasta 72 horas antes del evento');
+          throw createError(403, 'Las reservas solo pueden modificarse hasta 72 horas antes del inicio del evento');
         }
       }
 

@@ -282,11 +282,25 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 
 	const isEditable = () => {
 		if (isAdmin) return true;
-		if (!reservation?.fecha) return false;
+		if (!reservation?.fecha || !reservation?.turno) return false;
+
 		const eventDate = safeParseDate(reservation.fecha);
+		if (!eventDate || isNaN(eventDate.getTime())) return false;
+
+		// Sincronizar con los horarios base para precisión de 72h
+		const baseTimes = {
+			T1: [17, 0],
+			T2: [18, 0],
+			T3: [19, 15],
+		};
+
+		const [h, m] = baseTimes[reservation.turno] || [0, 0];
+		eventDate.setHours(h, m, 0, 0);
+
 		const now = new Date();
 		const diffHours = (eventDate - now) / (1000 * 60 * 60);
-		return diffHours > 72;
+		
+		return diffHours >= 72;
 	};
 
 	return (
