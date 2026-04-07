@@ -1,8 +1,10 @@
+// GGA Test: Control de precisión en reservas
 const Event = require('../models/event.model');
 const createError = require('http-errors');
 const googleService = require('../services/google.service');
 const mailer = require('../config/mailer.config');
 const pushService = require('../services/push.service');
+const { safeParseDate, getSafeNow, createSafeDate } = require('../utils/date');
 
 const Config = require('../models/config.model');
 
@@ -85,7 +87,7 @@ const calculateEventPrice = async (eventData, config) => {
 
     // Weekend Plus
     if (fecha) {
-      const dateObj = new Date(fecha);
+      const dateObj = safeParseDate(fecha);
       const day = dateObj.getDay();
       if (day === 0 || day === 5 || day === 6) {
         total += (safeConfig.plusFinDeSemana || 1.5) * (detalles.niños.cantidad || 0);
@@ -170,489 +172,496 @@ const calculateEventPrice = async (eventData, config) => {
   return total;
 };
 
-module.exports.create = (req, res, next) => {
-  const { tipo, fecha, turno, detalles, horario, cliente } = req.body;
+module.exports.create = async (req, res, next) => {
+  try {
+    const { tipo, fecha, turno, detalles, horario, cliente } = req.body;
 
-  // --- VALIDATION LAYER ---
-  if (!fecha || !turno) throw createError(400, 'Fecha y turno requeridos');
+    // --- VALIDATION LAYER ---
+    if (!fecha || !turno) throw createError(400, 'Fecha y turno requeridos');
 
-  if (tipo === 'reserva') {
-    if (!cliente?.nombreNiño || !cliente?.nombrePadre || !cliente?.telefono || !cliente?.email) {
-      throw createError(400, 'Datos del cliente incompletos (Nombre, Móvil, Email son obligatorios)');
-    }
-
-    // Validate Email format (strict)
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(cliente.email)) {
-      throw createError(400, 'Email inválido');
-    }
-
-    // Validate Phone format (min 9 digits)
-    const phoneDigits = (cliente.telefono.match(/\d/g) || []).length;
-    if (phoneDigits < 9) {
-      throw createError(400, 'Teléfono inválido (mínimo 9 dígitos)');
-    }
-
-    // Call unified validation for numeric limits and lengths
-    validateEventData(req.body);
-  }
-
-  // Basic availability check
-  Event.findOne({ fecha, turno, estado: { $ne: 'cancelada' } })
-    .then(async (existingEvent) => {
-      if (existingEvent) {
-        throw createError(409, 'Este turno ya está ocupado');
+    if (tipo === 'reserva') {
+      if (!cliente?.nombreNiño || !cliente?.nombrePadre || !cliente?.telefono || !cliente?.email) {
+        throw createError(400, 'Datos del cliente incompletos (Nombre, Móvil, Email son obligatorios)');
       }
 
-      // --- SECURE PRICE CALCULATION ---
-      const calculatedTotal = await calculateEventPrice(req.body);
+      // Validate Email format (strict)
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(cliente.email)) {
+        throw createError(400, 'Email inválido');
+      }
 
-      // 3. Override price in body
-      const eventData = { ...req.body, precioTotal: calculatedTotal };
+      // Validate Phone format (min 9 digits)
+      const phoneDigits = (cliente.telefono.match(/\d/g) || []).length;
+      if (phoneDigits < 9) {
+        throw createError(400, 'Teléfono inválido (mínimo 9 dígitos)');
+      }
 
-      return Event.create(eventData)
-        .then(async (event) => {
-          // Sync with Google Calendar
-          const gEvent = await googleService.createCalendarEvent(event);
-          if (gEvent?.id) {
-            event.googleEventId = gEvent.id;
-            await event.save();
-          }
+      // Call unified validation for numeric limits and lengths
+      validateEventData(req.body);
+    }
 
-          // Send confirmation email
-          if (event.tipo === 'reserva' && event.cliente?.email) {
-            await mailer.sendBookingConfirmationEmail(event);
-          }
+    // Basic availability check
+    const eventoExistente = await Event.findOne({ fecha, turno, estado: { $ne: 'cancelada' } });
+    if (eventoExistente) {
+      throw createError(409, 'Este turno ya está ocupado');
+    }
 
-          // Notificar al admin vía Push (fire & forget, no bloquea la respuesta)
-          if (event.tipo === 'reserva') {
-            pushService.notifyNewBooking(event);
-          }
+    // --- SECURE PRICE CALCULATION ---
+    const totalCalculado = await calculateEventPrice(req.body);
 
-          return res.status(201).json(event);
-        });
-    })
-    .catch(next);
-};
+    // 3. Override price in body
+    const datosEvento = { ...req.body, precioTotal: totalCalculado };
 
-module.exports.list = (req, res, next) => {
-  const { from, to, estado, tipo, page, limit, sortBy = 'fecha', order = 'asc', search } = req.query;
-  const query = {};
+    const evento = await Event.create(datosEvento);
 
-  if (from || to) {
-    query.fecha = {};
-    if (from) query.fecha.$gte = new Date(from);
-    if (to) query.fecha.$lte = new Date(to);
-  }
+    // Sync with Google Calendar
+    try {
+      const gEvento = await googleService.createCalendarEvent(evento);
+      if (gEvento?.id) {
+        evento.googleEventId = gEvento.id;
+        await evento.save();
+      }
+    } catch (gErr) {
+      console.error('Google Calendar sync failed during creation:', gErr);
+      // We don't block the user response if Google fails
+    }
 
-  if (estado) {
-    query.estado = estado;
-  }
+    // Send confirmation email
+    if (evento.tipo === 'reserva' && evento.cliente?.email) {
+      try {
+        await mailer.sendBookingConfirmationEmail(evento);
+      } catch (mErr) {
+        console.error('Confirmation email failed:', mErr);
+      }
+    }
 
-  if (tipo) {
-    query.tipo = tipo;
-  }
+    // Notificar al admin vía Push
+    if (evento.tipo === 'reserva') {
+      try {
+        pushService.notifyNewBooking(evento);
+      } catch (pErr) {
+        console.warn('Push notification failed:', pErr);
+      }
+    }
 
-  if (search) {
-    const searchRegex = new RegExp(search, 'i');
-    query.$or = [
-      { publicId: searchRegex },
-      { 'cliente.nombreNiño': searchRegex },
-      { 'cliente.nombrePadre': searchRegex }
-    ];
-  }
-
-  const sortOrder = order === 'desc' ? -1 : 1;
-  const sortQuery = { [sortBy]: sortOrder };
-
-  // Secondary sort to ensure consistent ordering (e.g. by turno if dates are same)
-  if (sortBy === 'fecha') {
-    sortQuery.turno = sortOrder;
-  }
-
-  if (page) {
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 10;
-    const skip = (pageNum - 1) * limitNum;
-
-    Promise.all([
-      Event.find(query).sort(sortQuery).skip(skip).limit(limitNum),
-      Event.countDocuments(query)
-    ])
-      .then(([events, total]) => {
-        res.json({
-          data: events,
-          meta: {
-            total,
-            pages: Math.ceil(total / limitNum),
-            currentPage: pageNum,
-            limit: limitNum
-          }
-        });
-      })
-      .catch(next);
-  } else {
-    // Legacy / Calendar support
-    Event.find(query)
-      .sort(sortQuery)
-      .then(events => res.json(events))
-      .catch(next);
+    return res.status(201).json(evento);
+  } catch (error) {
+    next(error);
   }
 };
 
-module.exports.detail = (req, res, next) => {
-  Event.findById(req.params.id)
-    .then(event => {
-      if (!event) return next(createError(404, 'Evento no encontrado'));
-      res.json(event);
-    })
-    .catch(next);
+module.exports.list = async (req, res, next) => {
+  try {
+    const { from, to, estado, tipo, page, limit, sortBy = 'fecha', order = 'asc', search } = req.query;
+    const query = {};
+
+    if (from || to) {
+      query.fecha = {};
+      if (from) query.fecha.$gte = safeParseDate(from);
+      if (to) query.fecha.$lte = safeParseDate(to);
+    }
+
+    if (estado) {
+      query.estado = estado;
+    }
+
+    if (tipo) {
+      query.tipo = tipo;
+    }
+
+    if (search) {
+      const searchRegex = new RegExp(search, 'i');
+      query.$or = [
+        { publicId: searchRegex },
+        { 'cliente.nombreNiño': searchRegex },
+        { 'cliente.nombrePadre': searchRegex }
+      ];
+    }
+
+    const sortOrder = order === 'desc' ? -1 : 1;
+    const sortQuery = { [sortBy]: sortOrder };
+
+    // Secondary sort to ensure consistent ordering (e.g. by turno if dates are same)
+    if (sortBy === 'fecha') {
+      sortQuery.turno = sortOrder;
+    }
+
+    if (page) {
+      const pageNum = parseInt(page) || 1;
+      const limitNum = parseInt(limit) || 10;
+      const skip = (pageNum - 1) * limitNum;
+
+      const [events, total] = await Promise.all([
+        Event.find(query).sort(sortQuery).skip(skip).limit(limitNum),
+        Event.countDocuments(query)
+      ]);
+
+      return res.json({
+        data: events,
+        meta: {
+          total,
+          pages: Math.ceil(total / limitNum),
+          currentPage: pageNum,
+          limit: limitNum
+        }
+      });
+    } else {
+      // Legacy / Calendar support
+      const events = await Event.find(query).sort(sortQuery);
+      return res.json(events);
+    }
+  } catch (error) {
+    next(error);
+  }
 };
 
-module.exports.publicDetail = (req, res, next) => {
-  Event.findById(req.params.id)
-    .then(event => {
-      if (!event) return next(createError(404, 'Reserva no encontrada'));
-      // We only return public-safe fields (matching what the frontend needs)
-      const publicData = {
-        id: event.id,
-        publicId: event.publicId,
-        invitationId: event.invitationId,
-        fecha: event.fecha,
-        turno: event.turno,
-        estado: event.estado,
-        precioTotal: event.precioTotal,
-        horario: event.horario,
-        cliente: {
-          nombreNiño: event.cliente.nombreNiño,
-          edadNiño: event.cliente.edadNiño,
-          nombrePadre: event.cliente.nombrePadre,
-          email: event.cliente.email,
-          telefono: event.cliente.telefono,
-          privacyPolicyConsent: event.cliente.privacyPolicyConsent,
-          marketingConsent: event.cliente.marketingConsent,
-          fechaConsentimiento: event.cliente.fechaConsentimiento,
+module.exports.detail = async (req, res, next) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) return next(createError(404, 'Evento no encontrado'));
+    res.json(event);
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports.publicDetail = async (req, res, next) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) return next(createError(404, 'Reserva no encontrada'));
+
+    // We only return public-safe fields (matching what the frontend needs)
+    const publicData = {
+      id: event.id,
+      publicId: event.publicId,
+      invitationId: event.invitationId,
+      fecha: event.fecha,
+      turno: event.turno,
+      estado: event.estado,
+      precioTotal: event.precioTotal,
+      horario: event.horario,
+      cliente: {
+        nombreNiño: event.cliente.nombreNiño,
+        edadNiño: event.cliente.edadNiño,
+        nombrePadre: event.cliente.nombrePadre,
+        email: event.cliente.email,
+        telefono: event.cliente.telefono,
+        privacyPolicyConsent: event.cliente.privacyPolicyConsent,
+        marketingConsent: event.cliente.marketingConsent,
+        fechaConsentimiento: event.cliente.fechaConsentimiento,
+      },
+      detalles: {
+        niños: {
+          cantidad: event.detalles.niños.cantidad,
+          menuId: event.detalles.niños.menuId,
+          menuNombre: event.detalles.niños.menuNombre,
+          precioApplied: event.detalles.niños.precioApplied
         },
-        detalles: {
-          niños: {
-            cantidad: event.detalles.niños.cantidad,
-            menuId: event.detalles.niños.menuId,
-            menuNombre: event.detalles.niños.menuNombre,
-            precioApplied: event.detalles.niños.precioApplied
-          },
-          adultos: event.detalles.adultos,
-          extras: event.detalles.extras
-        }
-      };
-      res.json(publicData);
-    })
-    .catch(next);
-};
-
-module.exports.getInvitation = (req, res, next) => {
-  Event.findOne({ invitationId: req.params.invitationId })
-    .then(event => {
-      if (!event) return next(createError(404, 'Invitación no encontrada'));
-      if (event.estado !== 'confirmado' && event.estado !== 'confirmada') {
-        return next(createError(403, 'Esta invitación no está activa o ya no es válida'));
+        adultos: event.detalles.adultos,
+        extras: event.detalles.extras
       }
-      
-      const publicData = {
-        id: event.id,
-        fecha: event.fecha,
-        turno: event.turno,
-        horario: event.horario,
-        cliente: {
-          nombreNiño: event.cliente.nombreNiño,
-          edadNiño: event.cliente.edadNiño,
-        }
-      };
-      res.json(publicData);
-    })
-    .catch(next);
+    };
+    res.json(publicData);
+  } catch (error) {
+    next(error);
+  }
 };
 
-module.exports.update = (req, res, next) => {
-  Event.findById(req.params.id)
-    .then(async (event) => {
-      if (!event) throw createError(404, 'Evento no encontrado');
+module.exports.getInvitation = async (req, res, next) => {
+  try {
+    const event = await Event.findOne({ invitationId: req.params.invitationId });
+    if (!event) return next(createError(404, 'Invitación no encontrada'));
 
-      // --- SCHEMA COMPATIBILITY SHIM ---
-      // Reservas creadas desde el despliegue antiguo (fly.dev) almacenaron los campos
-      // de consentimiento legal en detalles.extras en lugar de en cliente.
-      // Este bloque los migra al lugar correcto si aún están en la posición antigua.
-      if (event.tipo === 'reserva') {
-        const extras = event.detalles?.extras;
-        if (extras && extras.privacyPolicyConsent !== undefined && event.cliente?.privacyPolicyConsent === undefined) {
-          console.warn(`[SCHEMA_SHIM] Evento ${event.publicId}: migrando consentimientos de detalles.extras a cliente.`);
-          event.cliente = event.cliente || {};
-          event.cliente.privacyPolicyConsent = extras.privacyPolicyConsent;
-          event.cliente.marketingConsent = extras.marketingConsent ?? false;
-          event.cliente.fechaConsentimiento = extras.fechaConsentimiento ?? new Date();
-          event.detalles.extras.privacyPolicyConsent = undefined;
-          event.detalles.extras.marketingConsent = undefined;
-          event.detalles.extras.fechaConsentimiento = undefined;
+    if (event.estado !== 'confirmado' && event.estado !== 'confirmada') {
+      return next(createError(403, 'Esta invitación no está activa o ya no es válida'));
+    }
+
+    const publicData = {
+      id: event.id,
+      fecha: event.fecha,
+      turno: event.turno,
+      horario: event.horario,
+      cliente: {
+        nombreNiño: event.cliente.nombreNiño,
+        edadNiño: event.cliente.edadNiño,
+      }
+    };
+    res.json(publicData);
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports.update = async (req, res, next) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) throw createError(404, 'Evento no encontrado');
+
+    // --- SCHEMA COMPATIBILITY SHIM ---
+    if (event.tipo === 'reserva') {
+      const extras = event.detalles?.extras;
+      if (extras && extras.privacyPolicyConsent !== undefined && event.cliente?.privacyPolicyConsent === undefined) {
+        console.warn(`[SCHEMA_SHIM] Evento ${event.publicId}: migrando consentimientos de detalles.extras a cliente.`);
+        event.cliente = event.cliente || {};
+        event.cliente.privacyPolicyConsent = extras.privacyPolicyConsent;
+        event.cliente.marketingConsent = extras.marketingConsent ?? false;
+        event.cliente.fechaConsentimiento = extras.fechaConsentimiento ?? getSafeNow(); // Usamos utilidad para "ahora"
+        event.detalles.extras.privacyPolicyConsent = undefined;
+        event.detalles.extras.marketingConsent = undefined;
+        event.detalles.extras.fechaConsentimiento = undefined;
+        await event.save();
+      }
+    }
+
+    // --- PERMISSION & WINDOW CHECK ---
+    const esAdmin = req.user && req.user.role === 'admin';
+
+    if (!esAdmin) {
+      // 1. Clients cannot change status
+      if (req.body.estado && req.body.estado !== event.estado) {
+        throw createError(403, 'No tienes permiso para cambiar el estado de la reserva');
+      }
+
+      // 2. 72h window check with shift-precision
+      const [h, m] = (SHIFTS[event.turno]?.start || [0, 0]);
+      const fechaEvento = safeParseDate(event.fecha);
+      fechaEvento.setHours(h, m, 0, 0);
+
+      const ahora = getSafeNow();
+      const horasDif = (fechaEvento - ahora) / (1000 * 60 * 60);
+
+      if (horasDif < 72) {
+        throw createError(403, 'Las reservas solo pueden modificarse hasta 72 horas antes del inicio del evento');
+      }
+    }
+
+    // --- VALIDATION LAYER for updates ---
+    if (req.body.cliente) {
+      const { nombreNiño, nombrePadre, email, telefono } = req.body.cliente;
+
+      if (nombreNiño !== undefined && !String(nombreNiño).trim()) throw createError(400, 'El nombre del niño no puede estar vacío');
+      if (nombrePadre !== undefined && !String(nombrePadre).trim()) throw createError(400, 'El nombre del padre/madre no puede estar vacío');
+      if (email !== undefined && !String(email).trim()) throw createError(400, 'El email no puede estar vacío');
+      if (telefono !== undefined && !String(telefono).trim()) throw createError(400, 'El teléfono no puede estar vacío');
+
+      if (email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) throw createError(400, 'Email inválido');
+      }
+      if (telefono) {
+        const phoneDigits = (String(telefono).match(/\d/g) || []).length;
+        if (phoneDigits < 9) throw createError(400, 'Teléfono inválido (mínimo 9 dígitos)');
+      }
+    }
+
+    // Update basic fields or merge details
+    if (req.body.detalles) {
+      const oldDetalles = event.detalles.toObject();
+      const newDetalles = req.body.detalles;
+
+      // Invalidate snapshots if crucial selections changed
+      if (newDetalles.niños?.menuId && String(newDetalles.niños.menuId) !== String(oldDetalles.niños?.menuId)) {
+        delete oldDetalles.niños.precioApplied;
+        delete oldDetalles.niños.menuNombre;
+      }
+      if (newDetalles.extras?.taller && newDetalles.extras.taller !== oldDetalles.extras?.taller) {
+        delete oldDetalles.extras.precioTallerApplied;
+      }
+      if (newDetalles.extras?.personaje && newDetalles.extras.personaje !== oldDetalles.extras?.personaje) {
+        delete oldDetalles.extras.precioPersonajeApplied;
+      }
+      if (newDetalles.extras?.pinata !== undefined && newDetalles.extras.pinata !== oldDetalles.extras?.pinata) {
+        delete oldDetalles.extras.precioPinataApplied;
+      }
+
+      const stripIds = (obj) => {
+        if (!obj || typeof obj !== 'object') return obj;
+        const clean = { ...obj };
+        delete clean._id;
+        return clean;
+      };
+
+      event.detalles = {
+        niños: { ...stripIds(oldDetalles.niños), ...(newDetalles.niños || {}) },
+        adultos: { ...stripIds(oldDetalles.adultos), ...(newDetalles.adultos || {}) },
+        extras: { ...stripIds(oldDetalles.extras), ...(newDetalles.extras || {}) }
+      };
+
+      validateEventData(event.toObject());
+      delete req.body.detalles;
+    }
+
+    if (req.body.cliente) {
+      validateEventData({ tipo: event.tipo, cliente: { ...event.cliente, ...req.body.cliente } });
+    }
+
+    event.set(req.body);
+
+    if (event.isModified('detalles') || event.isModified('fecha') || event.isModified('turno') || event.isModified('horario')) {
+      const eventData = event.toObject();
+      const newPrice = await calculateEventPrice(eventData);
+      event.detalles = eventData.detalles;
+      event.precioTotal = newPrice;
+    }
+
+    await event.save();
+
+    try {
+      if (event.estado === 'cancelada') {
+        if (event.googleEventId) {
+          await googleService.deleteCalendarEvent(event.googleEventId);
+          event.googleEventId = undefined;
+          await event.save();
+        }
+      } else {
+        const gEvent = await googleService.createCalendarEvent(event);
+        if (gEvent?.id && !event.googleEventId) {
+          event.googleEventId = gEvent.id;
           await event.save();
         }
       }
+    } catch (err) {
+      console.error('Failed to sync updated event to Google:', err);
+    }
 
-      // --- PERMISSION & WINDOW CHECK ---
-      const isAdmin = req.user && req.user.role === 'admin';
-
-      if (!isAdmin) {
-        // 1. Clients cannot change status
-        if (req.body.estado && req.body.estado !== event.estado) {
-          throw createError(403, 'No tienes permiso para cambiar el estado de la reserva');
-        }
-
-        // 2. 72h window check with shift-precision
-        const [h, m] = (SHIFTS[event.turno]?.start || [0, 0]);
-        const eventDate = new Date(event.fecha);
-        eventDate.setHours(h, m, 0, 0);
-        
-        const now = new Date();
-        const diffHours = (eventDate - now) / (1000 * 60 * 60);
-
-        if (diffHours < 72) {
-          throw createError(403, 'Las reservas solo pueden modificarse hasta 72 horas antes del inicio del evento');
-        }
-      }
-
-      // --- VALIDATION LAYER for updates ---
-      if (req.body.cliente) {
-        const { nombreNiño, nombrePadre, email, telefono } = req.body.cliente;
-
-        if (nombreNiño !== undefined && !String(nombreNiño).trim()) throw createError(400, 'El nombre del niño no puede estar vacío');
-        if (nombrePadre !== undefined && !String(nombrePadre).trim()) throw createError(400, 'El nombre del padre/madre no puede estar vacío');
-        if (email !== undefined && !String(email).trim()) throw createError(400, 'El email no puede estar vacío');
-        if (telefono !== undefined && !String(telefono).trim()) throw createError(400, 'El teléfono no puede estar vacío');
-
-        if (email) {
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!emailRegex.test(email)) throw createError(400, 'Email inválido');
-        }
-        if (telefono) {
-          const phoneDigits = (String(telefono).match(/\d/g) || []).length;
-          if (phoneDigits < 9) throw createError(400, 'Teléfono inválido (mínimo 9 dígitos)');
-        }
-      }
-
-      // Update basic fields or merge details
-      if (req.body.detalles) {
-        const oldDetalles = event.detalles.toObject();
-        const newDetalles = req.body.detalles;
-
-        // Invalidate snapshots if crucial selections changed
-        if (newDetalles.niños?.menuId && String(newDetalles.niños.menuId) !== String(oldDetalles.niños?.menuId)) {
-          delete oldDetalles.niños.precioApplied;
-          delete oldDetalles.niños.menuNombre;
-        }
-        if (newDetalles.extras?.taller && newDetalles.extras.taller !== oldDetalles.extras?.taller) {
-          delete oldDetalles.extras.precioTallerApplied;
-        }
-        if (newDetalles.extras?.personaje && newDetalles.extras.personaje !== oldDetalles.extras?.personaje) {
-          delete oldDetalles.extras.precioPersonajeApplied;
-        }
-        if (newDetalles.extras?.pinata !== undefined && newDetalles.extras.pinata !== oldDetalles.extras?.pinata) {
-          delete oldDetalles.extras.precioPinataApplied;
-        }
-
-        // Deep merge details to avoid losing other sub-fields.
-        // Strip internal _id fields from toObject() result to avoid Mongoose CastError.
-        const stripIds = (obj) => {
-          if (!obj || typeof obj !== 'object') return obj;
-          const clean = { ...obj };
-          delete clean._id;
-          return clean;
-        };
-
-        event.detalles = {
-          niños: { ...stripIds(oldDetalles.niños), ...(newDetalles.niños || {}) },
-          adultos: { ...stripIds(oldDetalles.adultos), ...(newDetalles.adultos || {}) },
-          extras: { ...stripIds(oldDetalles.extras), ...(newDetalles.extras || {}) }
-        };
-
-        // Validate merged details
-        validateEventData(event.toObject());
-
-        delete req.body.detalles;
-      }
-
-      if (req.body.cliente) {
-        // Validate client updates if any
-        validateEventData({ tipo: event.tipo, cliente: { ...event.cliente, ...req.body.cliente } });
-      }
-
-      event.set(req.body);
-
-      // Recalculate price if relevant fields changed
-      if (event.isModified('detalles') || event.isModified('fecha') || event.isModified('turno') || event.isModified('horario')) {
-        const eventData = event.toObject();
-        const newPrice = await calculateEventPrice(eventData);
-        console.log(`Recalculating price for ${event.publicId}: ${newPrice}€`);
-        event.detalles = eventData.detalles; // Capture snapshots (menuNombre, harga applied, etc.)
-        event.precioTotal = newPrice;
-      }
-
-      await event.save();
-
-      // Sync with Google
-      try {
-        if (event.estado === 'cancelada') {
-          if (event.googleEventId) {
-            await googleService.deleteCalendarEvent(event.googleEventId);
-            event.googleEventId = undefined;
-            await event.save();
-          }
-        } else {
-          const gEvent = await googleService.createCalendarEvent(event);
-          if (gEvent?.id && !event.googleEventId) {
-            event.googleEventId = gEvent.id;
-            await event.save();
-          }
-        }
-      } catch (err) {
-        console.error('Failed to sync updated event to Google:', err);
-      }
-
-      res.json(event);
-    })
-    .catch(next);
+    res.json(event);
+  } catch (error) {
+    next(error);
+  }
 };
 
-module.exports.delete = (req, res, next) => {
-  Event.findByIdAndDelete(req.params.id)
-    .then(async (event) => {
-      if (!event) return next(createError(404, 'Evento no encontrado'));
+module.exports.delete = async (req, res, next) => {
+  try {
+    const event = await Event.findByIdAndDelete(req.params.id);
+    if (!event) return next(createError(404, 'Evento no encontrado'));
 
-      // Sincronizar borrado con Google Calendar
-      if (event.googleEventId) {
+    // Sincronizar borrado con Google Calendar
+    if (event.googleEventId) {
+      try {
         await googleService.deleteCalendarEvent(event.googleEventId);
+      } catch (gErr) {
+        console.error('Failed to delete Google Calendar event:', gErr);
       }
+    }
 
-      res.status(204).send();
-    })
-    .catch(next);
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
 };
 
 module.exports.checkAvailability = async (req, res, next) => {
   const { fecha, year, month } = req.query;
 
   try {
-    let startDate, endDate;
+    let fechaInicio, fechaFin;
 
     if (fecha) {
       // Single Day Check
-      startDate = new Date(fecha);
-      startDate.setHours(0, 0, 0, 0);
-      endDate = new Date(fecha);
-      endDate.setHours(23, 59, 59, 999);
+      fechaInicio = safeParseDate(fecha);
+      fechaInicio.setHours(0, 0, 0, 0);
+      fechaFin = safeParseDate(fecha);
+      fechaFin.setHours(23, 59, 59, 999);
     } else if (year && month) {
       // Monthly Check - Fetch exactly the 42 days (6 weeks) shown in the frontend grid
-      const firstDayOfMonth = new Date(year, month - 1, 1);
+      // Aquí usamos createSafeDate(year, month, day) que es seguro
+      const primerDiaMes = createSafeDate(year, month - 1, 1);
       // find the Monday of the same week as the 1st
-      const startDayOffset = (firstDayOfMonth.getDay() + 6) % 7;
+      const desfaseDiaInicio = (primerDiaMes.getDay() + 6) % 7;
 
-      startDate = new Date(year, month - 1, 1 - startDayOffset);
-      startDate.setHours(0, 0, 0, 0);
+      fechaInicio = createSafeDate(year, month - 1, 1 - desfaseDiaInicio);
+      fechaInicio.setHours(0, 0, 0, 0);
 
-      endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + 41);
-      endDate.setHours(23, 59, 59, 999);
+      fechaFin = createSafeDate(fechaInicio);
+      fechaFin.setDate(fechaInicio.getDate() + 41);
+      fechaFin.setHours(23, 59, 59, 999);
     } else {
       return next(createError(400, 'Fecha o Año/Mes requeridos'));
     }
 
     // 1. Local DB Events
-    const dbEvents = await Event.find({
-      fecha: { $gte: startDate, $lte: endDate },
+    const eventosDB = await Event.find({
+      fecha: { $gte: fechaInicio, $lte: fechaFin },
       estado: { $ne: 'cancelada' }
     });
 
-    let occupied = [];
+    let ocupados = [];
 
-    // Definición de turnos para comprobación de solapamiento
-    const SHIFTS = {
-      'T1': { start: [17, 0], end: [19, 0] },
-      'T2': { start: [18, 0], end: [20, 0] },
-      'T3': { start: [19, 15], end: [21, 15] }
-    };
-
-    dbEvents.forEach(event => {
-      const eventDateStr = event.fecha.toISOString().split('T')[0];
+    eventosDB.forEach(evento => {
+      const fechaEventoTexto = evento.fecha.toISOString().split('T')[0];
       // El solapamiento entre salas se gestiona manualmente. 
       // Si hay un evento en BD local, bloquea EXCLUSIVAMENTE su turno designado.
-      if (event.turno) {
-        occupied.push({ date: eventDateStr, shift: event.turno, id: String(event._id) });
+      if (evento.turno) {
+        ocupados.push({ date: fechaEventoTexto, shift: evento.turno, id: String(evento._id) });
       }
     });
 
     // 2. Google Calendar Events
     try {
-      const googleEvents = await googleService.listEvents(startDate, endDate);
+      const eventosGoogle = await googleService.listEvents(fechaInicio, fechaFin);
 
-      googleEvents.forEach(gEvent => {
+      eventosGoogle.forEach(gEvento => {
         // Skip available/transparent events
-        if (gEvent.transparency === 'transparent') return;
-        if (gEvent.status === 'cancelled') return;
+        if (gEvento.transparency === 'transparent') return;
+        if (gEvento.status === 'cancelled') return;
 
         // --- FILTER: Only process Neverland events or manual keyword events ---
-        const summary = (gEvent.summary || '').toUpperCase();
-        const eventTurno = gEvent.extendedProperties?.private?.turno;
-        const bookingId = gEvent.extendedProperties?.private?.bookingId;
-        const isNeverland = gEvent.extendedProperties?.private?.source === 'neverland' || bookingId;
+        const resumen = (gEvento.summary || '').toUpperCase();
+        const turnoEvento = gEvento.extendedProperties?.private?.turno;
+        const idReserva = gEvento.extendedProperties?.private?.bookingId;
+        const esNeverland = gEvento.extendedProperties?.private?.source === 'neverland' || idReserva;
 
         // Soporte para palabras clave manuales desde Google Calendar
-        const keywordShift = ['T1', 'T2', 'T3'].find(s => summary.includes(`#${s}`));
-        const hasGeneralKeyword = summary.includes('#BLOQUEO') || summary.includes('#NEVERLAND');
+        const turnoPalabraClave = ['T1', 'T2', 'T3'].find(s => resumen.includes(`#${s}`));
+        const tienePalabraClaveGeneral = resumen.includes('#BLOQUEO') || resumen.includes('#NEVERLAND');
 
         // Ignorar eventos que NO son de Neverland ni tienen palabras clave
-        if (!isNeverland && !keywordShift && !hasGeneralKeyword) return;
+        if (!esNeverland && !turnoPalabraClave && !tienePalabraClaveGeneral) return;
 
-        const start = new Date(gEvent.start.dateTime || gEvent.start.date);
-        const end = new Date(gEvent.end.dateTime || gEvent.end.date);
+        const inicio = safeParseDate(gEvento.start.dateTime || gEvento.start.date);
+        const fin = safeParseDate(gEvento.end.dateTime || gEvento.end.date);
 
         // Handle All-Day Events (solo si pasó el filtro anterior)
-        if (!gEvent.start.dateTime) {
-          const shiftToBlock = eventTurno || keywordShift;
-          let curr = new Date(start);
-          while (curr < end) {
-            const dateStr = curr.toISOString().split('T')[0];
-            if (shiftToBlock) {
+        if (!gEvento.start.dateTime) {
+          const turnoABloquear = turnoEvento || turnoPalabraClave;
+          let actual = createSafeDate(inicio);
+          while (actual < fin) {
+            const fechaTexto = actual.toISOString().split('T')[0];
+            if (turnoABloquear) {
               // Bloquea solo el turno específico
-              occupied.push({ date: dateStr, shift: shiftToBlock, id: bookingId || gEvent.id });
+              ocupados.push({ date: fechaTexto, shift: turnoABloquear, id: idReserva || gEvento.id });
             } else {
               // Bloquea todos los turnos (ej: #BLOQUEO o #NEVERLAND sin turno específico)
-              ['T1', 'T2', 'T3'].forEach(shift => {
-                occupied.push({ date: dateStr, shift, id: bookingId || gEvent.id });
+              ['T1', 'T2', 'T3'].forEach(turno => {
+                ocupados.push({ date: fechaTexto, shift: turno, id: idReserva || gEvento.id });
               });
             }
-            curr.setDate(curr.getDate() + 1);
+            actual.setDate(actual.getDate() + 1);
           }
           return;
         }
 
         // Handle Timed Events
-        const eventDateStr = start.toISOString().split('T')[0];
+        const fechaEventoTexto = inicio.toISOString().split('T')[0];
 
-        const shiftToBlock = eventTurno || keywordShift;
-        if (shiftToBlock) {
+        const turnoABloquear = turnoEvento || turnoPalabraClave;
+        if (turnoABloquear) {
           // 1. Por metadatos (App) o Palabra Clave específica (#T1, #T2, #T3)
           // Bloquea EXCLUSIVAMENTE su propio turno.
-          occupied.push({ date: eventDateStr, shift: shiftToBlock, id: bookingId || gEvent.id });
+          ocupados.push({ date: fechaEventoTexto, shift: turnoABloquear, id: idReserva || gEvento.id });
           return;
         }
 
-        Object.entries(SHIFTS).forEach(([shiftId, time]) => {
+        Object.entries(SHIFTS).forEach(([idTurno, tiempo]) => {
           // 2. Por solapamiento horario (evento Neverland/#BLOQUEO SIN turno específico)
-          const shiftStart = new Date(eventDateStr);
-          shiftStart.setHours(time.start[0], time.start[1], 0, 0);
+          const inicioTurno = createSafeDate(fechaEventoTexto);
+          inicioTurno.setHours(tiempo.start[0], tiempo.start[1], 0, 0);
 
-          const shiftEnd = new Date(eventDateStr);
-          shiftEnd.setHours(time.end[0], time.end[1], 0, 0);
+          const finTurno = createSafeDate(fechaEventoTexto);
+          finTurno.setHours(tiempo.end[0], tiempo.end[1], 0, 0);
 
-          if (start < shiftEnd && end > shiftStart) {
-            occupied.push({ date: eventDateStr, shift: shiftId, id: bookingId || gEvent.id });
+          if (inicio < finTurno && fin > inicioTurno) {
+            ocupados.push({ date: fechaEventoTexto, shift: idTurno, id: idReserva || gEvento.id });
           }
         });
       });
@@ -666,14 +675,14 @@ module.exports.checkAvailability = async (req, res, next) => {
     // 3. Format Response
     if (fecha) {
       // Return occupied shifts for the specific day
-      const occupiedShifts = occupied
+      const turnosOcupados = ocupados
         .filter(o => o.date === fecha);
 
       // Deduplicate by shift but keep info (though frontend usually only needs shifts)
-      res.json({ occupiedShifts });
+      res.json({ occupiedShifts: turnosOcupados });
     } else {
       // Return all occupied slots
-      res.json({ occupied });
+      res.json({ occupied: ocupados });
     }
 
   } catch (error) {
