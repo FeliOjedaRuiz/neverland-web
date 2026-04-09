@@ -71,9 +71,19 @@ const Step2Responsible = ({ formData, setFormData }) => {
 			if (value.toString().length > 2) return 'Máximo 2 cifras';
 		}
 		if (field === 'phone') {
-			// Check if phone has valid international length (roughly 8 to 15 digits)
-			const cleanPhone = value.replace(/\D/g, '');
-			if (cleanPhone.length < 8 || cleanPhone.length > 20) return 'Número inválido (entre 8 y 20 dígitos)';
+			// value aquí es el teléfono completo: "+34 600000000"
+			const cleanPhone = value.replace(/\D/g, ''); // "34600000000"
+			const isSpain = value.startsWith('+34');
+			
+			if (isSpain) {
+				const localNumber = value.split(' ')[1] || '';
+				if (localNumber.length === 0) return 'Este campo es obligatorio';
+				if (localNumber.length < 9) return 'Número demasiado corto (faltan dígitos)';
+				if (localNumber.length > 9) return 'Número demasiado largo (máximo 9 dígitos)';
+			} else {
+				if (cleanPhone.length < 8) return 'Número demasiado corto';
+				if (cleanPhone.length > 15) return 'Número demasiado largo';
+			}
 		}
 		if (field === 'email') {
 			const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -195,7 +205,7 @@ const Step2Responsible = ({ formData, setFormData }) => {
 		);
 	};
 
-	const phoneError = getError('phone', phone);
+	const phoneError = getError('phone', formData.cliente.telefono);
 	const showPhoneError = touched.phone && phoneError;
 
 	return (

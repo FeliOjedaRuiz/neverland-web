@@ -111,8 +111,14 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
       // Teléfono corto
       expect(validateBookingStep(2, { cliente: { ...validClient, telefono: '123' } })).toBe(false);
 
-      // Teléfono largo (15 dígitos locales + prefijo +34 = 18 caracteres con el '+')
-      expect(validateBookingStep(2, { cliente: { ...validClient, telefono: '+34 123456789012345' } })).toBe(true);
+      // Teléfono español correcto (9 dígitos)
+      expect(validateBookingStep(2, { cliente: { ...validClient, telefono: '+34 600000000' } })).toBe(true);
+
+      // Teléfono español incorrecto (demasiado largo)
+      expect(validateBookingStep(2, { cliente: { ...validClient, telefono: '+34 6000000001' } })).toBe(false);
+
+      // Teléfono internacional largo (15 dígitos locales)
+      expect(validateBookingStep(2, { cliente: { ...validClient, telefono: '+1 123456789012345' } })).toBe(true);
     });
   });
 });

@@ -74,7 +74,15 @@ export const validateBookingStep = (step, formData) => {
     const { nombreNiño, edadNiño, nombrePadre, telefono, email } = formData.cliente || {};
     const cleanPhone = (telefono || '').replace(/\s/g, '');
     let isPhoneValid = cleanPhone.length >= 9 && cleanPhone.length <= 16;
-    if (cleanPhone.startsWith('+')) isPhoneValid = cleanPhone.length >= 11 && cleanPhone.length <= 20;
+    if (cleanPhone.startsWith('+')) {
+      const isSpain = cleanPhone.startsWith('+34');
+      if (isSpain) {
+        // +34 600000000 = 12 chars (incluyendo el + y sin espacios)
+        isPhoneValid = cleanPhone.length === 12;
+      } else {
+        isPhoneValid = cleanPhone.length >= 11 && cleanPhone.length <= 20;
+      }
+    }
     const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || '') && (email || '').length <= 100;
     const isNameValid = (nombreNiño || '').length > 0 && (nombreNiño || '').length <= 100 && (nombrePadre || '').length > 0 && (nombrePadre || '').length <= 100;
 
