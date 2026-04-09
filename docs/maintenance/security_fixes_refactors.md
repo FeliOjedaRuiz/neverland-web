@@ -15,6 +15,7 @@
 - **Edición Pública**: Inclusión de campos obligatorios de consentimiento (`privacyPolicyConsent`) en el detalle público para evitar errores de validación en Mongoose durante actualizaciones de clientes no administradores.
 - **Importaciones Críticas**: Implementación de `Import Guardian` test e integración de `npm run lint` en el script de despliegue (`ship.js`) tras detectar un fallo en producción por falta de importación de `motion`. Esto asegura que errores de referencia no lleguen a desplegarse.
 - **Regresión de Disponibilidad (Abril 2026)**: Resolución de fallo en el motor de disponibilidad donde el uso excesivo de `safeParseDate` sobre campos `dateTime` de Google Calendar eliminaba la hora, permitiendo solapamientos de turnos indebidos. Se restauró el uso de `new Date()` para objetos con hora y se corrigió el desfase GMT usando `toLocalISO()`.
+- **Navegación por Anclas (Abril 2026 - v1.9.10)**: Se detectó que el enlace `#faq` fallaba en carga inicial porque la sección de Menús (asíncrona) crecía después del scroll, desplazando el objetivo. Se implementó una lógica de desplazamiento multi-etapa en `App.jsx` que re-intenta el scroll durante la estabilización del layout.
 
 ## 3. Robustez y Control de Errores
 

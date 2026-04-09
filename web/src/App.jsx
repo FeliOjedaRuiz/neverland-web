@@ -38,11 +38,12 @@ function Layout() {
 	const isInvitationPath = location.pathname.startsWith('/invitacion');
 
 	useEffect(() => {
-		const scrollToHash = () => {
+		const scrollToHash = (behavior = 'smooth') => {
 			if (location.hash) {
-				const element = document.querySelector(location.hash);
+				const id = location.hash.replace('#', '');
+				const element = document.getElementById(id);
 				if (element) {
-					element.scrollIntoView({ behavior: 'smooth' });
+					element.scrollIntoView({ behavior });
 					return true;
 				}
 			}
@@ -50,18 +51,23 @@ function Layout() {
 		};
 
 		if (location.hash) {
-			// Try immediately
-			const found = scrollToHash();
-			
-			// If not found, try after a short delay (for React mounting)
-			if (!found) {
-				const timer = setTimeout(scrollToHash, 100);
-				return () => clearTimeout(timer);
-			}
+			// Intento inmediato (auto para que sea instantáneo en carga inicial)
+			scrollToHash('auto');
+
+			// Re-intentos con retraso para compensar cambios de layout (imágenes, secciones dinámicas como Menús)
+			const timers = [
+				setTimeout(() => scrollToHash('smooth'), 100),
+				setTimeout(() => scrollToHash('smooth'), 500),
+				setTimeout(() => scrollToHash('smooth'), 1000),
+				setTimeout(() => scrollToHash('smooth'), 2000), // Margen de seguridad para conexiones lentas
+			];
+
+			return () => timers.forEach(clearTimeout);
 		} else {
+			// Solo scroll al inicio si cambia la ruta y no hay ancla
 			window.scrollTo(0, 0);
 		}
-	}, [location]);
+	}, [location.pathname, location.hash]);
 
 	return (
 		<div className="min-h-dvh font-sans bg-cream-bg flex flex-col overflow-x-hidden">
