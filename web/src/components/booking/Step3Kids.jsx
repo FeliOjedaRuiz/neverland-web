@@ -1,11 +1,38 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { CheckCircle, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CheckCircle, Image as ImageIcon, X, ZoomIn } from 'lucide-react';
 import { safeParseDate } from '../../utils/safeDate';
 
 const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
+	const [selectedMenuForModal, setSelectedMenuForModal] = useState(null);
+
+	// Manejo del botón atrás del móvil para cerrar el modal
+	const closeModal = useCallback(() => {
+		setSelectedMenuForModal(null);
+		if (window.history.state?.modalOpen) {
+			window.history.back();
+		}
+	}, []);
+
+	const openModal = (menu) => {
+		setSelectedMenuForModal(menu);
+		// Empujamos un estado al historial para que el botón de atrás cierre el modal
+		window.history.pushState({ modalOpen: true }, '');
+	};
+
+	useEffect(() => {
+		const handlePopState = () => {
+			if (selectedMenuForModal) {
+				setSelectedMenuForModal(null);
+			}
+		};
+
+		window.addEventListener('popstate', handlePopState);
+		return () => window.removeEventListener('popstate', handlePopState);
+	}, [selectedMenuForModal]);
+
 	return (
-		<div>
+		<div className="relative">
 			<h2 className="text-xl font-display font-bold text-text-black text-center mb-4">
 				Los Protagonistas
 			</h2>
@@ -108,12 +135,7 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 				{CHILDREN_MENUS.map((menu) => (
 					<div
 						key={menu.id || menu._id}
-						onClick={() =>
-							setFormData({
-								...formData,
-								niños: { ...formData.niños, menuId: menu.id || menu._id },
-							})
-						}
+						onClick={() => openModal(menu)}
 						className={`relative overflow-hidden rounded-2xl border-2 transition-all cursor-pointer flex flex-col ${
 							String(formData.niños.menuId) === String(menu.id || menu._id)
 								? 'border-energy-orange bg-orange-50/30'
@@ -122,7 +144,9 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 					>
 						{/* Header with Image and Price */}
 						<div className="p-3 flex gap-4">
-							<div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100/50 shadow-sm relative">
+							<div 
+								className="group w-20 h-20 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100/50 shadow-sm relative"
+							>
 								{menu.imageUrl ? (
 									<img src={menu.imageUrl} alt={menu.nombre} className="w-full h-full object-cover" />
 								) : (
@@ -130,6 +154,13 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 										<ImageIcon size={24} />
 									</div>
 								)}
+								{/* Zoom Overlay */}
+								<div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-[1px]">
+									<div className="bg-white/90 p-1.5 rounded-full shadow-lg transform scale-0 group-hover:scale-100 transition-transform">
+										<ZoomIn size={14} className="text-energy-orange" />
+									</div>
+								</div>
+								
 								{String(formData.niños.menuId) === String(menu.id || menu._id) && (
 									<div className="absolute inset-0 bg-energy-orange/10 flex items-center justify-center backdrop-blur-[1px]">
 										<CheckCircle className="text-white" size={28} fill="currentColor" stroke="#ff7d45" />
@@ -188,8 +219,127 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 					</div>
 				))}
 			</div>
+
+			{/* Modal de Imagen Ampliada */}
+			<AnimatePresence>
+				{selectedMenuForModal && (
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						className="fixed top-16 md:top-20 inset-x-0 bottom-0 z-[1000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+						onClick={closeModal}
+					>
+						<motion.div
+							initial={{ scale: 0.9, opacity: 0, y: 20 }}
+							animate={{ scale: 1, opacity: 1, y: 0 }}
+							exit={{ scale: 0.9, opacity: 0, y: 20 }}
+							transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+							className="bg-white rounded-[32px] overflow-hidden w-full max-w-lg shadow-2xl relative max-h-[90dvh] flex flex-col"
+							onClick={(e) => e.stopPropagation()}
+						>
+							{/* Botón Cerrar - Mejorado para contraste */}
+							<button 
+								onClick={closeModal}
+								className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-white/90 hover:bg-white text-gray-900 shadow-xl flex items-center justify-center transition-all active:scale-90 border border-gray-100"
+							>
+								<X size={20} strokeWidth={3} />
+							</button>
+
+							<div className="overflow-y-auto no-scrollbar">
+								{/* Hero Image Section - Altura reducida para móvil */}
+								<div className="relative h-48 sm:h-72 w-full overflow-hidden bg-gray-100">
+									{selectedMenuForModal.imageUrl ? (
+										<img 
+											src={selectedMenuForModal.imageUrl} 
+											alt={selectedMenuForModal.nombre} 
+											className="w-full h-full object-cover"
+										/>
+									) : (
+										<div className="w-full h-full flex flex-col items-center justify-center text-gray-300 gap-2">
+											<ImageIcon size={48} strokeWidth={1} />
+											<span className="text-xs font-bold uppercase tracking-widest">Sin imagen</span>
+										</div>
+									)}
+									{/* Price Badge over image */}
+									<div className="absolute bottom-4 right-4 bg-energy-orange text-white px-4 py-2 rounded-2xl font-black text-lg shadow-lg shadow-energy-orange/20">
+										{selectedMenuForModal.precio}€
+									</div>
+								</div>
+
+								{/* Content Section - Paddings reducidos */}
+								<div className="p-5 sm:p-7">
+									<h3 className="text-xl sm:text-2xl font-display font-black text-text-black mb-1">
+										{selectedMenuForModal.nombre}
+									</h3>
+									<div className="flex items-center gap-2 mb-4">
+										<div className="h-1 w-6 rounded-full bg-energy-orange" />
+										<span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+											Detalles del Menú
+										</span>
+									</div>
+
+									{/* Main Dish */}
+									<div className="mb-5 p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
+										<p className="text-[10px] font-black text-energy-orange uppercase tracking-wider mb-1">
+											Plato Principal
+										</p>
+										<p className="text-sm sm:text-base font-bold text-gray-800 leading-snug">
+											{selectedMenuForModal.principal}
+										</p>
+									</div>
+
+									{/* Menu Items Grid */}
+									<div className="space-y-3">
+										<p className="text-[10px] font-black text-gray-400 uppercase tracking-wider pl-1">
+											Incluye además:
+										</p>
+										<div className="flex flex-wrap gap-2">
+											{selectedMenuForModal.resto
+												?.split('\n')
+												.filter((i) => i.trim())
+												.map((item, i) => (
+													<div
+														key={i}
+														className="bg-gray-50 px-3 py-1.5 rounded-xl text-[13px] font-bold text-gray-600 border border-gray-100 flex items-center gap-2"
+													>
+														<div className="w-1.5 h-1.5 rounded-full bg-neverland-green" />
+														{item.replace(/^-/, '').trim()}
+													</div>
+												))}
+										</div>
+									</div>
+									
+									{/* Selection Action */}
+									<button
+										onClick={() => {
+											setFormData({
+												...formData,
+												niños: { ...formData.niños, menuId: selectedMenuForModal.id || selectedMenuForModal._id },
+											});
+											closeModal();
+										}}
+										className="w-full mt-6 py-4 bg-energy-orange hover:bg-energy-orange/90 text-white rounded-2xl font-black shadow-lg shadow-energy-orange/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+									>
+										{String(formData.niños.menuId) === String(selectedMenuForModal.id || selectedMenuForModal._id) ? (
+											<>
+												<CheckCircle size={20} strokeWidth={3} />
+												SELECCIONADO
+											</>
+										) : (
+											'SELECCIONAR ESTE MENÚ'
+										)}
+									</button>
+								</div>
+							</div>
+						</motion.div>
+					</motion.div>
+				)}
+			</AnimatePresence>
+
 		</div>
 	);
 };
 
 export default Step3Kids;
+

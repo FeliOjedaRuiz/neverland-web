@@ -83,15 +83,15 @@ const BookingPage = () => {
 		},
 		niños: {
 			cantidad: 12,
-			menuId: 1,
+			menuId: null,
 		},
 		adultos: {
 			cantidad: 0,
 			comida: [],
 		},
 		extras: {
-			taller: 'ninguno',
-			personaje: 'ninguno',
+			taller: null,
+			personaje: null,
 			pinata: false,
 			observaciones: '',
 			alergenos: '',
@@ -145,16 +145,7 @@ const BookingPage = () => {
 
 					setPrices((prev) => ({ ...prev, ...data }));
 
-					if (data.menusNiños?.length > 0) {
-						const firstId = data.menusNiños[0].id;
-						setFormData((prev) => ({
-							...prev,
-							niños: {
-								...prev.niños,
-								menuId: prev.niños.menuId === 1 ? firstId : prev.niños.menuId,
-							},
-						}));
-					}
+
 				}
 			})
 			.catch((err) => console.log('Error loading config:', err));
@@ -399,14 +390,16 @@ const BookingPage = () => {
 	})();
 
 	return (
-		<div className="pt-16 sm:pt-20 pb-0 flex flex-col bg-calendar-bg sm:bg-cream-bg overflow-hidden fixed inset-0 w-full">
+		<div className="pt-16 sm:pt-20 pb-0 flex flex-col booking-vignette overflow-hidden fixed inset-0 w-full">
 			<SEO 
 				title="Reservar Cumpleaños" 
 				description="Reserva la fecha perfecta para tu evento en Neverland Cúllar Vega. Selecciona menús infantiles, talleres, pintacaras o visitas de personajes."
 			/>
-			<BookingHeader stage={currentStage} stepsList={stepsList} />
+			<div className="mb-2 sm:mb-4">
+				<BookingHeader stage={currentStage} stepsList={stepsList} />
+			</div>
 			<div className="flex-1 px-0 sm:px-4 pb-0 min-h-0 relative flex flex-col">
-				<div className="bg-calendar-bg sm:rounded-3xl sm:shadow-soft h-full flex flex-col relative overflow-hidden sm:border-t sm:border-x sm:border-white/50">
+				<div className="bg-calendar-bg sm:rounded-t-3xl sm:shadow-[0_-8px_40px_-15px_rgba(0,0,0,0.15)] h-full flex flex-col relative overflow-hidden sm:border-t sm:border-x sm:border-white/60 max-w-5xl mx-auto w-full">
 					<div
 						ref={scrollContainerRef}
 						className={`flex-1 min-h-0 relative ${step === 1 && view === 'calendar' ? 'overflow-hidden pt-0 pb-2' : 'overflow-y-auto overflow-x-hidden pb-8 pt-4'} px-4 sm:p-6 no-scrollbar`}

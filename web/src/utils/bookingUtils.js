@@ -98,7 +98,8 @@ export const validateBookingStep = (step, formData) => {
 
   if (step === 3) {
     const kids = formData.niños?.cantidad || 0;
-    return kids >= 12 && kids <= 50;
+    const menuId = formData.niños?.menuId;
+    return kids >= 12 && kids <= 50 && !!menuId;
   }
 
   if (step === 4) {

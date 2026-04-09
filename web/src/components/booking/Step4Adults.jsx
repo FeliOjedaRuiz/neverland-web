@@ -1,10 +1,39 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Minus, Plus, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Minus, Plus, Image as ImageIcon, X, ZoomIn } from 'lucide-react';
 
 const Step4Adults = ({ formData, setFormData, ADULT_MENU_OPTIONS }) => {
+	const [selectedItemForModal, setSelectedItemForModal] = useState(null);
+
+	// Sync with browser history for mobile "back" button
+	useEffect(() => {
+		const handlePopState = () => {
+			if (selectedItemForModal) {
+				setSelectedItemForModal(null);
+			}
+		};
+
+		if (selectedItemForModal) {
+			window.history.pushState(null, '', '');
+			window.addEventListener('popstate', handlePopState);
+		}
+
+		return () => {
+			window.removeEventListener('popstate', handlePopState);
+		};
+	}, [selectedItemForModal]);
+
+	const openModal = (item) => setSelectedItemForModal(item);
+	const closeModal = () => {
+		if (selectedItemForModal) {
+			setSelectedItemForModal(null);
+			// Only go back if we pushed state
+			window.history.back();
+		}
+	};
+
 	return (
-		<div>
+		<div className="relative">
 			<h2 className="text-xl font-display font-bold text-text-black text-center mb-4">
 				Para los Mayores
 			</h2>
@@ -123,7 +152,10 @@ const Step4Adults = ({ formData, setFormData, ADULT_MENU_OPTIONS }) => {
 							}`}
 						>
 							<div className="flex gap-4">
-								<div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100/50 shadow-sm">
+								<div 
+									onClick={() => openModal(item)}
+									className="group w-20 h-20 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100/50 shadow-sm relative cursor-pointer active:scale-95 transition-transform"
+								>
 									{item.imageUrl ? (
 										<img src={item.imageUrl} alt={item.nombre} className="w-full h-full object-cover" />
 									) : (
@@ -131,6 +163,11 @@ const Step4Adults = ({ formData, setFormData, ADULT_MENU_OPTIONS }) => {
 											<ImageIcon size={24} />
 										</div>
 									)}
+									<div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-[1px]">
+										<div className="bg-white/90 p-1.5 rounded-full shadow-lg transform scale-0 group-hover:scale-100 transition-transform">
+											<ZoomIn size={14} className="text-energy-orange" />
+										</div>
+									</div>
 								</div>
 								<div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
 									<div className="flex justify-between items-start">
@@ -176,6 +213,59 @@ const Step4Adults = ({ formData, setFormData, ADULT_MENU_OPTIONS }) => {
 					);
 				})}
 			</div>
+
+			{/* Modal de Imagen Ampliada (Simplificado) */}
+			<AnimatePresence>
+				{selectedItemForModal && (
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						className="fixed top-16 md:top-20 inset-x-0 bottom-0 z-[1000] flex items-center justify-center p-6 bg-black/70 backdrop-blur-md"
+						onClick={closeModal}
+					>
+						<motion.div
+							initial={{ scale: 0.9, opacity: 0 }}
+							animate={{ scale: 1, opacity: 1 }}
+							exit={{ scale: 0.9, opacity: 0 }}
+							className="bg-white rounded-3xl overflow-hidden w-full max-w-sm shadow-2xl relative"
+							onClick={(e) => e.stopPropagation()}
+						>
+							<button 
+								onClick={closeModal}
+								className="absolute top-3 right-3 z-50 w-8 h-8 rounded-full bg-white/90 text-gray-900 shadow-lg flex items-center justify-center transition-all active:scale-90 border border-gray-100"
+							>
+								<X size={16} strokeWidth={3} />
+							</button>
+
+							{/* Square Image Section */}
+							<div className="aspect-square w-full bg-gray-100 overflow-hidden">
+								{selectedItemForModal.imageUrl ? (
+									<img 
+										src={selectedItemForModal.imageUrl} 
+										alt={selectedItemForModal.nombre} 
+										className="w-full h-full object-cover"
+									/>
+								) : (
+									<div className="w-full h-full flex items-center justify-center text-gray-200">
+										<ImageIcon size={48} strokeWidth={1} />
+									</div>
+								)}
+							</div>
+
+							{/* Text Content */}
+							<div className="p-6 text-center">
+								<h3 className="text-xl font-display font-black text-text-black mb-1">
+									{selectedItemForModal.nombre}
+								</h3>
+								<p className="text-sm font-bold text-gray-500 uppercase tracking-widest">
+									{selectedItemForModal.unidades}
+								</p>
+							</div>
+						</motion.div>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</div>
 	);
 };

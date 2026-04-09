@@ -53,3 +53,23 @@ section[id] {
 .animate-bounce-subtle {
     animation: bounce-subtle 2s infinite ease-in-out;
 }
+
+.booking-vignette {
+	background: linear-gradient(
+		to right,
+		rgba(36, 99, 90, 0.05) 0%,
+		transparent 15%,
+		transparent 85%,
+		rgba(36, 99, 90, 0.05) 100%
+	), var(--color-cream-bg);
+}
+
+@layer utilities {
+	.no-scrollbar::-webkit-scrollbar {
+		display: none;
+	}
+	.no-scrollbar {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
+}

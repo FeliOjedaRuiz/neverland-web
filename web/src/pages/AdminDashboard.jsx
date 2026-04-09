@@ -18,7 +18,7 @@ import ServerError from './ServerError';
 import InstallPwaPrompt from '../components/common/InstallPwaPrompt';
 import usePushNotifications from '../hooks/usePushNotifications';
 
-const SidebarContent = ({
+const SidebarContent = React.memo(({
 	sidebarItems,
 	navigate,
 	handleLogout,
@@ -111,7 +111,7 @@ const SidebarContent = ({
 			</div>
 		</div>
 	);
-};
+});
 
 const AdminDashboard = () => {
 	const navigate = useNavigate();
@@ -160,7 +160,7 @@ const AdminDashboard = () => {
 	);
 	const isEventDetail = location.pathname.includes('/evento/');
 
-	const commonProps = {
+	const commonProps = React.useMemo(() => ({
 		sidebarItems,
 		navigate,
 		handleLogout,
@@ -170,7 +170,7 @@ const AdminDashboard = () => {
 		isLoading,
 		subscribe,
 		unsubscribe,
-	};
+	}), [sidebarItems, navigate, handleLogout, location.pathname, isSupported, isSubscribed, isLoading, subscribe, unsubscribe]);
 
 	return (
 		<div className="flex h-dvh bg-cream-bg overflow-hidden font-sans">
@@ -189,16 +189,16 @@ const AdminDashboard = () => {
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						exit={{ opacity: 0 }}
-						transition={{ duration: 0.3 }}
-						className="fixed inset-0 bg-black/20 z-50 md:hidden backdrop-blur-md flex justify-end"
+						transition={{ duration: 0.2 }}
+						className="fixed inset-0 bg-black/40 z-50 md:hidden flex justify-end"
 						onClick={() => setIsMobileMenuOpen(false)}
 					>
 						<motion.aside
 							initial={{ x: '100%' }}
 							animate={{ x: 0 }}
 							exit={{ x: '100%' }}
-							transition={{ duration: 0.25, ease: 'easeOut' }}
-							className="w-[280px] h-full bg-calendar-bg flex flex-col shadow-2xl shadow-black/10 rounded-l-[32px] overflow-hidden"
+							transition={{ type: 'tween', duration: 0.3, ease: 'circOut' }}
+							className="w-[280px] h-full bg-calendar-bg flex flex-col shadow-2xl shadow-black/20 rounded-l-[32px] overflow-hidden will-change-transform"
 							onClick={(e) => e.stopPropagation()}
 						>
 							<div className="flex justify-end p-4">

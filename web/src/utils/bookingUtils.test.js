@@ -120,5 +120,17 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
       // Teléfono internacional largo (15 dígitos locales)
       expect(validateBookingStep(2, { cliente: { ...validClient, telefono: '+1 123456789012345' } })).toBe(true);
     });
+
+    it('paso 3: debería validar cantidad de niños y que haya un menú seleccionado', () => {
+      // Válido
+      expect(validateBookingStep(3, { niños: { cantidad: 12, menuId: 'm1' } })).toBe(true);
+      
+      // Cantidad insuficiente
+      expect(validateBookingStep(3, { niños: { cantidad: 11, menuId: 'm1' } })).toBe(false);
+      
+      // Sin menú seleccionado
+      expect(validateBookingStep(3, { niños: { cantidad: 12, menuId: null } })).toBe(false);
+      expect(validateBookingStep(3, { niños: { cantidad: 12 } })).toBe(false);
+    });
   });
 });

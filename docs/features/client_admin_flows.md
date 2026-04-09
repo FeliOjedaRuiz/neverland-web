@@ -7,8 +7,8 @@ Proceso de 8 pasos optimizado para conversión:
 2. **Responsable**: Contacto del cliente.
 3. **Niño/a y Menú**: Selección infantil y alérgenos.
 4. **Adultos**: Selección de raciones.
-5. **Talleres**: Actividades especiales.
-6. **Personajes**: Buscador de favoritos.
+5. **Talleres**: Selección visual en cuadrícula con modales informativos detallados.
+6. **Personajes**: Buscador y catálogo visual (Grid 2 col) con detalles de duración (30 min).
 7. **Extras**: Piñata y extensiones.
 8. **Resumen y Consentimiento**: Modal RGPD modular (v1.7) con firmas legales y comerciales.
 
@@ -21,7 +21,8 @@ Proceso de 8 pasos optimizado para conversión:
 
 ## 3. Experiencia de Usuario (UX)
 
-- **Mobile-First**: Interfaz adaptada a dispositivos móviles.
+- **Mobile-First Real**: Interfaz adaptada a dispositivos móviles con especial atención a resoluciones bajas (Moto G4+) mediante modales ultra-responsivos y limitación de altura de imágenes dinámicas.
+- **Sistema de Modales Premium**: Uso de `framer-motion` y `window.history` para una navegación nativa y fluida, permitiendo cerrar modales con el botón de retroceso del dispositivo.
 - **Mi Reserva**: Link único para consulta de estado por parte del cliente.
 - **Add to Calendar**: Botón para que el cliente agende su reserva en su calendario personal.
 - **Límites de Seguridad**: Validaciones de máximos (Niños: 50, Adultos: 40) para proteger el layout y la operatividad.
