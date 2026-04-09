@@ -91,42 +91,42 @@ const MenusSection = () => {
 			.finally(() => setLoading(false));
 	}, []);
 
-	if (loading)
-		return (
-			<div className="py-24 text-center bg-white">
-				<div className="inline-block w-8 h-8 border-4 border-neverland-green/20 border-t-neverland-green rounded-full animate-spin"></div>
-			</div>
-		);
-
-	if (error) return null; // Gracefully hide section on error
-	if (menus.length === 0) return null;
-
 	return (
 		<section id="menus" className="py-24 bg-white overflow-hidden">
-			<div className="max-w-7xl mx-auto px-6 sm:px-8">
-				<motion.div
-					ref={ref}
-					initial="hidden"
-					animate={controls}
-					className="text-center mb-20"
-				>
-					<h2 className="text-4xl sm:text-6xl font-display font-bold text-neverland-green mb-6 leading-tight">
-						Nuestras Meriendas
-					</h2>
-					<p className="text-text-muted text-xl font-medium max-w-2xl mx-auto leading-relaxed">
-						Opciones pensadas para que cada niño disfrute al máximo de su día
-						especial.
-					</p>
-				</motion.div>
-
-				<div
-					className={`grid grid-cols-1 sm:grid-cols-2 ${menus.length > 3 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-10`}
-				>
-					{menus.map((menu, idx) => (
-						<MenuCard key={idx} {...menu} delay={idx * 0.1} />
-					))}
+			{loading ? (
+				<div className="text-center">
+					<div className="inline-block w-8 h-8 border-4 border-neverland-green/20 border-t-neverland-green rounded-full animate-spin"></div>
 				</div>
-			</div>
+			) : error ? (
+				null
+			) : menus.length === 0 ? (
+				null
+			) : (
+				<div className="max-w-7xl mx-auto px-6 sm:px-8">
+					<motion.div
+						ref={ref}
+						initial="hidden"
+						animate={controls}
+						className="text-center mb-20"
+					>
+						<h2 className="text-4xl sm:text-6xl font-display font-bold text-neverland-green mb-6 leading-tight">
+							Nuestras Meriendas
+						</h2>
+						<p className="text-text-muted text-xl font-medium max-w-2xl mx-auto leading-relaxed">
+							Opciones pensadas para que cada niño disfrute al máximo de su día
+							especial.
+						</p>
+					</motion.div>
+
+					<div
+						className={`grid grid-cols-1 sm:grid-cols-2 ${menus.length > 3 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-10`}
+					>
+						{menus.map((menu, idx) => (
+							<MenuCard key={idx} {...menu} delay={idx * 0.1} />
+						))}
+					</div>
+				</div>
+			)}
 		</section>
 	);
 };

@@ -587,8 +587,13 @@ module.exports.checkAvailability = async (req, res, next) => {
 
     let ocupados = [];
 
+    const toLocalISO = (date) => {
+      const d = new Date(date);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
     eventosDB.forEach(evento => {
-      const fechaEventoTexto = evento.fecha.toISOString().split('T')[0];
+      const fechaEventoTexto = toLocalISO(evento.fecha);
       // El solapamiento entre salas se gestiona manualmente. 
       // Si hay un evento en BD local, bloquea EXCLUSIVAMENTE su turno designado.
       if (evento.turno) {
@@ -618,15 +623,16 @@ module.exports.checkAvailability = async (req, res, next) => {
         // Ignorar eventos que NO son de Neverland ni tienen palabras clave
         if (!esNeverland && !turnoPalabraClave && !tienePalabraClaveGeneral) return;
 
-        const inicio = safeParseDate(gEvento.start.dateTime || gEvento.start.date);
-        const fin = safeParseDate(gEvento.end.dateTime || gEvento.end.date);
+        // Standard ISO 8601 strings work in all JS engines, safeParseDate strips times!
+        const inicio = gEvento.start.dateTime ? new Date(gEvento.start.dateTime) : safeParseDate(gEvento.start.date);
+        const fin = gEvento.end.dateTime ? new Date(gEvento.end.dateTime) : safeParseDate(gEvento.end.date);
 
         // Handle All-Day Events (solo si pasó el filtro anterior)
         if (!gEvento.start.dateTime) {
           const turnoABloquear = turnoEvento || turnoPalabraClave;
           let actual = createSafeDate(inicio);
           while (actual < fin) {
-            const fechaTexto = actual.toISOString().split('T')[0];
+            const fechaTexto = toLocalISO(actual);
             if (turnoABloquear) {
               // Bloquea solo el turno específico
               ocupados.push({ date: fechaTexto, shift: turnoABloquear, id: idReserva || gEvento.id });
@@ -642,7 +648,7 @@ module.exports.checkAvailability = async (req, res, next) => {
         }
 
         // Handle Timed Events
-        const fechaEventoTexto = inicio.toISOString().split('T')[0];
+        const fechaEventoTexto = toLocalISO(inicio);
 
         const turnoABloquear = turnoEvento || turnoPalabraClave;
         if (turnoABloquear) {

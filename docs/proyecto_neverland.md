@@ -30,9 +30,9 @@ Proceso de despliegue seguro (`npm run ship`), integración continua con Vercel/
 ---
 
 ## 🚀 Estado del Sistema
-- **Versión Actual**: v1.9.8 (Abril 2026)
+- **Versión Actual**: v1.9.9 (Abril 2026)
 - **Stack**: Node.js, Express, MongoDB Atlas, React (Vite), VitePWA, Web-Push.
-- **Última Mejora**: Refactorización de la UI de reserva (v1.9.8) con diseño de cuadrículas, modales ultra-responsivos (Moto G4+) y navegación por gestos/historia del navegador. Sistema de Notificaciones Push Nativo (v1.9.7) y PWA completa (v1.9.6).
+- **Última Mejora**: Refactorización de la UI de reserva (v1.9.8) y corrección del motor de disponibilidad de Google Calendar (v1.9.9). Incluye modales ultra-responsivos, navegación optimizada, y lógica de solapamiento de turnos restaurada tras auditoría de tests.
 
 ---
 _Para realizar cambios en la lógica o el esquema, favor de consultar el documento técnico correspondiente._

@@ -271,15 +271,16 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
     });
 
     it('Debería bloquear turnos por solapamiento de horarios de Google Calendar genérico', async () => {
-      // Evento genérico #Neverland que ocupa de 18:30 a 20:30 (Solapa con T2 y T3)
+      // Evento genérico #Neverland que ocupa de 17:30 a 20:30 hora local España
+      // Usamos +01:00 (CET, invierno España) para simular lo que realmente envía Google Calendar
       googleService.listEvents.mockResolvedValueOnce([
         {
           id: 'external-block',
           summary: 'Mantenimiento #Neverland',
           transparency: 'opaque',
           status: 'confirmed',
-          start: { dateTime: '2025-12-01T18:30:00.000Z' },
-          end: { dateTime: '2025-12-01T20:30:00.000Z' }
+          start: { dateTime: '2025-12-01T17:30:00+01:00' },
+          end: { dateTime: '2025-12-01T20:30:00+01:00' }
         }
       ]);
 
@@ -287,13 +288,11 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
 
       expect(res.statusCode).toBe(200);
       const shifts = res.body.occupiedShifts.map(s => s.shift);
-
-      expect(shifts).toContain('T2'); // T2 ends at 20:00 (overlaps with 18:30)
-      expect(shifts).toContain('T3'); // T3 starts at 19:15 (overlaps with 20:30)
-      expect(shifts).not.toContain('T1'); // T1 ends at 19:00 locally, but since DB is empty and mock only returns maintenance, wait, T1 is 17:00-19:00. 18:30 < 19:00. 
-      // ACTUALLY T1 ends at 19:00. Mantenimiento starts at 18:30. This overlaps! 
-      // Let's just check length > 0
-      expect(shifts.length).toBeGreaterThan(0);
+      // 17:30–20:30 local solapa con T1(17:00-19:00), T2(18:00-20:00), T3(19:15-21:15)
+      expect(shifts).toContain('T1');
+      expect(shifts).toContain('T2');
+      expect(shifts).toContain('T3');
+      expect(shifts.length).toBeGreaterThanOrEqual(3);
     });
   });
 

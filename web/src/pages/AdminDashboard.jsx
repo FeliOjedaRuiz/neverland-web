@@ -120,11 +120,11 @@ const AdminDashboard = () => {
 	const [config, setConfig] = useState(null);
 	const { isSupported, isSubscribed, isLoading, subscribe, unsubscribe } = usePushNotifications();
 
-	const sidebarItems = [
+	const sidebarItems = React.useMemo(() => [
 		{ id: 'reservas', label: 'Bandeja de Entrada', icon: Inbox },
 		{ id: 'calendario', label: 'Calendario', icon: CalendarIcon },
 		{ id: 'config', label: 'Configuración', icon: Settings },
-	];
+	], []);
 
 	React.useEffect(() => {
 		const fetchConfig = async () => {
@@ -150,10 +150,10 @@ const AdminDashboard = () => {
 		fetchConfig();
 	}, []);
 
-	const handleLogout = () => {
+	const handleLogout = React.useCallback(() => {
 		localStorage.removeItem('token');
 		navigate('/admin/login');
-	};
+	}, [navigate]);
 
 	const activeItem = sidebarItems.find((item) =>
 		location.pathname.includes(item.id),

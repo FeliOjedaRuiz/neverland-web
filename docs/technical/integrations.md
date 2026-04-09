@@ -19,6 +19,12 @@ El administrador puede bloquear turnos desde la App oficial de Google Calendar u
 - `#BLOQUEO` o `#NEVERLAND`: Bloquea por rango horario.
 - **Evento Todo el día**: Bloquea el día completo.
 
+### ⚠️ Manejo Crítico de Fechas (Regla de Oro)
+Para evitar errores de solapamiento y compatibilidad:
+1. **Google `date` (Todo el día)**: Utilizar `safeParseDate(gEvento.start.date)` para normalizar a medianoche local y evitar desplazamientos de zona horaria.
+2. **Google `dateTime` (Con hora)**: Utilizar `new Date(gEvento.start.dateTime)` DIRECTAMENTE. **PROHIBIDO** usar `safeParseDate` aquí, ya que descarta la información horaria necesaria para calcular solapamientos de turnos específicos.
+3. **Conversión a String**: Utilizar `toLocalISO(date)` en lugar de `toISOString().split('T')[0]` para asegurar que la fecha generada corresponde al día local de España y no al día anterior por desfase UTC.
+
 ---
 
 ## ☁️ Cloudinary Asset Management

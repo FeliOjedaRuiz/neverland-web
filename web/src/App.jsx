@@ -38,13 +38,28 @@ function Layout() {
 	const isInvitationPath = location.pathname.startsWith('/invitacion');
 
 	useEffect(() => {
+		const scrollToHash = () => {
+			if (location.hash) {
+				const element = document.querySelector(location.hash);
+				if (element) {
+					element.scrollIntoView({ behavior: 'smooth' });
+					return true;
+				}
+			}
+			return false;
+		};
+
 		if (location.hash) {
-			const element = document.querySelector(location.hash);
-			if (element) {
-				element.scrollIntoView({ behavior: 'smooth' });
+			// Try immediately
+			const found = scrollToHash();
+			
+			// If not found, try after a short delay (for React mounting)
+			if (!found) {
+				const timer = setTimeout(scrollToHash, 100);
+				return () => clearTimeout(timer);
 			}
 		} else {
-			if (!location.hash) window.scrollTo(0, 0);
+			window.scrollTo(0, 0);
 		}
 	}, [location]);
 
