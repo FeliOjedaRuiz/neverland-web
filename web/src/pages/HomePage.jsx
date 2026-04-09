@@ -31,12 +31,15 @@ function HomePage() {
 					"@context": "https://schema.org",
 					"@type": "LocalBusiness",
 					"name": "Neverland",
+					"url": "https://neverlandcullarvega.es",
 					"image": "https://neverlandcullarvega.es/neverland_og.png",
 					"description": "El mejor parque infantil y centro de celebraciones en Cúllar Vega (Granada).",
 					"address": {
 						"@type": "PostalAddress",
+						"streetAddress": "C/ Las Palmeras", 
 						"addressLocality": "Cúllar Vega",
 						"addressRegion": "Granada",
+						"postalCode": "18195",
 						"addressCountry": "ES"
 					}
 				}}

@@ -73,8 +73,8 @@ export const validateBookingStep = (step, formData) => {
   if (step === 2) {
     const { nombreNiño, edadNiño, nombrePadre, telefono, email } = formData.cliente || {};
     const cleanPhone = (telefono || '').replace(/\s/g, '');
-    let isPhoneValid = cleanPhone.length >= 9 && cleanPhone.length <= 15;
-    if (cleanPhone.startsWith('+')) isPhoneValid = cleanPhone.length >= 11 && cleanPhone.length <= 16;
+    let isPhoneValid = cleanPhone.length >= 9 && cleanPhone.length <= 16;
+    if (cleanPhone.startsWith('+')) isPhoneValid = cleanPhone.length >= 11 && cleanPhone.length <= 20;
     const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || '') && (email || '').length <= 100;
     const isNameValid = (nombreNiño || '').length > 0 && (nombreNiño || '').length <= 100 && (nombrePadre || '').length > 0 && (nombrePadre || '').length <= 100;
 

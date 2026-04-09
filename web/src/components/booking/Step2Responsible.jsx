@@ -73,7 +73,7 @@ const Step2Responsible = ({ formData, setFormData }) => {
 		if (field === 'phone') {
 			// Check if phone has valid international length (roughly 8 to 15 digits)
 			const cleanPhone = value.replace(/\D/g, '');
-			if (cleanPhone.length < 8 || cleanPhone.length > 15) return 'Número inválido (entre 8 y 15 dígitos)';
+			if (cleanPhone.length < 8 || cleanPhone.length > 20) return 'Número inválido (entre 8 y 20 dígitos)';
 		}
 		if (field === 'email') {
 			const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

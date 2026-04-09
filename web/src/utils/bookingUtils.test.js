@@ -110,6 +110,9 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
 
       // Teléfono corto
       expect(validateBookingStep(2, { cliente: { ...validClient, telefono: '123' } })).toBe(false);
+
+      // Teléfono largo (15 dígitos locales + prefijo +34 = 18 caracteres con el '+')
+      expect(validateBookingStep(2, { cliente: { ...validClient, telefono: '+34 123456789012345' } })).toBe(true);
     });
   });
 });
