@@ -1,18 +1,18 @@
 import React from 'react';
 
-const BookingHeader = ({ stage, stepsList }) => {
+const BookingHeader = ({ stage, stepsList, title = 'Reserva tu Fiesta' }) => {
 	if (stage >= 6) return null;
 
 	return (
 		<div className="shrink-0 px-4 pt-1 pb-1 z-10 sm:bg-transparent transition-all">
 			<h1 className="text-lg sm:text-2xl font-display font-black text-neverland-green text-center leading-tight">
-				Reserva tu Fiesta
+				{title}
 			</h1>
 			<div className="flex justify-between items-center relative mt-2 px-2 mx-auto max-w-lg">
 				<div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 -z-10 -translate-y-1/2 rounded-full"></div>
 				<div
 					className="absolute top-1/2 left-0 h-0.5 bg-neverland-green -z-10 -translate-y-1/2 rounded-full transition-all duration-500"
-					style={{ width: `${((stage - 1) / 4) * 100}%` }}
+					style={{ width: `${Math.max(0, ((stage - 1) / Math.max(1, stepsList.length - 1)) * 100)}%` }}
 				></div>
 				{stepsList.map((s) => {
 					const isActive = stage >= s.id;

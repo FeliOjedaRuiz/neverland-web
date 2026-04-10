@@ -9,6 +9,10 @@ const BookingNavigation = ({
 	showBack,
 	onSubmit,
 	isValid,
+	totalSteps = 8,
+	submitLabel = 'Solicitar reserva',
+	customAction,
+	hideNext = false,
 }) => {
 	const getValidationMsg = () => {
 		if (step === 1) return 'Selecciona fecha y turno';
@@ -17,7 +21,7 @@ const BookingNavigation = ({
 		return 'Completar campos';
 	};
 
-	if (step >= 9) return null;
+	if (step >= totalSteps + 1) return null;
 
 	return (
 		<div className="p-3 bg-white border-t border-gray-100 flex justify-between items-center shrink-0 z-20 shadow-lg sm:shadow-none">
@@ -33,20 +37,24 @@ const BookingNavigation = ({
 				<div className="w-12"></div> // Spacer
 			)}
 
-			{step < 8 ? (
+			{customAction ? (
+				customAction
+			) : step < totalSteps ? (
 				<div className="flex flex-col items-end gap-1 relative group">
-					{!isValid && (
+					{!isValid && !hideNext && (
 						<span className="absolute bottom-full right-0 mb-2 px-3 py-1 bg-red-50 text-red-500 text-[10px] font-bold rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-red-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
 							{getValidationMsg()}
 						</span>
 					)}
-					<button
-						onClick={onNext}
-						disabled={!isValid}
-						className="px-5 py-2 rounded-full bg-energy-orange text-white font-display font-bold text-sm sm:text-base shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none disabled:scale-100 disabled:cursor-not-allowed flex items-center gap-1.5"
-					>
-						Siguiente <ChevronRight size={16} />
-					</button>
+					{!hideNext && (
+						<button
+							onClick={onNext}
+							disabled={!isValid}
+							className="px-5 py-2 rounded-full bg-energy-orange text-white font-display font-bold text-sm sm:text-base shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none disabled:scale-100 disabled:cursor-not-allowed flex items-center gap-1.5"
+						>
+							Siguiente <ChevronRight size={16} />
+						</button>
+					)}
 				</div>
 			) : (
 				<button
@@ -60,7 +68,7 @@ const BookingNavigation = ({
 						</>
 					) : (
 						<>
-							Solicitar reserva <CheckCircle size={16} />
+							{submitLabel} <CheckCircle size={16} />
 						</>
 					)}
 				</button>

@@ -180,10 +180,10 @@ const Navbar = () => {
 							{isLoggedIn ? 'Panel Control' : 'Acceso Admin'}
 						</Link>
 						<Link
-							to="/booking"
+							to="/presupuesto"
 							className="bg-energy-orange text-white px-5 py-2 rounded-full font-display font-bold hover:bg-[#E06D2E] transition-all hover:scale-105 shadow-md ml-4 active:scale-95"
 						>
-							Reservar
+							Presupuesto
 						</Link>
 					</div>
 
@@ -272,11 +272,18 @@ const Navbar = () => {
 
 							<div className="w-full pt-4 px-4 flex flex-col gap-3">
 								<Link
-									to="/booking"
+									to="/presupuesto"
 									onClick={() => setIsOpen(false)}
 									className="block text-center w-full bg-energy-orange text-white px-5 py-4 rounded-2xl font-display font-black shadow-lg shadow-energy-orange/20"
 								>
-									Reservar Ahora
+									Calcula tu Presupuesto
+								</Link>
+								<Link
+									to="/booking"
+									onClick={() => setIsOpen(false)}
+									className="block text-center w-full text-neverland-green px-5 py-3 rounded-2xl font-display font-bold border-2 border-neverland-green/20"
+								>
+									Consultar disponibilidad
 								</Link>
 							</div>
 
