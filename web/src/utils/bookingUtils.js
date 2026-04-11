@@ -112,12 +112,15 @@ export const validateBookingStep = (step, formData) => {
     return false;
   }
 
-  if (step === 7) {
+  if (step === 7 || step === 115 /* legacy */) {
     const obs = formData.extras?.observaciones || '';
     const alg = formData.extras?.alergenos || '';
     return obs.length <= 500 && alg.length <= 500;
   }
 
+  // Budget Flow specific steps (mapping to Booking flow logic)
+  if (step === 8) return validateBookingStep(1, formData);
+  if (step === 9) return validateBookingStep(2, formData);
 
   return true;
 };

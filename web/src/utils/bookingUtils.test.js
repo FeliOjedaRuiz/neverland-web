@@ -47,7 +47,7 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
       expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(115);
     });
 
-    it('debería calcular el taller base para exactamente 15 niños', () => {
+    it('debería calcular el taller plus para exactamente 15 niños (umbral >= 15)', () => {
       const formData = {
         fecha: '2026-05-13',
         niños: { cantidad: 15, menuId: 'm1' },
@@ -55,9 +55,10 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
         extras: { taller: 'Cocina' }
       };
 
-      // (15 * 10) + 20 (base taller) = 170€
-      expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(170);
+      // (15 * 10) + 25 (plus taller, porque cantidad >= 15) = 175€
+      expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(175);
     });
+
 
     it('debería calcular el taller plus para más de 15 niños', () => {
       const formData = {
@@ -132,5 +133,23 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
       expect(validateBookingStep(3, { niños: { cantidad: 12, menuId: null } })).toBe(false);
       expect(validateBookingStep(3, { niños: { cantidad: 12 } })).toBe(false);
     });
+
+    it('pasos 8 y 9 (BudgetPage): deberían validar como los pasos 1 y 2', () => {
+      // Step 8 (Fecha/Turno)
+      expect(validateBookingStep(8, { fecha: '2026-05-15', turno: 'T1' })).toBe(true);
+      expect(validateBookingStep(8, { fecha: '', turno: 'T1' })).toBe(false);
+
+      // Step 9 (Datos Responsable)
+      const validClient = {
+        nombreNiño: 'Leo',
+        edadNiño: '5',
+        nombrePadre: 'Juan',
+        telefono: '123456789',
+        email: 'test@neverland.com'
+      };
+      expect(validateBookingStep(9, { cliente: validClient })).toBe(true);
+      expect(validateBookingStep(9, { cliente: { ...validClient, email: 'invalid' } })).toBe(false);
+    });
   });
 });
+
