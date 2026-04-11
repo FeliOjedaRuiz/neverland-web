@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock, CheckCircle, MessageSquare } from 'lucide-react';
 
-const Step7Extras = ({ formData, setFormData, getExtendedTime, prices }) => {
+const Step7Extras = ({ formData, setFormData, prices }) => {
 	const getPriceForExtension = (mins) => {
 		if (mins === 0) return 0;
 		return mins === 30
@@ -23,7 +23,7 @@ const Step7Extras = ({ formData, setFormData, getExtendedTime, prices }) => {
 							<Clock size={20} />
 						</div>
 						<div>
-							<p className="font-bold text-gray-800">Tiempo Extra</p>
+							<p className="font-bold text-gray-800">Duración del evento</p>
 							<p className="text-xs text-gray-500">Amplía la diversión</p>
 						</div>
 					</div>
@@ -47,149 +47,25 @@ const Step7Extras = ({ formData, setFormData, getExtendedTime, prices }) => {
 										: 'border-gray-100 bg-gray-50 text-gray-400 hover:border-purple-200'
 								}`}
 							>
-								<span>{mins === 0 ? 'Sin extra' : `+${mins} min`}</span>
+								<span>{mins === 0 ? '2 hs.' : mins === 30 ? '2:30 hs.' : '3 hs.'}</span>
 								{mins > 0 && (
 									<span
 										className={`text-[9px] px-1.5 rounded-full ${formData.extras.extension === mins ? 'bg-purple-200 text-purple-700' : 'bg-gray-200 text-gray-500'}`}
 									>
-										{getPriceForExtension(mins)}€
+										+{getPriceForExtension(mins)}€
 									</span>
 								)}
 							</button>
 						))}
 					</div>
 
-					{/* Turn 2 Special Options */}
-					{formData.turno === 'T2' && formData.extras.extension > 0 && (
-						<div className="mt-4 p-3 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
-							<p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center mb-2">
-								¿Cómo prefieres ampliar el tiempo?
+					{formData.extras.extension > 0 && (
+						<div className="mt-3 p-3 bg-purple-50/70 rounded-xl border border-purple-100 text-center">
+							<p className="text-xs font-bold text-purple-600">
+								El horario exacto se configurará al elegir el turno.
 							</p>
-							<div className="grid grid-cols-1 gap-2">
-								{formData.extras.extension === 30 && (
-									<>
-										<button
-											onClick={() =>
-												setFormData({
-													...formData,
-													extras: {
-														...formData.extras,
-														extensionType: 'before',
-													},
-												})
-											}
-											className={`py-2 px-4 rounded-xl text-xs font-bold border-2 transition-all flex justify-between items-center ${
-												formData.extras.extensionType === 'before'
-													? 'border-purple-500 bg-white text-purple-700 shadow-sm'
-													: 'border-transparent bg-white/50 text-gray-500 hover:border-purple-200'
-											}`}
-										>
-											<span>Empezar 30m antes</span>
-											<span className="opacity-50 font-normal">
-												17:30 - 20:00
-											</span>
-										</button>
-										<button
-											onClick={() =>
-												setFormData({
-													...formData,
-													extras: {
-														...formData.extras,
-														extensionType: 'after',
-													},
-												})
-											}
-											className={`py-2 px-4 rounded-xl text-xs font-bold border-2 transition-all flex justify-between items-center ${
-												formData.extras.extensionType === 'after'
-													? 'border-purple-500 bg-white text-purple-700 shadow-sm'
-													: 'border-transparent bg-white/50 text-gray-500 hover:border-purple-200'
-											}`}
-										>
-											<span>Terminar 30m después</span>
-											<span className="opacity-50 font-normal">
-												18:00 - 20:30
-											</span>
-										</button>
-									</>
-								)}
-								{formData.extras.extension === 60 && (
-									<>
-										<button
-											onClick={() =>
-												setFormData({
-													...formData,
-													extras: {
-														...formData.extras,
-														extensionType: 'before',
-													},
-												})
-											}
-											className={`py-2 px-4 rounded-xl text-xs font-bold border-2 transition-all flex justify-between items-center ${
-												formData.extras.extensionType === 'before'
-													? 'border-purple-500 bg-white text-purple-700 shadow-sm'
-													: 'border-transparent bg-white/50 text-gray-500 hover:border-purple-200'
-											}`}
-										>
-											<span>Empezar 1h antes</span>
-											<span className="opacity-50 font-normal">
-												17:00 - 20:00
-											</span>
-										</button>
-										<button
-											onClick={() =>
-												setFormData({
-													...formData,
-													extras: {
-														...formData.extras,
-														extensionType: 'after',
-													},
-												})
-											}
-											className={`py-2 px-4 rounded-xl text-xs font-bold border-2 transition-all flex justify-between items-center ${
-												formData.extras.extensionType === 'after'
-													? 'border-purple-500 bg-white text-purple-700 shadow-sm'
-													: 'border-transparent bg-white/50 text-gray-500 hover:border-purple-200'
-											}`}
-										>
-											<span>Terminar 1h después</span>
-											<span className="opacity-50 font-normal">
-												18:00 - 21:00
-											</span>
-										</button>
-										<button
-											onClick={() =>
-												setFormData({
-													...formData,
-													extras: { ...formData.extras, extensionType: 'both' },
-												})
-											}
-											className={`py-2 px-4 rounded-xl text-xs font-bold border-2 transition-all flex justify-between items-center ${
-												formData.extras.extensionType === 'both'
-													? 'border-purple-500 bg-white text-purple-700 shadow-sm'
-													: 'border-transparent bg-white/50 text-gray-500 hover:border-purple-200'
-											}`}
-										>
-											<span>30m antes y 30m después</span>
-											<span className="opacity-50 font-normal">
-												17:30 - 20:30
-											</span>
-										</button>
-									</>
-								)}
-							</div>
 						</div>
 					)}
-
-					<p
-						className={`text-xs text-center mt-3 font-medium p-2 rounded-lg transition-all ${
-							formData.extras.extension > 0
-								? 'text-purple-600 bg-purple-50'
-								: 'text-gray-400 bg-gray-50/50'
-						}`}
-					>
-						Horario previsto:{' '}
-						<span className="font-black">{getExtendedTime()}</span>
-					</p>
 				</div>
 
 				{/* Pinata */}
@@ -242,9 +118,9 @@ const Step7Extras = ({ formData, setFormData, getExtendedTime, prices }) => {
 							<MessageSquare size={20} />
 						</div>
 						<div>
-							<p className="font-bold text-gray-800">Observaciones</p>
+							<p className="font-bold text-gray-800">Comentarios adicionales</p>
 							<p className="text-xs text-gray-500">
-								¿Algo extra que debamos saber?
+								Detalles logísticos, peticiones o cualquier cosa que quieras que sepamos
 							</p>
 						</div>
 					</div>
@@ -260,8 +136,8 @@ const Step7Extras = ({ formData, setFormData, getExtendedTime, prices }) => {
 							})
 						}
 						maxLength={500}
-						placeholder="Aquí puedes agregar alergias u otras cosas que quieras comentarnos..."
-						className="w-full min-h-[100px] p-3 rounded-2xl border-2 border-gray-100 bg-gray-50 text-sm resize-none focus:outline-none focus:border-blue-300 focus:bg-white transition-all text-gray-700"
+						placeholder="Ej: Decoración especial, necesitamos acceso para silla de ruedas, u otra consideración importante..."
+						className="w-full min-h-[100px] p-3 rounded-2xl border-2 border-gray-100 bg-gray-50 text-base resize-none focus:outline-none focus:border-blue-300 focus:bg-white transition-all text-gray-700"
 					/>
 					<div className="text-right mt-1">
 						<span className="text-[10px] text-gray-400 font-medium">

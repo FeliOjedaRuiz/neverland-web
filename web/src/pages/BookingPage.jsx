@@ -86,7 +86,7 @@ const BookingPage = () => {
 			menuId: null,
 		},
 		adultos: {
-			cantidad: 0,
+			cantidad: 1,
 			comida: [],
 		},
 		extras: {
@@ -312,6 +312,14 @@ const BookingPage = () => {
 		return getTurnoLabel(base);
 	};
 
+	const getValidationMsg = () => {
+		if (step === 1) return 'Selecciona fecha y turno para continuar';
+		if (step === 2) return 'Completa todos los datos del responsable';
+		if (step === 3) return 'Elige cantidad de niños y un menú infantil';
+		if (step === 4) return 'Mínimo 1 adulto responsable';
+		return '';
+	};
+
 	const handlePreSubmit = () => {
 		setShowProtectionModal(true);
 	};
@@ -470,6 +478,7 @@ const BookingPage = () => {
 											CHARACTERS={prices.characters}
 											charSearch={charSearch}
 											setCharSearch={setCharSearch}
+											prices={prices}
 										/>
 									)}
 									{step === 7 && (
@@ -503,6 +512,7 @@ const BookingPage = () => {
 							showBack={step > 1 || (step === 1 && view === 'dayDetails')}
 							onSubmit={handlePreSubmit}
 							isValid={validateStep()}
+							validationMsg={getValidationMsg()}
 						/>
 					</div>
 				</div>

@@ -100,7 +100,8 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 					<span className="flex items-center justify-center w-5 h-5 bg-orange-100 text-energy-orange rounded-full text-[10px]">
 						⚠️
 					</span>
-					¿Algún alérgeno o intolerancia?
+					Alergias e intolerancias alimentarias
+					<span className="text-[9px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full ml-1">Opcional</span>
 				</label>
 				<textarea
 					value={formData.extras?.alergenos || ''}
@@ -114,8 +115,8 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 							},
 						})
 					}
-					placeholder="Ej: Celíacos, alergia al huevo, frutos secos... (Si no hay, dejar en blanco)"
-					className="w-full p-4 bg-white border-2 border-gray-100 rounded-2xl text-sm font-medium focus:border-energy-orange focus:ring-4 focus:ring-energy-orange/5 outline-none transition-all resize-none min-h-[80px] placeholder:text-gray-300 shadow-sm shadow-black/5"
+					placeholder="Ej: 3 niños celíacos, 1 alérgico al huevo, 2 intolerantes a la lactosa... Así preparamos el menú adecuado para cada niño."
+					className="w-full p-4 bg-white border-2 border-gray-100 rounded-2xl text-base font-medium focus:border-energy-orange focus:ring-4 focus:ring-energy-orange/5 outline-none transition-all resize-none min-h-[80px] placeholder:text-gray-300 shadow-sm shadow-black/5"
 				/>
 			</motion.div>
 

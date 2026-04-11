@@ -86,7 +86,7 @@ const BudgetPage = () => {
 			menuId: null,
 		},
 		adultos: {
-			cantidad: 0,
+			cantidad: 1,
 			comida: [],
 		},
 		extras: {
@@ -382,6 +382,14 @@ const BudgetPage = () => {
 		return getTurnoLabel(base);
 	};
 
+	const getValidationMsg = () => {
+		if (step === 2) return 'Elige cantidad y menú infantil';
+		if (step === 3) return 'Mínimo 1 adulto responsable';
+		if (step === 8) return 'Selecciona fecha y turno';
+		if (step === 9) return 'Completa todos los datos';
+		return '';
+	};
+
 	const handlePreSubmit = () => {
 		setShowProtectionModal(true);
 	};
@@ -569,13 +577,13 @@ const BudgetPage = () => {
 											CHARACTERS={prices.characters}
 											charSearch={charSearch}
 											setCharSearch={setCharSearch}
+											prices={prices}
 										/>
 									)}
 									{step === 6 && (
 										<Step7Extras
 											formData={formData}
 											setFormData={setFormData}
-											getExtendedTime={getExtendedTime}
 											prices={prices}
 										/>
 									)}
@@ -626,6 +634,7 @@ const BudgetPage = () => {
 								totalSteps={TOTAL_STEPS}
 								submitLabel="Solicitar reserva"
 								hideNext={step === 7}
+								validationMsg={getValidationMsg()}
 							/>
 						)}
 					</div>

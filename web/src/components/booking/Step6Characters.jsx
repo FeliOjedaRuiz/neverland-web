@@ -8,6 +8,7 @@ const Step6Characters = ({
 	CHARACTERS,
 	charSearch,
 	setCharSearch,
+	prices,
 }) => {
 	const [selectedCharForModal, setSelectedCharForModal] = useState(null);
 
@@ -61,7 +62,7 @@ const Step6Characters = ({
 			<div className="bg-white/50 backdrop-blur-sm p-3 rounded-2xl border border-gray-100 flex items-center gap-2 mb-6 shrink-0 shadow-sm focus-within:ring-2 focus-within:ring-purple-200 focus-within:bg-white transition-all">
 				<Search className="text-gray-300" size={18} />
 				<input
-					className="w-full bg-transparent outline-none font-bold text-sm text-gray-700 placeholder:text-gray-300"
+					className="w-full bg-transparent outline-none font-bold text-base text-gray-700 placeholder:text-gray-300"
 					placeholder="Buscar personaje..."
 					value={charSearch}
 					onChange={(e) => setCharSearch(e.target.value)}
@@ -145,7 +146,7 @@ const Step6Characters = ({
 										{charName}
 									</h3>
 									<p className="font-black text-sm text-purple-500">
-										40€
+										{prices?.preciosExtras?.personaje || 40}€
 									</p>
 								</div>
 							</motion.div>
@@ -201,7 +202,7 @@ const Step6Characters = ({
 										</div>
 									)}
 									<div className="absolute bottom-4 right-4 bg-purple-600 text-white px-4 py-2 rounded-2xl font-black text-lg sm:text-xl shadow-lg flex items-center gap-1">
-										40€
+										{prices?.preciosExtras?.personaje || 40}€
 									</div>
 								</div>
 
