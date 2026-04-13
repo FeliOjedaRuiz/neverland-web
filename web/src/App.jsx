@@ -14,6 +14,7 @@ import HomePage from './pages/HomePage';
 import PwaUpdater from './components/common/PwaUpdater';
 
 import BookingPage from './pages/BookingPage';
+import BudgetPage from './pages/BudgetPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
@@ -34,6 +35,7 @@ function Layout() {
 	const location = useLocation();
 	const isAdminPath = location.pathname.startsWith('/admin');
 	const isBookingPath = location.pathname === '/booking';
+	const isBudgetPath = location.pathname === '/presupuesto';
 	const isHomePage = location.pathname === '/';
 	const isInvitationPath = location.pathname.startsWith('/invitacion');
 
@@ -78,6 +80,7 @@ function Layout() {
 				<Routes>
 					<Route path="/" element={<HomePage />} />
 					<Route path="/booking" element={<BookingPage />} />
+					<Route path="/presupuesto" element={<BudgetPage />} />
 					<Route path="/admin/login" element={<LoginPage />} />
 					<Route path="/mi-reserva/:id" element={<ReservationDetailView />} />
 					<Route path="/invitacion/:id" element={<InvitationPage />} />
@@ -109,7 +112,7 @@ function Layout() {
 				</Routes>
 			</main>
 
-			{!isAdminPath && !isBookingPath && !isInvitationPath && <Footer />}
+			{!isAdminPath && !isBookingPath && !isBudgetPath && !isInvitationPath && <Footer />}
 			{isHomePage && <WhatsAppButton />}
 		</div>
 	);

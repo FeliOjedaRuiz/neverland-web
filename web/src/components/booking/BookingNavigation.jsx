@@ -1,5 +1,5 @@
-import React from 'react';
-import { ChevronLeft, ChevronRight, Loader2, CheckCircle } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { ChevronLeft, ChevronRight, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
 const BookingNavigation = ({
 	step,
@@ -9,15 +9,30 @@ const BookingNavigation = ({
 	showBack,
 	onSubmit,
 	isValid,
+	totalSteps = 8,
+	submitLabel = 'Solicitar reserva',
+	customAction,
+	hideNext = false,
+	validationMsg,
 }) => {
-	const getValidationMsg = () => {
-		if (step === 1) return 'Selecciona fecha y turno';
-		if (step === 2) return 'Completa todos los datos';
-		if (step === 4) return 'Mínimo 1 adulto responsable';
-		return 'Completar campos';
-	};
+	const [showError, setShowError] = useState(false);
+	const [shake, setShake] = useState(false);
 
-	if (step >= 9) return null;
+	const displayMsg = validationMsg || 'Completa los campos obligatorios para continuar';
+
+	const handleNextClick = useCallback(() => {
+		if (isValid) {
+			onNext();
+		} else {
+			// Mostrar mensaje y animación shake
+			setShowError(true);
+			setShake(true);
+			setTimeout(() => setShake(false), 500);
+			setTimeout(() => setShowError(false), 3500);
+		}
+	}, [isValid, onNext]);
+
+	if (step >= totalSteps + 1) return null;
 
 	return (
 		<div className="p-3 bg-white border-t border-gray-100 flex justify-between items-center shrink-0 z-20 shadow-lg sm:shadow-none">
@@ -30,23 +45,51 @@ const BookingNavigation = ({
 					Atrás
 				</button>
 			) : (
-				<div className="w-12"></div> // Spacer
+				<div className="w-12"></div>
 			)}
 
-			{step < 8 ? (
-				<div className="flex flex-col items-end gap-1 relative group">
-					{!isValid && (
-						<span className="absolute bottom-full right-0 mb-2 px-3 py-1 bg-red-50 text-red-500 text-[10px] font-bold rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-red-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-							{getValidationMsg()}
-						</span>
+			{customAction ? (
+				customAction
+			) : step < totalSteps ? (
+				<div className="flex flex-col items-end gap-1.5 relative">
+					{/* Error message — visible on tap/click, works on mobile */}
+					{showError && !hideNext && (
+						<div
+							className="absolute bottom-full right-0 mb-2 flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-xl whitespace-nowrap border border-red-200 shadow-md"
+							style={{ animation: 'fadeInUp 0.2s ease' }}
+						>
+							<AlertCircle size={13} className="shrink-0" />
+							{displayMsg}
+						</div>
 					)}
-					<button
-						onClick={onNext}
-						disabled={!isValid}
-						className="px-5 py-2 rounded-full bg-energy-orange text-white font-display font-bold text-sm sm:text-base shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none disabled:scale-100 disabled:cursor-not-allowed flex items-center gap-1.5"
-					>
-						Siguiente <ChevronRight size={16} />
-					</button>
+
+					<style>{`
+						@keyframes fadeInUp {
+							from { opacity: 0; transform: translateY(6px); }
+							to   { opacity: 1; transform: translateY(0); }
+						}
+						@keyframes shake {
+							0%, 100% { transform: translateX(0); }
+							20%       { transform: translateX(-5px); }
+							40%       { transform: translateX(5px); }
+							60%       { transform: translateX(-4px); }
+							80%       { transform: translateX(4px); }
+						}
+					`}</style>
+
+					{!hideNext && (
+						<button
+							onClick={handleNextClick}
+							style={shake ? { animation: 'shake 0.45s ease' } : {}}
+							className={`px-5 py-2 rounded-full font-display font-bold text-sm sm:text-base shadow-md transition-all flex items-center gap-1.5 ${
+								isValid
+									? 'bg-energy-orange text-white hover:shadow-lg hover:scale-105 active:scale-95'
+									: 'bg-gray-200 text-gray-400 cursor-pointer'
+							}`}
+						>
+							Siguiente <ChevronRight size={16} />
+						</button>
+					)}
 				</div>
 			) : (
 				<button
@@ -60,7 +103,7 @@ const BookingNavigation = ({
 						</>
 					) : (
 						<>
-							Solicitar reserva <CheckCircle size={16} />
+							{submitLabel} <CheckCircle size={16} />
 						</>
 					)}
 				</button>

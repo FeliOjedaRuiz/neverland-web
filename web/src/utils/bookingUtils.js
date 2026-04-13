@@ -1,5 +1,8 @@
+import { safeParseDate } from './safeDate';
+
 /**
- * Lógica de cálculo de precios para el proceso de reserva.
+ * Lógica de cálculo de precios y validación de pasos para el proceso de reserva.
+ * Soporta tanto el flujo de BookingPage (pasos 1-8) como BudgetPage (pasos 1-9).
  */
 export const calculateBookingTotal = (formData, prices, childrenMenusWithPrices) => {
   let total = 0;
@@ -12,9 +15,8 @@ export const calculateBookingTotal = (formData, prices, childrenMenusWithPrices)
   let subTotalNiños = childPrice * (Number(formData.niños?.cantidad) || 0);
 
   if (formData.fecha) {
-    // Normalizar fecha para evitar problemas de zona horaria en el cálculo del día
-    const date = new Date(formData.fecha.replace(/-/g, '/'));
-    if (!isNaN(date.getTime())) {
+    const date = safeParseDate(formData.fecha);
+    if (date && !isNaN(date.getTime())) {
       const day = date.getDay(); // 0: Dom, 5: Vie, 6: Sáb
       if (day === 0 || day === 5 || day === 6) {
         subTotalNiños += (prices.plusFinDeSemana || 1.5) * (formData.niños?.cantidad || 0);
@@ -28,15 +30,14 @@ export const calculateBookingTotal = (formData, prices, childrenMenusWithPrices)
     total += (item.precioUnitario || 0) * (item.cantidad || 0);
   });
 
-  // 3. Extras: Talleres
+  // 3. Extras: Talleres (umbral >=15 niños para precio Plus)
   if (formData.extras?.taller && formData.extras.taller !== 'ninguno') {
     const workshopName = String(formData.extras?.taller || '').toLowerCase();
     const workshop = prices.workshops?.find(
       (w) => String(w.name).toLowerCase() === workshopName
     );
 
-    // Umbral de 15 niños (15 = Base, >15 = Plus)
-    const isPlus = (formData.niños?.cantidad || 0) > 15;
+    const isPlus = (formData.niños?.cantidad || 0) >= 15;
 
     if (workshop) {
       total += isPlus ? (workshop.pricePlus || 0) : (workshop.priceBase || 0);
@@ -65,26 +66,66 @@ export const calculateBookingTotal = (formData, prices, childrenMenusWithPrices)
 };
 
 /**
- * Validación de pasos del formulario.
+ * Validación de pasos del formulario de BookingPage.
+ *
+ * Orden actual (BookingPage):
+ *   1 → Fecha/Turno
+ *   2 → Niños/Menú
+ *   3 → Adultos
+ *   4 → Talleres (opcional)
+ *   5 → Personajes (opcional)
+ *   6 → Extras sin validación crítica
+ *   7 → Resumen (lectura, siempre válido)
+ *   8 → Datos del Responsable
+ *   9 → Success
+ *
+ * Nota: BudgetPage usa su propia función validateStep inline,
+ * no depende de esta función para sus steps 8 y 9.
  */
 export const validateBookingStep = (step, formData) => {
+  // Step 1: Fecha y turno obligatorios
   if (step === 1) return !!(formData.fecha && formData.turno);
 
+  // Step 2: Niños — cantidad mínima 12, máxima 50, y menú obligatorio
   if (step === 2) {
+    const kids = formData.niños?.cantidad || 0;
+    const menuId = formData.niños?.menuId;
+    return kids >= 12 && kids <= 50 && !!menuId;
+  }
+
+  // Step 3: Adultos — mínimo 1
+  if (step === 3) {
+    const adults = formData.adultos?.cantidad || 0;
+    return adults > 0 && adults <= 40;
+  }
+
+  // Steps 4-5: Talleres y Personajes — opcionales, siempre válidos
+  if (step === 4 || step === 5) return true;
+
+  // Step 6: Extras — sin validación crítica (piñata, extensión son toggles)
+  if (step === 6) return true;
+
+  // Step 7: Resumen — solo lectura, siempre válido
+  if (step === 7) return true;
+
+  // Step 8: Datos del Responsable — todos los campos obligatorios
+  if (step === 8) {
     const { nombreNiño, edadNiño, nombrePadre, telefono, email } = formData.cliente || {};
     const cleanPhone = (telefono || '').replace(/\s/g, '');
     let isPhoneValid = cleanPhone.length >= 9 && cleanPhone.length <= 16;
     if (cleanPhone.startsWith('+')) {
       const isSpain = cleanPhone.startsWith('+34');
       if (isSpain) {
-        // +34 600000000 = 12 chars (incluyendo el + y sin espacios)
+        // +34 600000000 → 12 chars total (con prefijo, sin espacios)
         isPhoneValid = cleanPhone.length === 12;
       } else {
         isPhoneValid = cleanPhone.length >= 11 && cleanPhone.length <= 20;
       }
     }
     const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || '') && (email || '').length <= 100;
-    const isNameValid = (nombreNiño || '').length > 0 && (nombreNiño || '').length <= 100 && (nombrePadre || '').length > 0 && (nombrePadre || '').length <= 100;
+    const isNameValid =
+      (nombreNiño || '').length > 0 && (nombreNiño || '').length <= 100 &&
+      (nombrePadre || '').length > 0 && (nombrePadre || '').length <= 100;
 
     return !!(
       isNameValid &&
@@ -96,29 +137,6 @@ export const validateBookingStep = (step, formData) => {
     );
   }
 
-  if (step === 3) {
-    const kids = formData.niños?.cantidad || 0;
-    const menuId = formData.niños?.menuId;
-    return kids >= 12 && kids <= 50 && !!menuId;
-  }
-
-  if (step === 4) {
-    const adults = formData.adultos?.cantidad || 0;
-    return adults > 0 && adults <= 40;
-  }
-
-  // Adults Food (Part of Step 4/6 or handled after adults count)
-  if (formData.adultos?.comida?.some(item => (item.cantidad || 0) > 20)) {
-    return false;
-  }
-
-  if (step === 7) {
-    const obs = formData.extras?.observaciones || '';
-    const alg = formData.extras?.alergenos || '';
-    return obs.length <= 500 && alg.length <= 500;
-  }
-
-
   return true;
 };
 
@@ -129,4 +147,3 @@ export const getExtendedTimeLabel = (horario) => {
   if (!horario?.inicio || !horario?.fin) return null;
   return { from: horario.inicio, to: horario.fin };
 };
-

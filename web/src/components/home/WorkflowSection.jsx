@@ -1,7 +1,7 @@
 import React from 'react';
 import {
-	Calendar,
 	MousePointerClick,
+	Calculator,
 	PartyPopper,
 	ArrowRight,
 } from 'lucide-react';
@@ -68,29 +68,29 @@ const WorkflowSection = () => {
 						¿Cómo funciona?
 					</h2>
 					<p className="text-text-muted font-sans text-lg">
-						Reserva tu fiesta en 3 sencillos pasos
+						Calcula tu presupuesto en 3 sencillos pasos
 					</p>
 				</motion.div>
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
 					<Step
 						number="1"
-						title="Elige Fecha"
-						description="Consulta nuestro calendario y selecciona el día y turno que prefieras para la celebración."
-						icon={Calendar}
+						title="Personaliza"
+						description="Escoge el menú, la actividad y los extras que más te gusten para crear una fiesta única."
+						icon={MousePointerClick}
 						delay={0.1}
 					/>
 					<Step
 						number="2"
-						title="Personaliza"
-						description="Escoge el menú, la actividad y los extras que más te gusten para crear una fiesta única."
-						icon={MousePointerClick}
+						title="Consulta el Precio"
+						description="Mira cuánto cuesta tu fiesta ideal, sin compromiso ni pagar nada."
+						icon={Calculator}
 						delay={0.3}
 					/>
 					<Step
 						number="3"
-						title="¡A Disfrutar!"
-						description="Nosotros nos encargamos de todo. Tú solo preocúpate de pasarlo en grande."
+						title="¡Reserva y a Disfrutar!"
+						description="Si te convence, elige fecha y nosotros nos encargamos de todo."
 						icon={PartyPopper}
 						isLast={true}
 						delay={0.5}
@@ -99,10 +99,10 @@ const WorkflowSection = () => {
 
 				<div className="mt-16 text-center">
 					<Link
-						to="/booking"
+						to="/presupuesto"
 						className="inline-block bg-energy-orange text-white px-8 py-4 rounded-full text-lg font-display font-bold shadow-lg hover:bg-[#E06D2E] transition-all hover:scale-105 active:scale-95"
 					>
-						Comenzar Reserva
+						Calcula tu Presupuesto
 					</Link>
 				</div>
 			</div>

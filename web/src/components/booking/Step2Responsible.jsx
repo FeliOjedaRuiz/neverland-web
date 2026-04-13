@@ -164,7 +164,7 @@ const Step2Responsible = ({ formData, setFormData }) => {
 									? 100
 									: undefined
 							}
-							className="w-full bg-transparent outline-none text-sm font-medium text-gray-800 placeholder:text-gray-300"
+							className="w-full bg-transparent outline-none text-base font-medium text-gray-800 placeholder:text-gray-300"
 							placeholder={f.ph}
 							value={value || ''}
 							onBlur={() => handleBlur(f.id)}
@@ -250,11 +250,11 @@ const Step2Responsible = ({ formData, setFormData }) => {
 									if (!/^\+[\d]*$/.test(val)) return;
 									handlePrefixChange(val);
 								}}
-								className="w-12 bg-gray-50 px-1 py-0.5 rounded-lg text-xs font-bold text-gray-700 outline-none border border-transparent focus:border-neverland-green text-center"
+								className="w-14 bg-gray-50 px-1 py-0.5 rounded-lg text-base font-bold text-gray-700 outline-none border border-transparent focus:border-neverland-green text-center"
 							/>
 							<input
 								type="tel"
-								className="flex-1 bg-transparent outline-none text-sm font-medium text-gray-800"
+								className="flex-1 bg-transparent outline-none text-base font-medium text-gray-800"
 								placeholder="600 000 000"
 								value={phone}
 								onBlur={() => handleBlur('phone')}

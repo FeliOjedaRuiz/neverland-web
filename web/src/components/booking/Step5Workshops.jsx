@@ -71,7 +71,7 @@ const Step5Workshops = ({ formData, setFormData, WORKSHOPS }) => {
 
 			<div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
 				{/* Actual Workshops */}
-				{WORKSHOPS.filter((ws) => !ws.suspended).map((workshop) => {
+				{[...WORKSHOPS].reverse().filter((ws) => !ws.suspended).map((workshop) => {
 					const isSelected = formData.extras.taller === workshop.name;
 					const price = formData.niños.cantidad >= 15 ? workshop.pricePlus : workshop.priceBase;
 

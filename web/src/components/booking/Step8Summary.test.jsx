@@ -54,7 +54,8 @@ describe('Step8Summary Component', () => {
 	it('debería renderizar sin errores con datos completos', () => {
 		render(<Step8Summary {...defaultProps} />);
 		expect(screen.getByText(/Resumen Final/i)).toBeDefined();
-		expect(screen.getByText(/Lucas/i)).toBeDefined();
+		// Muestra la fecha seleccionada (ya no hay datos del cliente en este paso)
+		expect(screen.getByText('2026-05-15')).toBeDefined();
 	});
 
 	it('debería renderizar sin errores con extras activos', () => {

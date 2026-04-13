@@ -315,43 +315,193 @@ const Step1Date = ({
 							<Calendar size={20} />
 						</button>
 					</div>
-					{[
-						{ id: 'T1', l: 'Turno 1', t: '17:00 - 19:00' },
-						{ id: 'T2', l: 'Turno 2', t: '18:00 - 20:00' },
-						{ id: 'T3', l: 'Turno 3', t: '19:15 - 21:15' },
-					].map((turn) => {
-						const isOcc = getOccupiedForDate(
-							safeParseDate(formData.fecha) || new Date(),
-						).includes(turn.id);
-						return (
-							<button
-								key={turn.id}
-								disabled={isOcc}
-								onClick={() => setFormData({ ...formData, turno: turn.id })}
-								className={`w-full p-4 rounded-2xl border-2 flex justify-between items-center transition-all ${
-									formData.turno === turn.id
-										? 'border-neverland-green bg-neverland-green text-white shadow-lg'
-										: isOcc
-											? 'bg-gray-50 border-gray-100 opacity-50'
-											: 'bg-white border-white hover:border-green-200'
-								}`}
-							>
-								<div className="text-left">
-									<p className="text-xs font-bold uppercase opacity-80">
-										{turn.l}
-									</p>
-									<p className="text-xl font-black">{turn.t}</p>
+					{(() => {
+						const ext = formData.extras?.extension || 0;
+
+						// Compute the extended schedule for T1 and T3 (deterministic — no user choice needed)
+						const getExtendedLabel = (turnId) => {
+							if (ext === 0) return null;
+							if (turnId === 'T1') return ext === 30 ? '16:30 - 19:00' : '16:00 - 19:00';
+							if (turnId === 'T3') return ext === 30 ? '19:15 - 21:45' : '19:15 - 22:15';
+							return null; // T2 handled separately with interactive selector
+						};
+
+						return [
+							{ id: 'T1', l: 'Turno 1', t: '17:00 - 19:00' },
+							{ id: 'T2', l: 'Turno 2', t: '18:00 - 20:00' },
+							{ id: 'T3', l: 'Turno 3', t: '19:15 - 21:15' },
+						].map((turn) => {
+							const isOcc = getOccupiedForDate(
+								safeParseDate(formData.fecha) || new Date(),
+							).includes(turn.id);
+							const isSelected = formData.turno === turn.id;
+							const extLabel = getExtendedLabel(turn.id);
+							const showExtBadge = isSelected && ext > 0 && turn.id !== 'T2' && extLabel;
+
+							return (
+								<div key={turn.id} className="w-full">
+									<button
+										disabled={isOcc}
+										onClick={() => setFormData({ ...formData, turno: turn.id })}
+										className={`w-full p-4 rounded-2xl border-2 flex justify-between items-center transition-all ${
+											isSelected
+												? 'border-neverland-green bg-neverland-green text-white shadow-lg'
+												: isOcc
+													? 'bg-gray-50 border-gray-100 opacity-50'
+													: 'bg-white border-white hover:border-green-200'
+										}`}
+									>
+										<div className="text-left">
+											<p className="text-xs font-bold uppercase opacity-80">
+												{turn.l}
+											</p>
+											<p className="text-xl font-black">{turn.t}</p>
+										</div>
+										{isOcc ? (
+											<span className="text-xs font-bold bg-gray-200 px-2 py-1 rounded text-gray-500">
+												OCUPADO
+											</span>
+										) : (
+											isSelected && <CheckCircle size={20} />
+										)}
+									</button>
+
+									{/* T1/T3 — deterministic extension: show resulting schedule */}
+									{showExtBadge && (
+										<div className="mt-2 p-3 bg-purple-50 rounded-2xl border border-purple-100 flex items-center gap-2">
+											<span className="text-[10px] font-black text-purple-500 uppercase tracking-wider">
+												Horario con extensión:
+											</span>
+											<span className="text-sm font-black text-purple-700">
+												{extLabel}
+											</span>
+										</div>
+									)}
+
+									{/* T2 Inline Special Options */}
+									{isSelected && turn.id === 'T2' && ext > 0 && (
+										<div className="mt-2 p-3 bg-purple-50 rounded-2xl border border-purple-100 space-y-2">
+											<p className="text-[10px] font-black text-purple-500 uppercase tracking-widest text-center mb-2">
+												¿Cómo prefieres ampliar el tiempo?
+											</p>
+											<div className="grid grid-cols-1 gap-2">
+												{formData.extras.extension === 30 && (
+													<>
+														<button
+															onClick={() =>
+																setFormData({
+																	...formData,
+																	extras: {
+																		...formData.extras,
+																		extensionType: 'before',
+																	},
+																})
+															}
+															className={`py-2 px-4 rounded-xl text-xs font-bold border-2 transition-all flex justify-between items-center ${
+																formData.extras.extensionType === 'before'
+																	? 'border-purple-500 bg-white text-purple-700 shadow-sm'
+																	: 'border-transparent bg-white/50 text-gray-500 hover:border-purple-300 hover:bg-white'
+															}`}
+														>
+															<span>Empezar 30m antes</span>
+															<span className="opacity-60 font-normal">
+																17:30 - 20:00
+															</span>
+														</button>
+														<button
+															onClick={() =>
+																setFormData({
+																	...formData,
+																	extras: {
+																		...formData.extras,
+																		extensionType: 'after',
+																	},
+																})
+															}
+															className={`py-2 px-4 rounded-xl text-xs font-bold border-2 transition-all flex justify-between items-center ${
+																formData.extras.extensionType === 'after'
+																	? 'border-purple-500 bg-white text-purple-700 shadow-sm'
+																	: 'border-transparent bg-white/50 text-gray-500 hover:border-purple-300 hover:bg-white'
+															}`}
+														>
+															<span>Terminar 30m después</span>
+															<span className="opacity-60 font-normal">
+																18:00 - 20:30
+															</span>
+														</button>
+													</>
+												)}
+												{formData.extras.extension === 60 && (
+													<>
+														<button
+															onClick={() =>
+																setFormData({
+																	...formData,
+																	extras: {
+																		...formData.extras,
+																		extensionType: 'before',
+																	},
+																})
+															}
+															className={`py-2 px-4 rounded-xl text-xs font-bold border-2 transition-all flex justify-between items-center ${
+																formData.extras.extensionType === 'before'
+																	? 'border-purple-500 bg-white text-purple-700 shadow-sm'
+																	: 'border-transparent bg-white/50 text-gray-500 hover:border-purple-300 hover:bg-white'
+															}`}
+														>
+															<span>Empezar 1h antes</span>
+															<span className="opacity-60 font-normal">
+																17:00 - 20:00
+															</span>
+														</button>
+														<button
+															onClick={() =>
+																setFormData({
+																	...formData,
+																	extras: {
+																		...formData.extras,
+																		extensionType: 'after',
+																	},
+																})
+															}
+															className={`py-2 px-4 rounded-xl text-xs font-bold border-2 transition-all flex justify-between items-center ${
+																formData.extras.extensionType === 'after'
+																	? 'border-purple-500 bg-white text-purple-700 shadow-sm'
+																	: 'border-transparent bg-white/50 text-gray-500 hover:border-purple-300 hover:bg-white'
+															}`}
+														>
+															<span>Terminar 1h después</span>
+															<span className="opacity-60 font-normal">
+																18:00 - 21:00
+															</span>
+														</button>
+														<button
+															onClick={() =>
+																setFormData({
+																	...formData,
+																	extras: { ...formData.extras, extensionType: 'both' },
+																})
+															}
+															className={`py-2 px-4 rounded-xl text-xs font-bold border-2 transition-all flex justify-between items-center ${
+																formData.extras.extensionType === 'both'
+																	? 'border-purple-500 bg-white text-purple-700 shadow-sm'
+																	: 'border-transparent bg-white/50 text-gray-500 hover:border-purple-300 hover:bg-white'
+															}`}
+														>
+															<span>30m antes y 30m después</span>
+															<span className="opacity-60 font-normal">
+																17:30 - 20:30
+															</span>
+														</button>
+													</>
+												)}
+											</div>
+										</div>
+									)}
 								</div>
-								{isOcc ? (
-									<span className="text-xs font-bold bg-gray-200 px-2 py-1 rounded text-gray-500">
-										OCUPADO
-									</span>
-								) : (
-									formData.turno === turn.id && <CheckCircle size={20} />
-								)}
-							</button>
-						);
-					})}
+							);
+						});
+					})()}
 				</div>
 			)}
 		</div>

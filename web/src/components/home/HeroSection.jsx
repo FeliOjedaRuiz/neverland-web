@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, Calculator } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade, Pagination } from 'swiper/modules';
@@ -87,20 +87,21 @@ const HeroSection = () => {
 					Donde los sueños se hacen realidad y la diversión nunca termina.
 				</p>
 
-				<div className="flex flex-col sm:flex-row justify-center gap-6 animate-fade-in-up delay-200">
+				<div className="flex flex-col sm:flex-row justify-center gap-4 animate-fade-in-up delay-200">
+					<Link
+						to="/presupuesto"
+						className="flex items-center justify-center gap-3 bg-energy-orange text-white px-8 py-4 rounded-full text-xl font-display font-bold shadow-xl hover:bg-[#c95b22] transition-all hover:scale-110 hover:-translate-y-1 active:scale-95"
+					>
+						<Calculator size={28} />
+						Calcula tu precio
+					</Link>
 					<Link
 						to="/booking"
-						className="flex items-center justify-center gap-3 bg-energy-orange text-white px-8 py-4 rounded-full text-xl font-display font-bold shadow-xl hover:bg-[#E06D2E] transition-all hover:scale-110 hover:-translate-y-1 active:scale-95"
+						className="flex items-center justify-center gap-2 px-8 py-4 rounded-full text-lg font-display font-bold text-white bg-neverland-green backdrop-blur-sm hover:bg-green-700 transition-all hover:scale-105 shadow-lg active:scale-95"
 					>
-						<CalendarDays size={28} />
-						RESERVAR AHORA
+						<CalendarDays size={22} />
+						Ver disponibilidad
 					</Link>
-					<a
-						href="#servicios"
-						className="px-10 py-4 rounded-full text-xl font-display font-bold text-neverland-green bg-white border-2 border-white hover:bg-gray-50 transition-all hover:scale-105 shadow-lg active:scale-95"
-					>
-						Ver Servicios
-					</a>
 				</div>
 			</div>
 		</section>

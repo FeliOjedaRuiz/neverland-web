@@ -61,7 +61,7 @@ const Step4Adults = ({ formData, setFormData, ADULT_MENU_OPTIONS }) => {
 								...formData,
 								adultos: {
 									...formData.adultos,
-									cantidad: Math.max(0, formData.adultos.cantidad - 1),
+									cantidad: Math.max(1, formData.adultos.cantidad - 1),
 								},
 							})
 						}

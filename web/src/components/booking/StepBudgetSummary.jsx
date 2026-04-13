@@ -1,45 +1,36 @@
 import React from 'react';
-import { safeParseDate } from '../../utils/safeDate';
+import { CalendarCheck } from 'lucide-react';
 
-const Step8Summary = ({
+const StepBudgetSummary = ({
 	formData,
 	prices,
 	calculateTotal,
-	getExtendedTime,
 	childrenMenusWithPrices,
 	workshops,
+	onNext,
 }) => {
-	return (
-		<div>
-			<h2 className="text-xl font-display font-bold text-text-black text-center mb-2">
-				Resumen Final
-			</h2>
-			<div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col gap-4 relative overflow-hidden">
-				<div className="absolute top-0 left-0 w-full h-2 bg-linear-to-r from-neverland-green via-energy-orange to-sun-yellow"></div>
+	const total = calculateTotal();
 
-				{/* Fecha y Turno */}
-				<div className="flex justify-between items-start border-b border-gray-100 pb-3">
-					<div>
-						<p className="text-sm text-gray-400 font-bold">Fecha seleccionada</p>
-						<p className="font-bold text-lg text-gray-800">
-							{formData.fecha}
-						</p>
-						<p className="text-sm text-gray-600">
-							{getExtendedTime()}
-						</p>
-					</div>
-					<div className="bg-green-100 text-neverland-green px-3 py-1 rounded-full text-xs font-bold">
-						{formData.turno}
-					</div>
-				</div>
+	// Detectar si habría plus de fin de semana (sin fecha aún no sabemos)
+	const plusPerKid = prices.plusFinDeSemana || 1.5;
+	const plusTotal = plusPerKid * (formData.niños?.cantidad || 0);
+
+	return (
+		<div className="flex flex-col h-full flex-1 relative">
+			<h2 className="text-xl font-display font-bold text-text-black text-center mb-2 shrink-0">
+				Tu Presupuesto
+			</h2>
+			<div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col gap-4 relative overflow-hidden mb-6">
+				<div className="absolute top-0 left-0 w-full h-2 bg-linear-to-r from-neverland-green via-energy-orange to-sun-yellow"></div>
 
 				{/* Detail List */}
 				<div className="space-y-3 text-sm pr-2">
+					{/* Children Menu */}
 					<div className="flex justify-between text-energy-orange">
 						<span>
 							{childrenMenusWithPrices?.find(
 								(m) => String(m.id) === String(formData.niños.menuId),
-							)?.name || `Menú Infantil ${formData.niños.menuId}`}{' '}
+							)?.name || `Menú Infantil`}{' '}
 							x {formData.niños.cantidad}
 						</span>
 						<span className="font-bold">
@@ -52,22 +43,6 @@ const Step8Summary = ({
 							€
 						</span>
 					</div>
-					{formData.fecha &&
-						(() => {
-							const d = safeParseDate(formData.fecha);
-							return d && !isNaN(d.getTime()) && [0, 5, 6].includes(d.getDay());
-						})() && (
-							<div className="flex justify-between text-neverland-green italic text-xs bg-green-50/50 p-2 rounded-lg">
-								<span>Plus Fin de Semana (Vie-Dom)</span>
-								<span className="font-bold">
-									+
-									{(
-										formData.niños.cantidad * (prices.plusFinDeSemana || 1.5)
-									).toFixed(2)}
-									€
-								</span>
-							</div>
-						)}
 
 					{/* Adult Food Summary */}
 					{formData.adultos.comida?.length > 0 && (
@@ -91,7 +66,9 @@ const Step8Summary = ({
 							</span>
 						</div>
 					)}
-					{formData.extras.taller !== 'ninguno' && (
+
+					{/* Workshop */}
+					{formData.extras.taller && formData.extras.taller !== 'ninguno' && (
 						<div className="flex justify-between text-rec-blue border-t border-blue-50 pt-2">
 							<span>Actividad: {formData.extras.taller}</span>
 							<span className="font-bold">
@@ -108,7 +85,9 @@ const Step8Summary = ({
 							</span>
 						</div>
 					)}
-					{formData.extras.personaje !== 'ninguno' && (
+
+					{/* Character */}
+					{formData.extras.personaje && formData.extras.personaje !== 'ninguno' && (
 						<div className="flex flex-col gap-2 p-3 bg-purple-50/50 rounded-2xl border border-purple-100/50 mb-1">
 							<div className="flex justify-between items-center">
 								<div className="flex items-center gap-3">
@@ -135,6 +114,8 @@ const Step8Summary = ({
 							</div>
 						</div>
 					)}
+
+					{/* Piñata */}
 					{formData.extras.pinata && (
 						<div className="flex justify-between text-sun-yellow">
 							<span>Piñata</span>
@@ -143,6 +124,8 @@ const Step8Summary = ({
 							</span>
 						</div>
 					)}
+
+					{/* Extension */}
 					{formData.extras.extension > 0 && (
 						<div className="flex justify-between text-purple-600 italic text-xs pt-1 border-t border-purple-50 mt-1">
 							<span>Tiempo Extra (+{formData.extras.extension}m)</span>
@@ -154,6 +137,8 @@ const Step8Summary = ({
 							</span>
 						</div>
 					)}
+
+					{/* Allergens */}
 					{formData.extras.alergenos && (
 						<div className="text-energy-orange text-xs pt-2 border-t border-orange-100 mt-2">
 							<span className="font-bold flex items-center gap-1 mb-1">
@@ -164,6 +149,8 @@ const Step8Summary = ({
 							</p>
 						</div>
 					)}
+
+					{/* Notes */}
 					{formData.extras.observaciones && (
 						<div className="text-gray-600 text-xs pt-2 border-t border-gray-100 mt-2">
 							<span className="font-bold block mb-1">Notas:</span>
@@ -174,21 +161,48 @@ const Step8Summary = ({
 					)}
 				</div>
 
-				{/* Total */}
+				{/* Total — Entre semana */}
 				<div className="mt-auto pt-4 border-t border-dashed border-gray-200">
-					<div className="flex justify-between items-end">
-						<span className="text-gray-500 font-medium">Total Estimado</span>
+					<div className="flex justify-between items-center">
+						<div>
+							<span className="text-gray-500 font-medium text-sm block">Lunes a Jueves</span>
+							<span className="text-[10px] text-gray-400">Precio entre semana</span>
+						</div>
 						<span className="text-4xl font-display font-black text-neverland-green tracking-tight">
-							{calculateTotal().toFixed(2)}€
+							{total.toFixed(2)}€
 						</span>
 					</div>
 				</div>
+
+				{/* Total — Fin de semana */}
+				<div className="flex justify-between items-center p-3 bg-amber-50 rounded-xl border border-amber-100">
+					<div>
+						<span className="text-amber-700 font-bold text-sm block">Viernes a Domingo</span>
+						<span className="text-[10px] text-amber-500">+{plusPerKid.toFixed(2)}€/niño</span>
+					</div>
+					<span className="text-2xl font-display font-black text-amber-600 tracking-tight">
+						{(total + plusTotal).toFixed(2)}€
+					</span>
+				</div>
 			</div>
-			<p className="text-[10px] text-center text-gray-400 mt-2 px-4">
-				En el siguiente paso completa tus datos y envíanos la reserva.
-			</p>
+
+			{/* Sticky CTA Footer */}
+			<div className="sticky bottom-0 pb-4 pt-4 sm:pb-6 left-0 right-0 mt-auto bg-white/95 backdrop-blur-md z-10 border-t border-gray-100 shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.1)] -mx-4 px-4 sm:-mx-6 sm:px-6">
+				<div className="text-center mb-3">
+					<p className="text-sm font-bold text-neverland-green flex items-center justify-center gap-2">
+						<CalendarCheck size={18} />
+						¡No te quedes sin lugar!
+					</p>
+				</div>
+				<button
+					onClick={onNext}
+					className="w-full py-1.5 rounded-2xl bg-neverland-green text-white font-display font-black text-2xl shadow-lg shadow-green-500/20 hover:shadow-2xl hover:shadow-green-500/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all flex items-center justify-center gap-1"
+				>
+					Reserva tu fecha
+				</button>
+			</div>
 		</div>
 	);
 };
 
-export default Step8Summary;
+export default StepBudgetSummary;
