@@ -95,7 +95,33 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
       expect(validateBookingStep(1, { fecha: '', turno: 'T1' })).toBe(false);
     });
 
-    it('paso 2: debería validar datos del cliente y formato de email', () => {
+    it('paso 2: debería validar cantidad de niños y menú seleccionado', () => {
+      // Válido
+      expect(validateBookingStep(2, { niños: { cantidad: 12, menuId: 'm1' } })).toBe(true);
+
+      // Cantidad insuficiente
+      expect(validateBookingStep(2, { niños: { cantidad: 11, menuId: 'm1' } })).toBe(false);
+
+      // Sin menú seleccionado
+      expect(validateBookingStep(2, { niños: { cantidad: 12, menuId: null } })).toBe(false);
+      expect(validateBookingStep(2, { niños: { cantidad: 12 } })).toBe(false);
+    });
+
+    it('paso 3: debería validar que haya mínimo 1 adulto', () => {
+      expect(validateBookingStep(3, { adultos: { cantidad: 1 } })).toBe(true);
+      expect(validateBookingStep(3, { adultos: { cantidad: 0 } })).toBe(false);
+      expect(validateBookingStep(3, { adultos: { cantidad: 40 } })).toBe(true);
+      expect(validateBookingStep(3, { adultos: { cantidad: 41 } })).toBe(false);
+    });
+
+    it('pasos 4, 5, 6 y 7: deberên ser siempre válidos (opcionales o lectura)', () => {
+      expect(validateBookingStep(4, {})).toBe(true);
+      expect(validateBookingStep(5, {})).toBe(true);
+      expect(validateBookingStep(6, {})).toBe(true);
+      expect(validateBookingStep(7, {})).toBe(true);
+    });
+
+    it('paso 8: debería validar datos del cliente y formato de email', () => {
       const validClient = {
         nombreNiño: 'Leo',
         edadNiño: '5',
@@ -104,52 +130,22 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
         email: 'test@neverland.com'
       };
 
-      expect(validateBookingStep(2, { cliente: validClient })).toBe(true);
+      expect(validateBookingStep(8, { cliente: validClient })).toBe(true);
 
       // Email inválido
-      expect(validateBookingStep(2, { cliente: { ...validClient, email: 'invalido' } })).toBe(false);
+      expect(validateBookingStep(8, { cliente: { ...validClient, email: 'invalido' } })).toBe(false);
 
       // Teléfono corto
-      expect(validateBookingStep(2, { cliente: { ...validClient, telefono: '123' } })).toBe(false);
+      expect(validateBookingStep(8, { cliente: { ...validClient, telefono: '123' } })).toBe(false);
 
       // Teléfono español correcto (9 dígitos)
-      expect(validateBookingStep(2, { cliente: { ...validClient, telefono: '+34 600000000' } })).toBe(true);
+      expect(validateBookingStep(8, { cliente: { ...validClient, telefono: '+34 600000000' } })).toBe(true);
 
       // Teléfono español incorrecto (demasiado largo)
-      expect(validateBookingStep(2, { cliente: { ...validClient, telefono: '+34 6000000001' } })).toBe(false);
+      expect(validateBookingStep(8, { cliente: { ...validClient, telefono: '+34 6000000001' } })).toBe(false);
 
       // Teléfono internacional largo (15 dígitos locales)
-      expect(validateBookingStep(2, { cliente: { ...validClient, telefono: '+1 123456789012345' } })).toBe(true);
-    });
-
-    it('paso 3: debería validar cantidad de niños y que haya un menú seleccionado', () => {
-      // Válido
-      expect(validateBookingStep(3, { niños: { cantidad: 12, menuId: 'm1' } })).toBe(true);
-      
-      // Cantidad insuficiente
-      expect(validateBookingStep(3, { niños: { cantidad: 11, menuId: 'm1' } })).toBe(false);
-      
-      // Sin menú seleccionado
-      expect(validateBookingStep(3, { niños: { cantidad: 12, menuId: null } })).toBe(false);
-      expect(validateBookingStep(3, { niños: { cantidad: 12 } })).toBe(false);
-    });
-
-    it('pasos 8 y 9 (BudgetPage): deberían validar como los pasos 1 y 2', () => {
-      // Step 8 (Fecha/Turno)
-      expect(validateBookingStep(8, { fecha: '2026-05-15', turno: 'T1' })).toBe(true);
-      expect(validateBookingStep(8, { fecha: '', turno: 'T1' })).toBe(false);
-
-      // Step 9 (Datos Responsable)
-      const validClient = {
-        nombreNiño: 'Leo',
-        edadNiño: '5',
-        nombrePadre: 'Juan',
-        telefono: '123456789',
-        email: 'test@neverland.com'
-      };
-      expect(validateBookingStep(9, { cliente: validClient })).toBe(true);
-      expect(validateBookingStep(9, { cliente: { ...validClient, email: 'invalid' } })).toBe(false);
+      expect(validateBookingStep(8, { cliente: { ...validClient, telefono: '+1 123456789012345' } })).toBe(true);
     });
   });
 });
-

@@ -17,15 +17,15 @@ const Step8Summary = ({
 			<div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col gap-4 relative overflow-hidden">
 				<div className="absolute top-0 left-0 w-full h-2 bg-linear-to-r from-neverland-green via-energy-orange to-sun-yellow"></div>
 
-				{/* Client Info */}
+				{/* Fecha y Turno */}
 				<div className="flex justify-between items-start border-b border-gray-100 pb-3">
 					<div>
-						<p className="text-sm text-gray-400 font-bold">Reserva para</p>
+						<p className="text-sm text-gray-400 font-bold">Fecha seleccionada</p>
 						<p className="font-bold text-lg text-gray-800">
-							{formData.cliente.nombreNiño} ({formData.cliente.edadNiño} años)
+							{formData.fecha}
 						</p>
 						<p className="text-sm text-gray-600">
-							{formData.fecha} • {getExtendedTime()}
+							{getExtendedTime()}
 						</p>
 					</div>
 					<div className="bg-green-100 text-neverland-green px-3 py-1 rounded-full text-xs font-bold">
@@ -185,7 +185,7 @@ const Step8Summary = ({
 				</div>
 			</div>
 			<p className="text-[10px] text-center text-gray-400 mt-2 px-4">
-				Revisaremos disponibilidad y te contactaremos para confirmar.
+				En el siguiente paso completa tus datos y envíanos la reserva.
 			</p>
 		</div>
 	);

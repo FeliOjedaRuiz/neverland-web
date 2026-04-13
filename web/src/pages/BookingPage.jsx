@@ -314,9 +314,9 @@ const BookingPage = () => {
 
 	const getValidationMsg = () => {
 		if (step === 1) return 'Selecciona fecha y turno para continuar';
-		if (step === 2) return 'Completa todos los datos del responsable';
-		if (step === 3) return 'Elige cantidad de niños y un menú infantil';
-		if (step === 4) return 'Mínimo 1 adulto responsable';
+		if (step === 2) return 'Elige cantidad de niños y un menú infantil';
+		if (step === 3) return 'Mínimo 1 adulto responsable';
+		if (step === 8) return 'Completa todos los datos del responsable';
 		return '';
 	};
 
@@ -382,18 +382,18 @@ const BookingPage = () => {
 
 	const stepsList = [
 		{ id: 1, icon: Calendar, label: 'Horario' },
-		{ id: 2, icon: Users, label: 'Datos' },
-		{ id: 3, icon: Utensils, label: 'Menús' },
-		{ id: 4, icon: Sparkles, label: 'Extras' },
+		{ id: 2, icon: Utensils, label: 'Menús' },
+		{ id: 3, icon: Sparkles, label: 'Extras' },
+		{ id: 4, icon: Users, label: 'Datos' },
 		{ id: 5, icon: CheckCircle, label: 'Listo' },
 	];
 
 	const currentStage = (() => {
 		if (step === 1) return 1;
-		if (step === 2) return 2;
-		if (step === 3 || step === 4) return 3;
-		if (step >= 5 && step <= 7) return 4;
-		if (step >= 8) return 5;
+		if (step === 2 || step === 3) return 2;
+		if (step >= 4 && step <= 7) return 3;
+		if (step === 8) return 4;
+		if (step >= 9) return 5;
 		return 1;
 	})();
 
@@ -412,7 +412,7 @@ const BookingPage = () => {
 						ref={scrollContainerRef}
 						className={`flex-1 min-h-0 relative ${step === 1 && view === 'calendar' ? 'overflow-hidden pt-0 pb-2' : 'overflow-y-auto overflow-x-hidden pb-8 pt-4'} px-4 sm:p-6 no-scrollbar`}
 					>
-						{step === 9 ? (
+						{step === 9 ? (  // step 9 = Success (después de datos del responsable en step 8)
 							<div className="flex flex-col min-h-full">
 								<BookingSuccess
 									formData={formData}
@@ -445,33 +445,27 @@ const BookingPage = () => {
 										/>
 									)}
 									{step === 2 && (
-										<Step2Responsible
-											formData={formData}
-											setFormData={setFormData}
-										/>
-									)}
-									{step === 3 && (
 										<Step3Kids
 											formData={formData}
 											setFormData={setFormData}
 											CHILDREN_MENUS={childrenMenusWithPrices}
 										/>
 									)}
-									{step === 4 && (
+									{step === 3 && (
 										<Step4Adults
 											formData={formData}
 											setFormData={setFormData}
 											ADULT_MENU_OPTIONS={prices.preciosAdultos}
 										/>
 									)}
-									{step === 5 && (
+									{step === 4 && (
 										<Step5Workshops
 											formData={formData}
 											setFormData={setFormData}
 											WORKSHOPS={prices.workshops}
 										/>
 									)}
-									{step === 6 && (
+									{step === 5 && (
 										<Step6Characters
 											formData={formData}
 											setFormData={setFormData}
@@ -481,7 +475,7 @@ const BookingPage = () => {
 											prices={prices}
 										/>
 									)}
-									{step === 7 && (
+									{step === 6 && (
 										<Step7Extras
 											formData={formData}
 											setFormData={setFormData}
@@ -489,7 +483,7 @@ const BookingPage = () => {
 											prices={prices}
 										/>
 									)}
-									{step === 8 && (
+									{step === 7 && (
 										<Step8Summary
 											formData={formData}
 											prices={prices}
@@ -497,6 +491,12 @@ const BookingPage = () => {
 											getExtendedTime={getExtendedTime}
 											childrenMenusWithPrices={childrenMenusWithPrices}
 											workshops={prices.workshops}
+										/>
+									)}
+									{step === 8 && (
+										<Step2Responsible
+											formData={formData}
+											setFormData={setFormData}
 										/>
 									)}
 								</motion.div>
