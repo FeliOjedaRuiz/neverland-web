@@ -1,9 +1,8 @@
 import React from 'react';
-import { Smile, Coffee, Baby } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
 
-const ServiceCard = ({ icon: Icon, title, description, color, delay }) => {
+const ServiceCard = ({ image, title, description, color, delay }) => {
 	const { ref, controls, variants } = useScrollReveal(0.1);
 
 	return (
@@ -19,19 +18,26 @@ const ServiceCard = ({ icon: Icon, title, description, color, delay }) => {
 					transition: { duration: 0.5, delay: delay },
 				},
 			}}
-			className="flex flex-col items-center text-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+			className="group flex flex-col items-center text-center cursor-pointer"
 		>
-			<div
-				className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 text-white ${color} shadow-lg`}
-			>
-				<Icon size={32} />
+			<div className="relative w-full aspect-[4/3] mb-6 overflow-hidden rounded-3xl shadow-soft hover:shadow-lg transition-shadow duration-300">
+				{/* Sutil capa de color superpuesta que reacciona al hover */}
+				<div className={`absolute inset-0 opacity-0 ${color} mix-blend-multiply group-hover:opacity-20 transition-opacity duration-300 z-10`} />
+				
+				<img 
+					src={image} 
+					alt={title} 
+					className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-in-out"
+				/>
 			</div>
-			<h3 className="text-xl font-display font-bold text-text-black mb-2">
-				{title}
-			</h3>
-			<p className="text-text-muted text-sm font-sans leading-relaxed">
-				{description}
-			</p>
+			<div className="px-2">
+				<h3 className="text-2xl font-display font-bold text-text-black mb-3">
+					{title}
+				</h3>
+				<p className="text-text-muted text-base font-sans leading-relaxed">
+					{description}
+				</p>
+			</div>
 		</motion.div>
 	);
 };
@@ -39,40 +45,67 @@ const ServiceCard = ({ icon: Icon, title, description, color, delay }) => {
 const ServicesSection = () => {
 	const { ref, controls, variants } = useScrollReveal();
 
+	const services = [
+		{
+			image: 'https://res.cloudinary.com/duoshgr3h/image/upload/q_auto,f_auto/v1776097459/neverland_homepage/cumpleanos.png',
+			title: 'Celebración de Cumpleaños',
+			description: 'Celebra su día especial con exclusividad, merienda deliciosa, animación y acceso total a todas nuestras instalaciones.',
+			color: 'bg-rec-blue',
+			delay: 0.1
+		},
+		{
+			image: 'https://res.cloudinary.com/duoshgr3h/image/upload/q_auto,f_auto/v1776097457/neverland_homepage/talleres_slime.jpg',
+			title: 'Talleres',
+			description: 'Actividades creativas y educativas para que los más pequeños aprendan desarrollando su imaginación y creatividad.',
+			color: 'bg-brand-green-light',
+			delay: 0.2
+		},
+		{
+			image: 'https://res.cloudinary.com/duoshgr3h/image/upload/q_auto,f_auto/v1776097458/neverland_homepage/parque_infantil.png',
+			title: 'Parque Infantil',
+			description: 'Estructura de juegos, toboganes, piscina de bolas y obstáculos en un espacio seguro, climatizado y lleno de diversión.',
+			color: 'bg-energy-orange',
+			delay: 0.3
+		},
+		{
+			image: 'https://res.cloudinary.com/duoshgr3h/image/upload/q_auto,f_auto/v1776097446/neverland_homepage/cafeteria.png',
+			title: 'Cafetería',
+			description: 'Relájate tomando un café o un refresco mientras observas a tus hijos jugar cómodamente en nuestras instalaciones.',
+			color: 'bg-neverland-green',
+			delay: 0.4
+		}
+	];
+
 	return (
-		<section id="servicios" className="py-16 bg-white">
+		<section id="servicios" className="py-20 bg-white">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<motion.div
 					ref={ref}
 					initial="hidden"
 					animate={controls}
 					variants={variants}
-					className="text-center mb-12"
+					className="text-center mb-16"
 				>
-					<h2 className="text-3xl sm:text-4xl font-display font-bold text-neverland-green mb-4">
+					<h2 className="text-4xl sm:text-5xl font-display font-bold text-neverland-green mb-6">
 						Todo lo que necesitas
 					</h2>
-					<p className="text-text-muted max-w-2xl mx-auto font-sans text-lg">
+					<p className="text-text-muted max-w-2xl mx-auto font-sans text-xl">
 						Más allá de los cumpleaños, Neverland es un espacio pensado para el
 						disfrute de toda la familia.
 					</p>
 				</motion.div>
 
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-					<ServiceCard
-						icon={Smile}
-						title="Parque de Bolas"
-						description="Estructura de juegos de 2 niveles con toboganes, piscina de bolas y obstáculos para niños de 3 a 12 años."
-						color="bg-energy-orange"
-						delay={0.1}
-					/>
-					<ServiceCard
-						icon={Coffee}
-						title="Cafetería para Padres"
-						description="Relájate tomando un café o un refresco mientras observas a tus hijos jugar cómodamente."
-						color="bg-neverland-green"
-						delay={0.3}
-					/>
+				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12 max-w-7xl mx-auto">
+					{services.map((service, index) => (
+						<ServiceCard
+							key={index}
+							image={service.image}
+							title={service.title}
+							description={service.description}
+							color={service.color}
+							delay={service.delay}
+						/>
+					))}
 				</div>
 			</div>
 		</section>
