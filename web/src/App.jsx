@@ -20,6 +20,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import ServerError from './pages/ServerError';
 import InvitationPage from './pages/InvitationPage';
+import PricingPage from './pages/PricingPage';
 // import CustomerReservationDetail from './pages/CustomerReservationDetail'; // Removed unified view
 import RequireAuth from './components/admin/RequireAuth';
 import { Toaster } from 'react-hot-toast';
@@ -80,6 +81,7 @@ function Layout() {
 				<Routes>
 					<Route path="/" element={<HomePage />} />
 					<Route path="/booking" element={<BookingPage />} />
+					<Route path="/precios" element={<PricingPage />} />
 					<Route path="/presupuesto" element={<BudgetPage />} />
 					<Route path="/admin/login" element={<LoginPage />} />
 					<Route path="/mi-reserva/:id" element={<ReservationDetailView />} />

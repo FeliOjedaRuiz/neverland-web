@@ -27,7 +27,15 @@ Proceso de 8 pasos optimizado para conversión:
 - **Add to Calendar**: Botón para que el cliente agende su reserva en su calendario personal.
 - **Límites de Seguridad**: Validaciones de máximos (Niños: 50, Adultos: 40) para proteger el layout y la operatividad.
 
-## 4. Aplicación Web Progresiva (PWA)
+## 4. Página Pública de Precios (`/precios`)
+
+Diseñada para facilitar la consulta rápida sin iniciar un flujo de reserva:
+- **Sincronización Total**: Consume los mismos datos de la API que el flujo de reservas, garantizando que el usuario siempre vea los precios vigentes.
+- **Visualización Detallada**: Incluye catálogo visual de raciones de adultos, talleres y personajes con modales de imagen ampliada.
+- **Teaser en Home**: Sección de acceso rápido que reemplaza el catálogo estático anterior, reduciendo la carga cognitiva y mejorando el CTR hacia la página detallada.
+- **Banner de Duración Base**: Notificación contextual sobre la duración de 2h de los eventos, dando sentido a las opciones de tiempo extra.
+
+## 5. Aplicación Web Progresiva (PWA)
 
 El sistema Neverland ha sido transformado en una PWA nativa para mejorar la recurrencia:
 - **Instalabilidad**: Botón personalizado en el Panel de Admin y meta-tags para iOS/Android.

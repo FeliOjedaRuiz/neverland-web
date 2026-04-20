@@ -219,7 +219,7 @@ const FacilitiesSection = () => {
 	);
 
 	return (
-		<section id="instalaciones" className="py-24 bg-cream-bg overflow-hidden">
+		<section id="instalaciones" className="py-24 bg-white overflow-hidden">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				{/* Section Header */}
 				<motion.div

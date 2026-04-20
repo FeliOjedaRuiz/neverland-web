@@ -46,10 +46,10 @@ function HomePage() {
 			/>
 			<HeroSection />
 			<ServicesSection />
+			<MenusSection />
 			<FacilitiesSection />
 			<WorkshopsSection />
 			<WorkflowSection />
-			<MenusSection />
 			<FAQSection />
 		</>
 	);

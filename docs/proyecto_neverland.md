@@ -30,9 +30,9 @@ Proceso de despliegue seguro (`npm run ship`), integración continua con Vercel/
 ---
 
 ## 🚀 Estado del Sistema
-- **Versión Actual**: v1.9.10 (Abril 2026)
+- **Versión Actual**: v1.9.11 (Abril 2026)
 - **Stack**: Node.js, Express, MongoDB Atlas, React (Vite), VitePWA, Web-Push.
-- **Última Mejora**: Corrección de la navegación por anclas (`#faq`) mediante un sistema de desplazamiento multi-etapa resiliente a cambios de layout asíncronos (v1.9.10). Previamente se restauró el motor de disponibilidad de eventos tras refactorizar la lógica de fechas (v1.9.9).
+- **Última Mejora**: Implementación de la **Página Pública de Precios** (`/precios`) con sincronización en tiempo real desde la API, teaser interactivo en la Home y optimización de fondos de sección para mejorar el contraste visual (v1.9.11). Anteriormente se corrigió la navegación por anclas (v1.9.10).
 
 ---
 _Para realizar cambios en la lógica o el esquema, favor de consultar el documento técnico correspondiente._

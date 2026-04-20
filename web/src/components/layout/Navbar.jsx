@@ -145,6 +145,13 @@ const Navbar = () => {
 							getLink={getLink}
 						/>
 						<NavLink
+							hash="#menus"
+							label="Precios"
+							activeSection={activeSection}
+							isHome={isHome}
+							getLink={getLink}
+						/>
+						<NavLink
 							hash="#instalaciones"
 							label="Instalaciones"
 							activeSection={activeSection}
@@ -154,13 +161,6 @@ const Navbar = () => {
 						<NavLink
 							hash="#actividades"
 							label="Actividades"
-							activeSection={activeSection}
-							isHome={isHome}
-							getLink={getLink}
-						/>
-						<NavLink
-							hash="#menus"
-							label="Menús"
 							activeSection={activeSection}
 							isHome={isHome}
 							getLink={getLink}
@@ -239,6 +239,14 @@ const Navbar = () => {
 							</Link>
 
 							<Link
+								to={getLink('#menus')}
+								onClick={() => setIsOpen(false)}
+								className="w-full py-3 text-text-black hover:text-neverland-green font-display font-bold text-lg"
+							>
+								Precios
+							</Link>
+
+							<Link
 								to={getLink('#instalaciones')}
 								onClick={() => setIsOpen(false)}
 								className="w-full py-3 text-text-black hover:text-neverland-green font-display font-bold text-lg"
@@ -252,14 +260,6 @@ const Navbar = () => {
 								className="w-full py-3 text-text-black hover:text-neverland-green font-display font-bold text-lg"
 							>
 								Actividades
-							</Link>
-
-							<Link
-								to={getLink('#menus')}
-								onClick={() => setIsOpen(false)}
-								className="w-full py-3 text-text-black hover:text-neverland-green font-display font-bold text-lg"
-							>
-								Menús
 							</Link>
 
 							<Link
