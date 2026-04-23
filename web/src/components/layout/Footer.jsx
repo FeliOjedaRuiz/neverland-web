@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Phone, Instagram, Facebook } from 'lucide-react';
+import { MapPin, Phone, Instagram } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import logo from '../../assets/neverland_logo.svg';
 import DataProtectionModal from '../booking/DataProtectionModal';
@@ -42,6 +42,17 @@ const Footer = () => {
 									className="text-gray-300 text-sm hover:text-white transition-colors"
 								>
 									651 70 79 85
+								</a>
+							</div>
+							<div className="flex items-center gap-4">
+								<Instagram className="text-energy-orange shrink-0" size={20} />
+								<a
+									href="https://www.instagram.com/neverland_cullarvega/"
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-gray-300 text-sm hover:text-white transition-colors"
+								>
+									@neverland_cullarvega
 								</a>
 							</div>
 						</div>
@@ -101,6 +112,30 @@ const Footer = () => {
 									FAQ
 								</Link>
 							</li>
+							<li>
+								<Link
+									to="/precios"
+									className="text-gray-400 hover:text-neverland-green transition-colors"
+								>
+									Carta completa
+								</Link>
+							</li>
+							<li>
+								<Link
+									to="/presupuesto"
+									className="text-gray-400 hover:text-neverland-green transition-colors"
+								>
+									Presupuesto
+								</Link>
+							</li>
+							<li>
+								<Link
+									to="/booking"
+									className="text-gray-400 hover:text-neverland-green transition-colors"
+								>
+									Disponibilidad
+								</Link>
+							</li>
 							<li className="col-span-2 mt-2">
 								<button
 									onClick={() => setShowPolicy(true)}
@@ -128,29 +163,29 @@ const Footer = () => {
 
 				<div className="border-t border-gray-800 pt-8 mt-8 flex flex-col md:flex-row justify-between items-center gap-4">
 					<div className="flex flex-col items-center md:items-start gap-2">
-						<span className="text-gray-500 text-xs">
+						<span className="text-gray-500 text-xs text-center md:text-left">
 							© 2026 Neverland Cullar Vega. Todos los derechos reservados.
 						</span>
-						<Link
-							to="/admin/login"
-							className="text-gray-600 text-[10px] hover:text-gray-400 transition-colors"
-						>
-							Acceso Admin
-						</Link>
-					</div>
-					<div className="flex gap-4">
-						<a
-							href="#"
-							className="text-gray-400 hover:text-energy-orange transition-colors"
-						>
-							<Instagram size={20} />
-						</a>
-						<a
-							href="#"
-							className="text-gray-400 hover:text-blue-500 transition-colors"
-						>
-							<Facebook size={20} />
-						</a>
+						<div className="flex items-center gap-2">
+							<Link
+								to="/admin/login"
+								className="text-gray-500 text-xs hover:text-gray-400 transition-colors"
+							>
+								Acceso Admin
+							</Link>
+							<span className="text-gray-500 text-xs">|</span>
+							<span className="text-gray-500 text-xs">
+								Web app desarrollada por{' '}
+								<a
+									href="https://wa.me/34630173975"
+									target="_blank"
+									rel="noopener noreferrer"
+									className="hover:text-gray-400 transition-colors"
+								>
+									Feliciano Ojeda Ruiz
+								</a>
+							</span>
+						</div>
 					</div>
 				</div>
 			</div>

@@ -43,21 +43,21 @@ const STATS = [
 // ─── Categorías de la "carta rápida" ────────────────────────────────────────
 const CATEGORIES = [
 	{
-		emoji: '🧸',
+		emoji: '🌭',
 		title: 'Menús Infantiles',
 		desc: 'Menú completo con bebida, postre y sorpresa para cada niño.',
 		accent: 'from-orange-400 to-energy-orange',
 		tag: 'desde 9€/niño',
 	},
 	{
-		emoji: '✨',
+		emoji: '🪄',
 		title: 'Actividades',
 		desc: 'Talleres temáticos guiados por monitores expertos.',
 		accent: 'from-blue-400 to-rec-blue',
 		tag: 'desde 25€',
 	},
 	{
-		emoji: '🌟',
+		emoji: '🦸🏻‍♂️',
 		title: 'Personajes',
 		desc: 'Actuación especial y fotos con tus personajes favoritos.',
 		accent: 'from-emerald-400 to-neverland-green',

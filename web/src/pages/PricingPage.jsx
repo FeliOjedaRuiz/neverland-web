@@ -303,7 +303,7 @@ const PricingPage = () => {
 								viewport={{ once: true, margin: '-60px' }}
 							>
 								<SectionHeader
-									emoji="🧸"
+									emoji="🍕"
 									title="Menús Infantiles"
 									subtitle="Por niño invitado"
 									accentColor="bg-orange-100"

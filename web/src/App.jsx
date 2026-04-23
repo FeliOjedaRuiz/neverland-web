@@ -5,6 +5,7 @@ import {
 	useLocation,
 	Navigate,
 } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import React, { useEffect } from 'react';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
@@ -141,6 +142,7 @@ function App() {
 		<Router>
 			<GlobalErrorBoundary>
 				<Layout />
+				<Analytics />
 			</GlobalErrorBoundary>
 		</Router>
 	);
