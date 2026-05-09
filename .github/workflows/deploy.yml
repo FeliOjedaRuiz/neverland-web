@@ -1,4 +1,4 @@
-name: Deploy a Fly.io
+name: CI — Tests (Frontend + Backend)
 
 on:
   push:
@@ -40,15 +40,5 @@ jobs:
         working-directory: api
         run: npm test
 
-#   deploy:
-#     name: Despliegue en Fly.io
-#     needs: test
-#     runs-on: ubuntu-latest
-#     if: github.ref == 'refs/heads/main'
-#     steps:
-#       - uses: actions/checkout@v4
-#       - uses: superfly/flyctl-actions/setup-flyctl@master
-#       - name: Deploy to Fly.io
-#         run: flyctl deploy --remote-only
-#         env:
-#           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+# Deploy handled automatically by Vercel (Frontend) and Render (Backend) on push to main.
+# No manual deploy step needed.

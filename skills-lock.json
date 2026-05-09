@@ -15,6 +15,66 @@
       "source": "addyosmani/web-quality-skills",
       "sourceType": "github",
       "computedHash": "680cc12a17e9308b4592a2751db51615c618993f75362cb8e64207f6355a8c63"
+    },
+    "backend_expert": {
+      "source": "antigravity-legacy",
+      "sourceType": "local",
+      "computedHash": "0EBC85ED7FA1044FDB21025B070FECF64ED98DD18122C3F119EDAFBF64FA3D1B"
+    },
+    "brainstorming_planning": {
+      "source": "antigravity-legacy",
+      "sourceType": "local",
+      "computedHash": "2ADDE7A1EBC197E963D90C0F77A7F9A03996D877F6B84939CDF35656546A51F8"
+    },
+    "changelog_generator": {
+      "source": "antigravity-legacy",
+      "sourceType": "local",
+      "computedHash": "E2681AFCB0590DB117641EB660566F28B8A0A9AA4D42A7A673C9C15FDFBAAD53"
+    },
+    "generar-sistema-diseno": {
+      "source": "antigravity-legacy",
+      "sourceType": "local",
+      "computedHash": "E523AE81E053776C5385EB3905C2CDF903A10983972948F8F8E43D847DAF2BD1"
+    },
+    "google_services_expert": {
+      "source": "antigravity-legacy",
+      "sourceType": "local",
+      "computedHash": "05AC78D4A27035F54D966BE5A450234D64577BB88F7BF2CF959696664F06059F"
+    },
+    "mern_testing_specialist": {
+      "source": "antigravity-legacy",
+      "sourceType": "local",
+      "computedHash": "DA9AAE338BB659B7644EF32130D9B0C760F387261F70835EB180FFA671B3F237"
+    },
+    "mobile_ux_expert": {
+      "source": "antigravity-legacy",
+      "sourceType": "local",
+      "computedHash": "63EAFF3FE8CE5CB74B40E778FF3CAE36D7A10FD12C2C544362F3582FF25339E4"
+    },
+    "pwa_expert": {
+      "source": "antigravity-legacy",
+      "sourceType": "local",
+      "computedHash": "06AAC7C3EB982630AD2D7388E9F03FE2769B53AD3EE42753261346DE788160F1"
+    },
+    "ux-ui-design": {
+      "source": "antigravity-legacy",
+      "sourceType": "local",
+      "computedHash": "65D2019DB322DCC6474B9FCDA6812B85568CE007AE48BC623DF161B02C4397AB"
+    },
+    "webapp_testing_expert": {
+      "source": "antigravity-legacy",
+      "sourceType": "local",
+      "computedHash": "3810321956F75E3B0036A516B5D141E5380647D71AB9D76B71B745BC8EE43D78"
+    },
+    "tarea": {
+      "source": "gentleman-programming",
+      "sourceType": "local",
+      "computedHash": "3856A80800DEF174BCBD4DB809D9AAC5ABD35870ED9B796996282335688596A2"
+    },
+    "feature": {
+      "source": "gentleman-programming",
+      "sourceType": "local",
+      "computedHash": "38AFEF765E2F52F1E15B09C8D12AFF92287948A983C5E53D6E2B85A03AFEF7E6"
     }
   }
 }
