@@ -19,6 +19,7 @@ import BudgetPage from './pages/BudgetPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
+import CancelacionPage from './pages/CancelacionPage';
 import ServerError from './pages/ServerError';
 import InvitationPage from './pages/InvitationPage';
 import PricingPage from './pages/PricingPage';
@@ -32,6 +33,14 @@ import CalendarView from './components/admin/CalendarView';
 import DayDetailView from './components/admin/DayDetailView';
 import ReservationDetailView from './components/admin/ReservationDetailView';
 import ConfigurationPanel from './components/admin/ConfigurationPanel';
+
+// Talleres Components
+import TalleresList from './components/admin/TalleresList';
+import TallerForm from './components/admin/TallerForm';
+import TallerDetail from './components/admin/TallerDetail';
+import TalleresListPage from './pages/TalleresListPage';
+import TallerPublicDetail from './components/talleres/TallerPublicDetail';
+import InscripcionResumen from './components/talleres/InscripcionResumen';
 
 function Layout() {
 	const location = useLocation();
@@ -84,6 +93,10 @@ function Layout() {
 					<Route path="/booking" element={<BookingPage />} />
 					<Route path="/precios" element={<PricingPage />} />
 					<Route path="/presupuesto" element={<BudgetPage />} />
+					<Route path="/talleres" element={<TalleresListPage />} />
+					<Route path="/talleres/:id" element={<TallerPublicDetailWrapper />} />
+					<Route path="/talleres/:id/confirmacion" element={<InscripcionResumen />} />
+					<Route path="/talleres/cancelacion" element={<CancelacionPage />} />
 					<Route path="/admin/login" element={<LoginPage />} />
 					<Route path="/mi-reserva/:id" element={<ReservationDetailView />} />
 					<Route path="/invitacion/:id" element={<InvitationPage />} />
@@ -105,6 +118,10 @@ function Layout() {
 						<Route path="calendario/:date" element={<DayDetailView />} />
 						<Route path="evento/:id" element={<ReservationDetailView />} />
 						<Route path="config" element={<ConfigurationPanel />} />
+						<Route path="talleres" element={<TalleresList />} />
+						<Route path="talleres/nuevo" element={<TallerForm />} />
+						<Route path="talleres/:id" element={<TallerDetail />} />
+						<Route path="talleres/:id/editar" element={<TallerForm />} />
 					</Route>
 
 					{/* Rutas de prueba para errores (puedes borrarlas luego) */}

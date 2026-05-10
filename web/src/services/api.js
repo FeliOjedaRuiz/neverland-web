@@ -59,11 +59,28 @@ export const uploadConfigImage = (file) => {
   });
 };
 
-// Workshops
+// Workshops (actividades extras para cumpleaños — config)
 export const getWorkshops = () => api.get('/workshops');
 export const createWorkshop = (data) => api.post('/workshops', data);
 export const updateWorkshop = (id, data) => api.patch(`/workshops/${id}`, data);
 export const deleteWorkshop = (id) => api.delete(`/workshops/${id}`);
+
+// Talleres (sesiones programadas independientes)
+export const getTalleres = (params) => api.get('/talleres', { params });
+export const getTallerById = (id) => api.get(`/talleres/${id}`);
+export const createTaller = (data) => api.post('/talleres', data);
+export const updateTaller = (id, data) => api.patch(`/talleres/${id}`, data);
+export const deleteTaller = (id) => api.delete(`/talleres/${id}`);
+export const inscribirATaller = (id, data) => api.post(`/talleres/${id}/inscripciones`, data);
+export const eliminarInscripcion = (tallerId, inscripcionId) =>
+	api.delete(`/talleres/${tallerId}/inscripciones/${inscripcionId}`);
+export const uploadTallerImage = (file) => {
+	const formData = new FormData();
+	formData.append('image', file);
+	return api.post('/talleres/upload', formData, {
+		headers: { 'Content-Type': 'multipart/form-data' },
+	});
+};
 
 // Auth
 export const login = (email, password) => api.post('/login', { email, password });

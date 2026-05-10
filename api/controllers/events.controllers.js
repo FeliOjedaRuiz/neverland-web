@@ -1,5 +1,6 @@
 // GGA Test: Control de precisión en reservas
 const Event = require('../models/event.model');
+const Taller = require('../models/taller.model');
 const createError = require('http-errors');
 const googleService = require('../services/google.service');
 const mailer = require('../config/mailer.config');
@@ -599,6 +600,22 @@ module.exports.checkAvailability = async (req, res, next) => {
       if (evento.turno) {
         ocupados.push({ date: fechaEventoTexto, shift: evento.turno, id: String(evento._id) });
       }
+    });
+
+    // 1.5 Talleres (bloquean turnos en el calendario)
+    const talleres = await Taller.find({
+      fecha: { $gte: fechaInicio, $lte: fechaFin }
+    });
+
+    talleres.forEach(taller => {
+      const fechaEventoTexto = toLocalISO(taller.fecha);
+      (taller.turnos || []).forEach(turno => {
+        // Evitar duplicados con eventos existentes
+        const yaExiste = ocupados.some(o => o.date === fechaEventoTexto && o.shift === turno);
+        if (!yaExiste) {
+          ocupados.push({ date: fechaEventoTexto, shift: turno, id: `taller-${taller._id}` });
+        }
+      });
     });
 
     // 2. Google Calendar Events

@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const Config = require('../models/config.model');
+const { safeParseDate } = require('../utils/date');
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -256,6 +257,143 @@ ${publicUrl}
     })
     .catch(error => {
       console.error(`Error sending email to ${cliente.email}:`, error);
+      throw error;
+    });
+};
+
+module.exports.sendTallerConfirmationEmail = async (taller, inscripcion) => {
+  if (process.env.NODE_ENV === 'test') {
+    console.log('Test mode: Skipping real email send for', inscripcion.emailResponsable);
+    return { messageId: 'test-mode-mock-id' };
+  }
+
+  const formattedDate = formatDate(taller.fecha);
+
+  // Google Calendar Link Generation
+  const generateGCalUrl = () => {
+    const baseUrl = 'https://www.google.com/calendar/render?action=TEMPLATE';
+    const text = encodeURIComponent(`Taller: ${taller.nombre} - Neverland`);
+    const dateObj = safeParseDate(taller.fecha);
+    const datePart = `${dateObj.getFullYear()}${String(dateObj.getMonth() + 1).padStart(2, '0')}${String(dateObj.getDate()).padStart(2, '0')}`;
+    const startTime = taller.horario.inicio.replace(':', '') + '00';
+    const endTime = taller.horario.fin.replace(':', '') + '00';
+    const dates = `${datePart}T${startTime}/${datePart}T${endTime}`;
+
+    const details = encodeURIComponent(
+      `Taller: ${taller.nombre}\n` +
+      `Fecha: ${formattedDate}\n` +
+      `Horario: ${taller.horario.inicio} - ${taller.horario.fin}\n` +
+      `Precio: ${taller.precio}€\n\n` +
+      `¡Gracias por elegir Neverland!`
+    );
+    const location = encodeURIComponent('Neverland Cúllar Vega, Calle Clara Campoamor, 18195 Cúllar Vega, Granada');
+
+    return `${baseUrl}&text=${text}&dates=${dates}&details=${details}&location=${location}`;
+  };
+
+  const googleCalendarUrl = generateGCalUrl();
+  const cancelUrl = `${WEB_URL}/talleres/${taller.id}/cancelar-inscripcion/${inscripcion._id}?email=${encodeURIComponent(inscripcion.emailResponsable)}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Confirmación de Inscripción - Neverland</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #FDEBD0; }
+        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .header { background-color: #ffffff; padding: 25px 20px; text-align: center; border-bottom: 1px solid #f9f9f9; }
+        .content { padding: 30px 40px; text-align: center; }
+        h1 { font-size: 24px; color: #111827; margin: 0 0 15px 0; font-weight: 800; }
+        .message { color: #4B5563; font-size: 16px; margin-bottom: 20px; }
+        .highlight { color: #24635A; font-weight: bold; }
+        .summary-card { background-color: #FFF9F0; border-radius: 20px; padding: 25px; text-align: left; margin-bottom: 30px; border: 1px solid #FDEBD0; }
+        .summary-title { font-weight: 800; font-size: 14px; text-transform: uppercase; color: #374151; margin-bottom: 15px; border-bottom: 1px solid #E5E7EB; padding-bottom: 10px; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+        .summary-label { color: #6B7280; }
+        .summary-value { color: #111827; font-weight: 600; text-align: right; margin-left: 10px; }
+        .total-row { border-top: 1px solid #E5E7EB; margin-top: 15px; padding-top: 15px; font-weight: 800; font-size: 18px; color: #10B981; }
+        .btn-gcal { display: inline-block; border: 2px solid #24635A; color: #24635A; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: 800; font-size: 14px; background: #ffffff; margin: 5px; }
+        .cancel-link { display: inline-block; color: #9CA3AF; font-size: 11px; text-decoration: none; margin-top: 15px; }
+        .cancel-link:hover { color: #6B7280; text-decoration: underline; }
+        .footer { background-color: #F9FAFB; padding: 30px; text-align: center; font-size: 12px; color: #9CA3AF; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <a href="${WEB_URL}" target="_blank" style="text-decoration: none;">
+            <img 
+              src="https://res.cloudinary.com/dhdd7a5pr/image/upload/f_auto,q_auto/v1772317871/neverland/assets/neverland_logo_svg.png" 
+              alt="Neverland Cúllar Vega" 
+              style="display: block; width: 140px; height: auto; margin: 0 auto; border: 0;"
+              width="140"
+            />
+          </a>
+        </div>
+        <div class="content">
+          <h1>¡Hola ${inscripcion.nombreResponsable}!</h1>
+          <p class="message">
+            Has inscrito a <span class="highlight">${inscripcion.nombreNiño}</span> en el taller <span class="highlight">${taller.nombre}</span>.
+          </p>
+          <p class="message" style="font-size: 14px; margin-top: -10px;">
+            Tu plaza está confirmada. Te esperamos en Neverland para disfrutar de esta experiencia.
+          </p>
+
+          <div style="margin: 25px 0 35px 0;">
+            <a href="${googleCalendarUrl}" target="_blank" class="btn-gcal">🗓️ Añadir a Google Calendar</a>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-title">Detalles de la Inscripción</div>
+            <div class="summary-row">
+              <span class="summary-label">Taller:</span>
+              <span class="summary-value">${taller.nombre}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Fecha:</span>
+              <span class="summary-value">${formattedDate}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Horario:</span>
+              <span class="summary-value">${taller.horario.inicio} - ${taller.horario.fin}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Niño/a:</span>
+              <span class="summary-value">${inscripcion.nombreNiño}${inscripcion.edadNiño ? ` (${inscripcion.edadNiño} años)` : ''}</span>
+            </div>
+            <div class="total-row">
+              <span>Precio:</span>
+              <span style="float: right;">${taller.precio}€</span>
+            </div>
+          </div>
+
+          <div style="margin-top: 20px;">
+            <a href="${cancelUrl}" class="cancel-link">Cancelar inscripción</a>
+          </div>
+        </div>
+        <div class="footer">
+          &copy; ${new Date().getFullYear()} Neverland Cúllar Vega - Centro de Ocio Infantil
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return transporter.sendMail({
+    from: `"Neverland" <${process.env.EMAIL_USER}>`,
+    to: inscripcion.emailResponsable,
+    subject: `Confirmación de inscripción — ${taller.nombre}`,
+    html,
+  })
+    .then(info => {
+      console.info(`Taller confirmation email sent to ${inscripcion.emailResponsable}: ${info.messageId}`);
+      return info;
+    })
+    .catch(error => {
+      console.error(`Error sending taller email to ${inscripcion.emailResponsable}:`, error);
       throw error;
     });
 };

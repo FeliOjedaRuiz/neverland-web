@@ -4,6 +4,7 @@ import SEO from '../components/common/SEO';
 import HeroSection from '../components/home/HeroSection';
 import MenusSection from '../components/home/MenusSection';
 import WorkshopsSection from '../components/home/WorkshopsSection';
+import TalleresSection from '../components/home/TalleresSection';
 import ServicesSection from '../components/home/ServicesSection';
 import FacilitiesSection from '../components/home/FacilitiesSection';
 import WorkflowSection from '../components/home/WorkflowSection';
@@ -48,6 +49,7 @@ function HomePage() {
 			<ServicesSection />
 			<MenusSection />
 			<FacilitiesSection />
+			<TalleresSection />
 			<WorkshopsSection />
 			<WorkflowSection />
 			<FAQSection />

@@ -10,6 +10,7 @@ import {
 	X,
 	Bell,
 	BellOff,
+	Palette,
 } from 'lucide-react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -121,7 +122,8 @@ const AdminDashboard = () => {
 	const { isSupported, isSubscribed, isLoading, subscribe, unsubscribe } = usePushNotifications();
 
 	const sidebarItems = React.useMemo(() => [
-		{ id: 'reservas', label: 'Bandeja de Entrada', icon: Inbox },
+		{ id: 'reservas', label: 'Cumpleaños', icon: Inbox },
+		{ id: 'talleres', label: 'Talleres', icon: Palette },
 		{ id: 'calendario', label: 'Calendario', icon: CalendarIcon },
 		{ id: 'config', label: 'Configuración', icon: Settings },
 	], []);
@@ -237,10 +239,12 @@ const AdminDashboard = () => {
 								{isEventDetail
 									? 'Información Completa'
 									: activeItem?.id === 'reservas'
-										? 'Gestión de Reservas'
-										: activeItem?.id === 'calendario'
-											? 'Vista Mensual y Agenda'
-											: 'Precios, Menús y Catálogo'}
+										? 'Gestión de Cumpleaños'
+										: activeItem?.id === 'talleres'
+											? 'Gestión de Talleres'
+											: activeItem?.id === 'calendario'
+												? 'Vista Mensual y Agenda'
+												: 'Precios, Menús y Catálogo'}
 							</p>
 						</div>
 					</div>

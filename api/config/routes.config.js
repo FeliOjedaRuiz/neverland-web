@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const users = require('../controllers/users.controllers');
 const events = require('../controllers/events.controllers');
 const config = require('../controllers/config.controllers');
-const workshops = require('../controllers/workshops.controllers');
+const talleres = require('../controllers/talleres.controllers');
 const push = require('../controllers/push.controllers');
 
 const secure = require('../middlewares/secure.mid');
@@ -60,17 +60,24 @@ router.patch('/events/:id', (req, res, next) => {
 router.delete('/events/:id', secure.isAdmin, events.delete);
 
 const upload = require('../config/cloudinary.config');
+const { createUploader } = require('../config/cloudinary.config');
+const uploadTalleres = createUploader('neverland/talleres');
 
 // CONFIG
 router.get('/config', config.get);
 router.patch('/config', secure.isAdmin, config.update);
 router.post('/config/upload-image', secure.isAdmin, upload.single('image'), config.uploadImage);
 
-// WORKSHOPS
-router.get('/workshops', workshops.list);
-router.post('/workshops', secure.isAdmin, workshops.create);
-router.patch('/workshops/:id', secure.isAdmin, workshops.update);
-router.delete('/workshops/:id', secure.isAdmin, workshops.delete);
+// TALLERES
+router.get('/talleres', talleres.list);
+router.get('/talleres/:id', talleres.detail);
+router.post('/talleres', secure.isAdmin, talleres.create);
+router.patch('/talleres/:id', secure.isAdmin, talleres.update);
+router.delete('/talleres/:id', secure.isAdmin, talleres.delete);
+router.post('/talleres/:id/inscripciones', talleres.inscribir);
+router.delete('/talleres/:id/inscripciones/:inscripcionId', secure.isAdmin, talleres.eliminarInscripcion);
+router.get('/talleres/:id/cancelar-inscripcion/:inscripcionId', talleres.cancelarInscripcion);
+router.post('/talleres/upload', secure.isAdmin, uploadTalleres.single('image'), talleres.upload);
 
 // PUSH NOTIFICATIONS
 router.get('/push/public-key', push.getPublicKey); // Pública: el admin la necesita antes de autenticarse con push
