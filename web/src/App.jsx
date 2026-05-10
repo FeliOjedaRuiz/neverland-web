@@ -94,7 +94,7 @@ function Layout() {
 					<Route path="/precios" element={<PricingPage />} />
 					<Route path="/presupuesto" element={<BudgetPage />} />
 					<Route path="/talleres" element={<TalleresListPage />} />
-					<Route path="/talleres/:id" element={<TallerPublicDetailWrapper />} />
+					<Route path="/talleres/:id" element={<TallerPublicDetail />} />
 					<Route path="/talleres/:id/confirmacion" element={<InscripcionResumen />} />
 					<Route path="/talleres/cancelacion" element={<CancelacionPage />} />
 					<Route path="/admin/login" element={<LoginPage />} />
