@@ -595,10 +595,8 @@ module.exports.checkAvailability = async (req, res, next) => {
 
     eventosDB.forEach(evento => {
       const fechaEventoTexto = toLocalISO(evento.fecha);
-      // El solapamiento entre salas se gestiona manualmente. 
-      // Si hay un evento en BD local, bloquea EXCLUSIVAMENTE su turno designado.
       if (evento.turno) {
-        ocupados.push({ date: fechaEventoTexto, shift: evento.turno, id: String(evento._id) });
+        ocupados.push({ date: fechaEventoTexto, shift: evento.turno, id: String(evento._id), tipo: evento.tipo });
       }
     });
 
@@ -613,7 +611,7 @@ module.exports.checkAvailability = async (req, res, next) => {
         // Evitar duplicados con eventos existentes
         const yaExiste = ocupados.some(o => o.date === fechaEventoTexto && o.shift === turno);
         if (!yaExiste) {
-          ocupados.push({ date: fechaEventoTexto, shift: turno, id: `taller-${taller._id}` });
+          ocupados.push({ date: fechaEventoTexto, shift: turno, id: `taller-${taller._id}`, tipo: 'taller' });
         }
       });
     });
