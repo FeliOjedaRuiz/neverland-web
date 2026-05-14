@@ -241,37 +241,46 @@ const TallerDetail = () => {
 								</div>
 							</div>
 
-							{/* Actions + Visibilidad */}
-							<div className="flex items-center justify-between pt-2 border-t border-gray-50 gap-2">
-								<div className="flex items-center gap-1.5 shrink-0">
+							{/* ── Acciones (2 filas) ── */}
+							<div className="pt-2 border-t border-gray-50 space-y-2">
+								{/* Fila 1: Visibilidad + Compartir */}
+								<div className="flex items-center justify-between gap-2">
+									<div className="flex items-center gap-1.5">
+										<ToggleSwitch active={taller.publico} onChange={handleToggleVisibilidad} disabled={togglingPublico} />
+										<span className={`flex items-center gap-1 text-[8px] font-black uppercase tracking-wider ${taller.publico ? 'text-neverland-green' : 'text-gray-300'}`}>
+											{taller.publico ? <Eye size={10} /> : <EyeOff size={10} />}
+											{taller.publico ? 'Público' : 'Oculto'}
+										</span>
+									</div>
+									<button
+										onClick={handleCopyLink}
+										disabled={!taller.publico}
+										className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-black text-[9px] uppercase tracking-wider transition-all ${
+											taller.publico
+												? 'bg-blue-50 text-blue-500 hover:bg-blue-500 hover:text-white'
+												: 'bg-gray-50 text-gray-300 cursor-not-allowed'
+										}`}
+										title={taller.publico ? 'Copiar enlace para compartir por WhatsApp' : 'Haz el taller público para poder compartirlo'}
+									>
+										<Link2 size={14} /> Enlace
+									</button>
+								</div>
+								{/* Fila 2: Editar + Eliminar */}
+								<div className="flex items-center gap-1.5">
 									<button
 										onClick={() => navigate(`/admin/talleres/${id}/editar`)}
-										className="flex items-center gap-1.5 px-3 py-2 bg-neverland-green/10 text-neverland-green rounded-xl font-black text-[9px] uppercase tracking-wider hover:bg-neverland-green hover:text-white transition-all"
+										className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-neverland-green/10 text-neverland-green rounded-xl font-black text-[9px] uppercase tracking-wider hover:bg-neverland-green hover:text-white transition-all"
 									>
 										<Edit3 size={14} /> Editar
 									</button>
 									<button
-										onClick={handleCopyLink}
-										className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-500 rounded-xl font-black text-[9px] uppercase tracking-wider hover:bg-blue-500 hover:text-white transition-all"
-										title="Copiar enlace público para compartir por WhatsApp"
-									>
-										<Link2 size={14} /> Enlace
-									</button>
-									<button
 										onClick={() => setShowDeleteModal(true)}
 										disabled={deleting}
-										className="flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-500 rounded-xl font-black text-[9px] uppercase tracking-wider hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
+										className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-50 text-red-500 rounded-xl font-black text-[9px] uppercase tracking-wider hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
 									>
 										{deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
 										Eliminar
 									</button>
-								</div>
-								<div className="flex items-center gap-1.5 shrink-0">
-									<span className={`flex items-center gap-1 text-[8px] font-black uppercase tracking-wider ${taller.publico ? 'text-neverland-green' : 'text-gray-300'}`}>
-										{taller.publico ? <Eye size={10} /> : <EyeOff size={10} />}
-										{taller.publico ? 'Público' : 'Oculto'}
-									</span>
-									<ToggleSwitch active={taller.publico} onChange={handleToggleVisibilidad} disabled={togglingPublico} />
 								</div>
 							</div>
 						</div>
