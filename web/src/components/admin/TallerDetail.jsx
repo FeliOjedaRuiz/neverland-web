@@ -15,6 +15,7 @@ import {
 	ChevronDown,
 	ChevronUp,
 	Palette,
+	Link2,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { getTallerById, deleteTaller, updateTaller } from '../../services/api';
@@ -98,6 +99,16 @@ const TallerDetail = () => {
 		} catch (err) {
 			toast.error('Error al cambiar visibilidad');
 		} finally { setTogglingPublico(false); }
+	};
+
+	const handleCopyLink = async () => {
+		const url = `${window.location.origin}/talleres/${id}`;
+		try {
+			await navigator.clipboard.writeText(url);
+			toast.success('Enlace copiado — pégalo en WhatsApp');
+		} catch {
+			toast.error('No se pudo copiar el enlace');
+		}
 	};
 
 	// ── Loading ──
@@ -238,6 +249,13 @@ const TallerDetail = () => {
 										className="flex items-center gap-1.5 px-3 py-2 bg-neverland-green/10 text-neverland-green rounded-xl font-black text-[9px] uppercase tracking-wider hover:bg-neverland-green hover:text-white transition-all"
 									>
 										<Edit3 size={14} /> Editar
+									</button>
+									<button
+										onClick={handleCopyLink}
+										className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-500 rounded-xl font-black text-[9px] uppercase tracking-wider hover:bg-blue-500 hover:text-white transition-all"
+										title="Copiar enlace público para compartir por WhatsApp"
+									>
+										<Link2 size={14} /> Enlace
 									</button>
 									<button
 										onClick={() => setShowDeleteModal(true)}
