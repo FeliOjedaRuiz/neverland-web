@@ -32,7 +32,7 @@ Proceso de despliegue seguro (`npm run ship`), integración continua con Vercel/
 ## 🚀 Estado del Sistema
 - **Versión Actual**: v1.9.11 (Abril 2026)
 - **Stack**: Node.js, Express, MongoDB Atlas, React (Vite), VitePWA, Web-Push.
-- **Última Mejora**: Implementación de la **Página Pública de Precios** (`/precios`) con sincronización en tiempo real desde la API, teaser interactivo en la Home y optimización de fondos de sección para mejorar el contraste visual (v1.9.11). Anteriormente se corrigió la navegación por anclas (v1.9.10).
+- **Última Mejora**: Implementación completa del **Sistema de Talleres e Inscripciones** (CRUD administrativo, lógica de aforo concurrente, vistas públicas e integración de estados público/oculto). Se optimizó el layout del panel administrativo (estructura 2x2) y se añadió la funcionalidad de copiar enlaces públicos para compartir fácilmente por WhatsApp.
 
 ---
 _Para realizar cambios en la lógica o el esquema, favor de consultar el documento técnico correspondiente._
