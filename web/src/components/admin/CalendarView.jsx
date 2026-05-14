@@ -8,7 +8,7 @@ import {
 	Calendar as CalendarIcon,
 	Loader2,
 } from 'lucide-react';
-import { getReservations } from '../../services/api';
+import { getReservations, getTalleres } from '../../services/api';
 import { safeParseDate } from '../../utils/safeDate';
 
 const CalendarView = () => {
@@ -16,6 +16,7 @@ const CalendarView = () => {
 	const [currentDate, setCurrentDate] = useState(new Date());
 	const [headerDate, setHeaderDate] = useState(new Date());
 	const [reservations, setReservations] = useState([]);
+	const [talleres, setTalleres] = useState([]);
 	const [loading, setLoading] = useState(true);
 
 	// Carousel State
@@ -26,10 +27,14 @@ const CalendarView = () => {
 	const fetchEvents = async () => {
 		setLoading(true);
 		try {
-			const res = await getReservations();
-			setReservations(res.data);
+			const [resReservas, resTalleres] = await Promise.all([
+				getReservations(),
+				getTalleres(),
+			]);
+			setReservations(resReservas.data);
+			setTalleres(resTalleres.data);
 		} catch (err) {
-			console.error('Error fetching reservations for calendar:', err);
+			console.error('Error fetching events for calendar:', err);
 		} finally {
 			setLoading(false);
 		}
@@ -82,7 +87,25 @@ const CalendarView = () => {
 		});
 	};
 
-	const getStatusColor = (estado, tipo) => {
+	const getTalleresForDate = (dateObj) => {
+		if (!dateObj) return [];
+		return talleres.filter((t) => {
+			const tallerDate = safeParseDate(t.fecha);
+			return (
+				tallerDate.getFullYear() === dateObj.getFullYear() &&
+				tallerDate.getMonth() === dateObj.getMonth() &&
+				tallerDate.getDate() === dateObj.getDate()
+			);
+		});
+	};
+
+	const isShiftBlockedByTaller = (dateObj, turno) => {
+		const dayTalleres = getTalleresForDate(dateObj);
+		return dayTalleres.some((t) => t.turnos && t.turnos.includes(turno));
+	};
+
+	const getStatusColor = (estado, tipo, isTaller = false) => {
+		if (isTaller) return 'bg-purple-400 border-purple-500';
 		if (tipo === 'bloqueo') return 'bg-gray-300 border-gray-400';
 		if (estado === 'cancelada') return 'bg-red-500 border-red-600';
 		if (estado === 'confirmado' || estado === 'confirmada')
@@ -188,7 +211,7 @@ const CalendarView = () => {
 
 				{/* Legend */}
 				<div className="w-full sm:w-auto mt-2 sm:mt-0">
-					<div className="grid grid-cols-5 gap-1 sm:gap-2">
+					<div className="grid grid-cols-6 gap-1 sm:gap-2">
 						<div className="flex items-center justify-center px-1 py-1 rounded border border-black bg-white text-[9px] font-bold text-black uppercase tracking-tighter text-center">
 							Libre
 						</div>
@@ -203,6 +226,9 @@ const CalendarView = () => {
 						</div>
 						<div className="flex items-center justify-center px-1 py-1 rounded border border-gray-400 bg-gray-300 text-[9px] font-bold text-gray-700 uppercase tracking-tighter text-center">
 							Bloqueado
+						</div>
+						<div className="flex items-center justify-center px-1 py-1 rounded border border-purple-500 bg-purple-400 text-[9px] font-bold text-white uppercase tracking-tighter text-center">
+							Taller
 						</div>
 					</div>
 				</div>
@@ -294,23 +320,28 @@ const CalendarView = () => {
 																);
 															}
 
+															const tallerBloquea = isShiftBlockedByTaller(date, turno);
 															const isOcc =
 																!!event && event.estado !== 'cancelada';
-															const finalColor = isOcc
-																? getStatusColor(event.estado, event.tipo)
-																: 'bg-green-100';
+															const finalColor = tallerBloquea
+																? getStatusColor(event?.estado, event?.tipo, true)
+																: isOcc
+																	? getStatusColor(event.estado, event.tipo)
+																	: 'bg-green-100';
 
 															return (
 																<div
 																	key={turno}
 																	className={`h-[9px] w-full rounded-sm flex items-center justify-center ${finalColor}`}
 																	title={
-																		event
-																			? `${event.estado} - ${event.cliente?.nombreNiño || 'N/A'}`
-																			: 'Disponible'
+																		tallerBloquea
+																			? 'Taller'
+																			: event
+																				? `${event.estado} - ${event.cliente?.nombreNiño || 'N/A'}`
+																				: 'Disponible'
 																	}
 																>
-																	{!isOcc && isCur && (
+																	{!isOcc && !tallerBloquea && isCur && (
 																		<span className="text-[6.5px] font-bold text-neverland-green tracking-tighter leading-none">
 																			LIBRE
 																		</span>

@@ -64,6 +64,19 @@ section[id] {
 	), var(--color-cream-bg);
 }
 
+/* Paginación del carrusel de talleres — colores Neverland */
+.talleres-carousel .swiper-pagination-bullet {
+	background: var(--color-neverland-green);
+	opacity: 0.25;
+	width: 8px;
+	height: 8px;
+	transition: opacity 0.3s, transform 0.3s;
+}
+.talleres-carousel .swiper-pagination-bullet-active {
+	opacity: 1;
+	transform: scale(1.3);
+}
+
 @layer utilities {
 	.no-scrollbar::-webkit-scrollbar {
 		display: none;

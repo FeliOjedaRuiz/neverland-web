@@ -69,15 +69,34 @@ router.patch('/config', secure.isAdmin, config.update);
 router.post('/config/upload-image', secure.isAdmin, upload.single('image'), config.uploadImage);
 
 // TALLERES
-router.get('/talleres', talleres.list);
-router.get('/talleres/:id', talleres.detail);
+router.get('/talleres', secure.isAdmin, talleres.list); // Admin: todos los talleres
+router.get('/talleres/public', (req, res, next) => { // Público: solo publicados
+  req.query.publico = 'true';
+  talleres.list(req, res, next);
+});
+router.get('/talleres/:id', (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")?.[1];
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      return usersMid.checkUserForAuth(decoded.sub)(req, res, () => {
+        next();
+      });
+    } catch (err) {
+      // Invalid or expired token - proceed as anonymous
+    }
+  }
+  next();
+}, talleres.detail);
 router.post('/talleres', secure.isAdmin, talleres.create);
 router.patch('/talleres/:id', secure.isAdmin, talleres.update);
 router.delete('/talleres/:id', secure.isAdmin, talleres.delete);
 router.post('/talleres/:id/inscripciones', talleres.inscribir);
 router.delete('/talleres/:id/inscripciones/:inscripcionId', secure.isAdmin, talleres.eliminarInscripcion);
+router.patch('/talleres/:id/inscripciones/:inscripcionId', secure.isAdmin, talleres.editarInscripcion);
 router.get('/talleres/:id/cancelar-inscripcion/:inscripcionId', talleres.cancelarInscripcion);
 router.post('/talleres/upload', secure.isAdmin, uploadTalleres.single('image'), talleres.upload);
+router.post('/talleres/upload/delete', secure.isAdmin, talleres.deleteImage);
 
 // PUSH NOTIFICATIONS
 router.get('/push/public-key', push.getPublicKey); // Pública: el admin la necesita antes de autenticarse con push

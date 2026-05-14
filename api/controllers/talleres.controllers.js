@@ -1,6 +1,7 @@
 const Taller = require('../models/taller.model');
 const Event = require('../models/event.model');
 const createError = require('http-errors');
+const cloudinary = require('cloudinary').v2;
 const googleService = require('../services/google.service');
 const mailer = require('../config/mailer.config');
 const { safeParseDate, getSafeNow } = require('../utils/date');
@@ -25,7 +26,9 @@ module.exports.list = async (req, res, next) => {
     const limite = parseInt(req.query.limite) || 0;
 
     // Filtrar talleres pasados (fecha + horario.fin ya pasó, hora española)
-    if (!esAdmin || talleresProximos === 'true') {
+    // El parámetro 'incluirPasados' permite a la home mostrar pasados para rellenar slots
+    const incluirPasados = req.query.incluirPasados === 'true';
+    if ((!esAdmin && !incluirPasados) || talleresProximos === 'true') {
       const ahora = getSafeNow();
       talleres = talleres.filter(taller => {
         if (!taller.horario?.fin) return true;
@@ -67,12 +70,12 @@ module.exports.cancelarInscripcion = async (req, res, next) => {
 
     // Redirigir a página de confirmación en frontend
     const WEB_URL = process.env.WEB_URL || 'http://localhost:5173';
-    res.redirect(301, `${WEB_URL}/talleres/cancelacion?exitosa=true&taller=${encodeURIComponent(taller.nombre)}&nino=${encodeURIComponent(inscripcion.nombreNiño)}`);
+    res.redirect(302, `${WEB_URL}/talleres/cancelacion?exitosa=true&taller=${encodeURIComponent(taller.nombre)}&nino=${encodeURIComponent(inscripcion.nombreNiño)}`);
   } catch (error) {
     // Si hay error, redirigir a frontend con mensaje de error
     const WEB_URL = process.env.WEB_URL || 'http://localhost:5173';
     const msg = error.status === 403 ? 'email_no_valido' : 'error';
-    res.redirect(301, `${WEB_URL}/talleres/cancelacion?exitosa=false&error=${msg}`);
+    res.redirect(302, `${WEB_URL}/talleres/cancelacion?exitosa=false&error=${msg}`);
   }
 };
 
@@ -389,6 +392,29 @@ module.exports.eliminarInscripcion = async (req, res, next) => {
   }
 };
 
+module.exports.editarInscripcion = async (req, res, next) => {
+  try {
+    const { nombreNiño, edadNiño, nombreResponsable, telefonoResponsable, emailResponsable } = req.body;
+
+    const taller = await Taller.findOne({ _id: req.params.id, 'inscripciones._id': req.params.inscripcionId });
+    if (!taller) throw createError(404, 'Taller o inscripción no encontrado');
+
+    const inscripcion = taller.inscripciones.id(req.params.inscripcionId);
+    if (!inscripcion) throw createError(404, 'Inscripción no encontrada');
+
+    if (nombreNiño !== undefined) inscripcion.nombreNiño = nombreNiño;
+    if (edadNiño !== undefined) inscripcion.edadNiño = edadNiño;
+    if (nombreResponsable !== undefined) inscripcion.nombreResponsable = nombreResponsable;
+    if (telefonoResponsable !== undefined) inscripcion.telefonoResponsable = telefonoResponsable;
+    if (emailResponsable !== undefined) inscripcion.emailResponsable = emailResponsable;
+
+    await taller.save();
+    res.json(taller);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports.upload = async (req, res, next) => {
   try {
     if (!req.file) {
@@ -396,6 +422,44 @@ module.exports.upload = async (req, res, next) => {
     }
 
     res.json({ imageUrl: req.file.path });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Elimina una imagen de Cloudinary dado su public_id.
+ * Espera { imageUrl } en el body. Extrae el public_id de la URL.
+ */
+module.exports.deleteImage = async (req, res, next) => {
+  try {
+    const { imageUrl } = req.body;
+    if (!imageUrl) throw createError(400, 'Se requiere imageUrl');
+
+    // Parsear URL de Cloudinary para extraer public_id de forma robusta
+    // Formato: https://res.cloudinary.com/{cloud}/image/upload/[{transforms}/][v{version}/]{public_id}.{ext}
+    const url = new URL(imageUrl);
+    const pathParts = url.pathname.split('/');
+    const uploadIdx = pathParts.indexOf('upload');
+    if (uploadIdx === -1) throw createError(400, 'URL de Cloudinary no válida');
+
+    // Después de 'upload': filtrar segmentos de versión (v1234567890), el resto es el public_id
+    const publicId = pathParts
+      .slice(uploadIdx + 1)
+      .filter((p) => !/^v\d+$/.test(p))
+      .join('/')
+      .replace(/\.[^.]+$/, ''); // quitar extensión
+
+    if (!publicId) throw createError(400, 'No se pudo extraer public_id de la URL');
+
+    const result = await cloudinary.uploader.destroy(publicId);
+
+    // 'ok' = eliminada, 'not found' = ya no existía → ambos son éxito
+    if (result.result === 'ok' || result.result === 'not found') {
+      res.json({ success: true, publicId });
+    } else {
+      throw createError(500, `Cloudinary respondió: ${result.result}`);
+    }
   } catch (error) {
     next(error);
   }

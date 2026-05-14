@@ -52,9 +52,10 @@ const Navbar = () => {
 		const sections = [
 			'home',
 			'servicios',
-			'instalaciones',
-			'actividades',
 			'menus',
+			'instalaciones',
+			'talleres',
+			'actividades',
 			'faq',
 		];
 		const observerOptions = {
@@ -159,6 +160,13 @@ const Navbar = () => {
 							getLink={getLink}
 						/>
 						<NavLink
+							hash="#talleres"
+							label="Talleres"
+							activeSection={activeSection}
+							isHome={isHome}
+							getLink={getLink}
+						/>
+						<NavLink
 							hash="#actividades"
 							label="Actividades"
 							activeSection={activeSection}
@@ -252,6 +260,14 @@ const Navbar = () => {
 								className="w-full py-3 text-text-black hover:text-neverland-green font-display font-bold text-lg"
 							>
 								Instalaciones
+							</Link>
+
+							<Link
+								to={getLink('#talleres')}
+								onClick={() => setIsOpen(false)}
+								className="w-full py-3 text-text-black hover:text-neverland-green font-display font-bold text-lg"
+							>
+								Talleres
 							</Link>
 
 							<Link

@@ -66,7 +66,8 @@ export const updateWorkshop = (id, data) => api.patch(`/workshops/${id}`, data);
 export const deleteWorkshop = (id) => api.delete(`/workshops/${id}`);
 
 // Talleres (sesiones programadas independientes)
-export const getTalleres = (params) => api.get('/talleres', { params });
+export const getTalleres = (params) => api.get('/talleres', { params }); // Admin: todos
+export const getPublicTalleres = (params) => api.get('/talleres/public', { params }); // Público: solo publicados
 export const getTallerById = (id) => api.get(`/talleres/${id}`);
 export const createTaller = (data) => api.post('/talleres', data);
 export const updateTaller = (id, data) => api.patch(`/talleres/${id}`, data);
@@ -74,6 +75,8 @@ export const deleteTaller = (id) => api.delete(`/talleres/${id}`);
 export const inscribirATaller = (id, data) => api.post(`/talleres/${id}/inscripciones`, data);
 export const eliminarInscripcion = (tallerId, inscripcionId) =>
 	api.delete(`/talleres/${tallerId}/inscripciones/${inscripcionId}`);
+export const editarInscripcion = (tallerId, inscripcionId, data) =>
+	api.patch(`/talleres/${tallerId}/inscripciones/${inscripcionId}`, data);
 export const uploadTallerImage = (file) => {
 	const formData = new FormData();
 	formData.append('image', file);
@@ -81,6 +84,7 @@ export const uploadTallerImage = (file) => {
 		headers: { 'Content-Type': 'multipart/form-data' },
 	});
 };
+export const deleteTallerImage = (imageUrl) => api.post('/talleres/upload/delete', { imageUrl });
 
 // Auth
 export const login = (email, password) => api.post('/login', { email, password });

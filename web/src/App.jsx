@@ -39,7 +39,7 @@ import TalleresList from './components/admin/TalleresList';
 import TallerForm from './components/admin/TallerForm';
 import TallerDetail from './components/admin/TallerDetail';
 import TalleresListPage from './pages/TalleresListPage';
-import TallerPublicDetail from './components/talleres/TallerPublicDetail';
+import TallerDetailPage from './pages/TallerDetailPage';
 import InscripcionResumen from './components/talleres/InscripcionResumen';
 
 function Layout() {
@@ -94,9 +94,9 @@ function Layout() {
 					<Route path="/precios" element={<PricingPage />} />
 					<Route path="/presupuesto" element={<BudgetPage />} />
 					<Route path="/talleres" element={<TalleresListPage />} />
-					<Route path="/talleres/:id" element={<TallerPublicDetail />} />
-					<Route path="/talleres/:id/confirmacion" element={<InscripcionResumen />} />
 					<Route path="/talleres/cancelacion" element={<CancelacionPage />} />
+					<Route path="/talleres/:id" element={<TallerDetailPage />} />
+					<Route path="/talleres/:id/confirmacion" element={<InscripcionResumen />} />
 					<Route path="/admin/login" element={<LoginPage />} />
 					<Route path="/mi-reserva/:id" element={<ReservationDetailView />} />
 					<Route path="/invitacion/:id" element={<InvitationPage />} />

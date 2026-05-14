@@ -32,12 +32,14 @@ const getHorarioFinal = (turno, extensionMinutos = 0) => {
 };
 
 const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('es-ES', {
+  const str = new Date(date).toLocaleDateString('es-ES', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
+  // Capitalizar primera letra del día de la semana
+  return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
 const WEB_URL = process.env.WEB_URL || 'http://localhost:5173';
@@ -309,12 +311,11 @@ module.exports.sendTallerConfirmationEmail = async (taller, inscripcion) => {
         h1 { font-size: 24px; color: #111827; margin: 0 0 15px 0; font-weight: 800; }
         .message { color: #4B5563; font-size: 16px; margin-bottom: 20px; }
         .highlight { color: #24635A; font-weight: bold; }
-        .summary-card { background-color: #FFF9F0; border-radius: 20px; padding: 25px; text-align: left; margin-bottom: 30px; border: 1px solid #FDEBD0; }
-        .summary-title { font-weight: 800; font-size: 14px; text-transform: uppercase; color: #374151; margin-bottom: 15px; border-bottom: 1px solid #E5E7EB; padding-bottom: 10px; }
-        .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
-        .summary-label { color: #6B7280; }
-        .summary-value { color: #111827; font-weight: 600; text-align: right; margin-left: 10px; }
-        .total-row { border-top: 1px solid #E5E7EB; margin-top: 15px; padding-top: 15px; font-weight: 800; font-size: 18px; color: #10B981; }
+        .summary-card { background-color: #FFF9F0; border-radius: 20px; padding: 25px; text-align: center; margin-bottom: 30px; border: 1px solid #FDEBD0; }
+        .summary-title { font-weight: 800; font-size: 22px; color: #F07D3E; margin-bottom: 20px; line-height: 1.3; }
+        .summary-row { margin-bottom: 8px; font-size: 16px; color: #111827; }
+        .summary-row .emoji { font-size: 18px; }
+        .total-row { border-top: 1px solid #E5E7EB; margin-top: 18px; padding-top: 12px; font-weight: 800; font-size: 16px; color: #F07D3E; }
         .btn-gcal { display: inline-block; border: 2px solid #24635A; color: #24635A; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: 800; font-size: 14px; background: #ffffff; margin: 5px; }
         .cancel-link { display: inline-block; color: #9CA3AF; font-size: 11px; text-decoration: none; margin-top: 15px; }
         .cancel-link:hover { color: #6B7280; text-decoration: underline; }
@@ -336,7 +337,7 @@ module.exports.sendTallerConfirmationEmail = async (taller, inscripcion) => {
         <div class="content">
           <h1>¡Hola ${inscripcion.nombreResponsable}!</h1>
           <p class="message">
-            Has inscrito a <span class="highlight">${inscripcion.nombreNiño}</span> en el taller <span class="highlight">${taller.nombre}</span>.
+            Has inscrito a <span class="highlight">${inscripcion.nombreNiño}</span> en <span class="highlight">${taller.nombre}</span>.
           </p>
           <p class="message" style="font-size: 14px; margin-top: -10px;">
             Tu plaza está confirmada. Te esperamos en Neverland para disfrutar de esta experiencia.
@@ -347,27 +348,22 @@ module.exports.sendTallerConfirmationEmail = async (taller, inscripcion) => {
           </div>
 
           <div class="summary-card">
-            <div class="summary-title">Detalles de la Inscripción</div>
+            <div class="summary-title">${taller.nombre}</div>
             <div class="summary-row">
-              <span class="summary-label">Taller:</span>
-              <span class="summary-value">${taller.nombre}</span>
-            </div>
-            <div class="summary-row">
-              <span class="summary-label">Fecha:</span>
-              <span class="summary-value">${formattedDate}</span>
+              <span class="emoji">📅</span>&nbsp;&nbsp;<span>${formattedDate}</span>
             </div>
             <div class="summary-row">
-              <span class="summary-label">Horario:</span>
-              <span class="summary-value">${taller.horario.inicio} - ${taller.horario.fin}</span>
+              <span class="emoji">⏰</span>&nbsp;&nbsp;<span>${taller.horario.inicio} – ${taller.horario.fin}</span>
             </div>
             <div class="summary-row">
-              <span class="summary-label">Niño/a:</span>
-              <span class="summary-value">${inscripcion.nombreNiño}${inscripcion.edadNiño ? ` (${inscripcion.edadNiño} años)` : ''}</span>
+              <span class="emoji">👤</span>&nbsp;&nbsp;<span>${inscripcion.nombreNiño}${inscripcion.edadNiño ? ` (${inscripcion.edadNiño} años)` : ''}</span>
             </div>
-            <div class="total-row">
-              <span>Precio:</span>
-              <span style="float: right;">${taller.precio}€</span>
-            </div>
+            <table class="total-row" style="width:100%; border-top:1px solid #E5E7EB; margin-top:18px; padding-top:12px; font-weight:800; font-size:16px; color:#F07D3E;">
+              <tr>
+                <td style="text-align:left; font-weight:inherit; font-size:inherit; color:inherit;">Precio</td>
+                <td style="text-align:right; font-weight:inherit; font-size:inherit; color:inherit;">${taller.precio}€</td>
+              </tr>
+            </table>
           </div>
 
           <div style="margin-top: 20px;">

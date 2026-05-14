@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Loader2, Calendar, Palette } from 'lucide-react';
-import { getTalleres } from '../services/api';
+import { getPublicTalleres } from '../services/api';
 import TallerPublicCard from '../components/talleres/TallerPublicCard';
 import SEO from '../components/common/SEO';
 
@@ -12,7 +12,7 @@ const TalleresListPage = () => {
 	useEffect(() => {
 		const fetchTalleres = async () => {
 			try {
-				const res = await getTalleres();
+				const res = await getPublicTalleres();
 				setTalleres(res.data || []);
 			} catch (err) {
 				console.error('Error fetching talleres:', err);

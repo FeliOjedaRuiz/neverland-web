@@ -82,6 +82,14 @@ const Footer = () => {
 							</li>
 							<li>
 								<Link
+									to={getLink('#menus')}
+									className="text-gray-400 hover:text-neverland-green transition-colors"
+								>
+									Menús
+								</Link>
+							</li>
+							<li>
+								<Link
 									to={getLink('#instalaciones')}
 									className="text-gray-400 hover:text-neverland-green transition-colors"
 								>
@@ -90,18 +98,18 @@ const Footer = () => {
 							</li>
 							<li>
 								<Link
-									to={getLink('#actividades')}
+									to="/talleres"
 									className="text-gray-400 hover:text-neverland-green transition-colors"
 								>
-									Actividades
+									Talleres
 								</Link>
 							</li>
 							<li>
 								<Link
-									to={getLink('#menus')}
+									to={getLink('#actividades')}
 									className="text-gray-400 hover:text-neverland-green transition-colors"
 								>
-									Menús
+									Actividades
 								</Link>
 							</li>
 							<li>

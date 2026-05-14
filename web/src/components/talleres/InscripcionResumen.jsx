@@ -1,18 +1,37 @@
 import React from 'react';
 import { useLocation, Link, Navigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import {
-	CheckCircle2,
-	Calendar,
-	Clock,
-	Euro,
-	User,
-	ExternalLink,
-	ArrowLeft,
-	Mail,
-} from 'lucide-react';
-import { safeParseDate, formatLongSafeDate } from '../../utils/safeDate';
+import { CheckCircle2, Calendar, Clock, User, ExternalLink, ArrowLeft } from 'lucide-react';
+import { safeParseDate } from '../../utils/safeDate';
 import SEO from '../common/SEO';
+
+const formatFecha = (fechaStr) => {
+	const date = safeParseDate(fechaStr);
+	if (!date) return '';
+	const weekday = date.toLocaleDateString('es-ES', { weekday: 'long' }).replace(/^\w/, (c) => c.toUpperCase());
+	const day = String(date.getDate()).padStart(2, '0');
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const year = String(date.getFullYear()).slice(-2);
+	return `${weekday}, ${day}/${month}/${year}`;
+};
+
+const generarGoogleCalendarUrl = (taller) => {
+	if (!taller.fecha || !taller.horario?.inicio || !taller.horario?.fin) return '#';
+	const fechaObj = safeParseDate(taller.fecha);
+	if (!fechaObj) return '#';
+	const [hI, mI] = taller.horario.inicio.split(':').map(Number);
+	const [hF, mF] = taller.horario.fin.split(':').map(Number);
+	const inicio = new Date(fechaObj); inicio.setHours(hI, mI, 0, 0);
+	const fin = new Date(fechaObj); fin.setHours(hF, mF, 0, 0);
+	const fmt = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+	const params = new URLSearchParams({
+		action: 'TEMPLATE',
+		text: `Taller: ${taller.nombre}`,
+		dates: `${fmt(inicio)}/${fmt(fin)}`,
+		details: `Taller: ${taller.nombre}\n${taller.descripcion || ''}`,
+		location: 'Neverland - C/ Las Palmeras, Cúllar Vega, Granada',
+	});
+	return `https://www.google.com/calendar/render?${params.toString()}`;
+};
 
 const InscripcionResumen = () => {
 	const location = useLocation();
@@ -22,171 +41,93 @@ const InscripcionResumen = () => {
 		return <Navigate to="/talleres" replace />;
 	}
 
-	const fecha = safeParseDate(taller.fecha);
-	const fechaFormateada = fecha ? formatLongSafeDate(taller.fecha) : '';
-
-	// Generar URL de Google Calendar
-	const generarGoogleCalendarUrl = () => {
-		if (!taller.fecha || !taller.horario?.inicio || !taller.horario?.fin) return '#';
-
-		const fechaObj = safeParseDate(taller.fecha);
-		if (!fechaObj) return '#';
-
-		const [horaInicio, minInicio] = taller.horario.inicio.split(':');
-		const [horaFin, minFin] = taller.horario.fin.split(':');
-
-		const inicio = new Date(fechaObj);
-		inicio.setHours(parseInt(horaInicio), parseInt(minInicio), 0, 0);
-		const fin = new Date(fechaObj);
-		fin.setHours(parseInt(horaFin), parseInt(minFin), 0, 0);
-
-		const formatGoogleDate = (date) => {
-			return date
-				.toISOString()
-				.replace(/[-:]/g, '')
-				.replace(/\.\d{3}/, '');
-		};
-
-		const params = new URLSearchParams({
-			action: 'TEMPLATE',
-			text: `Taller: ${taller.nombre}`,
-			dates: `${formatGoogleDate(inicio)}/${formatGoogleDate(fin)}`,
-			details: `Taller: ${taller.nombre}\nNiño: ${inscripcionData.nombreNiño}\nPrecio: ${taller.precio}€`,
-			location: 'Neverland - C/ Las Palmeras, Cúllar Vega, Granada',
-		});
-
-		return `https://www.google.com/calendar/render?${params.toString()}`;
-	};
+	const fechaFormateada = formatFecha(taller.fecha);
+	const horaStr = taller.horario?.inicio ? `${taller.horario.inicio} – ${taller.horario.fin}` : '';
 
 	return (
 		<>
 			<SEO title="Inscripción Confirmada" />
 
-			<div className="min-h-dvh bg-cream-bg flex items-center justify-center p-4">
-				<motion.div
-					initial={{ opacity: 0, scale: 0.95, y: 20 }}
-					animate={{ opacity: 1, scale: 1, y: 0 }}
-					transition={{ duration: 0.5, ease: 'easeOut' }}
-					className="w-full max-w-lg"
-				>
-					<div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm text-center">
-						{/* Icono de éxito */}
-						<motion.div
-							initial={{ scale: 0 }}
-							animate={{ scale: 1 }}
-							transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-							className="w-20 h-20 bg-neverland-green/10 rounded-full flex items-center justify-center mx-auto mb-6"
-						>
-							<CheckCircle2
-								size={40}
-								className="text-neverland-green"
-							/>
-						</motion.div>
+			<div className="min-h-dvh bg-cream-bg">
+				<div className="pt-24 sm:pt-28 pb-16 px-4">
+					<div className="max-w-lg mx-auto bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-soft space-y-5">
 
-						<h1 className="text-2xl sm:text-3xl font-display font-black text-text-black mb-2">
-							¡Inscripción confirmada!
-						</h1>
-						<p className="text-sm text-gray-500 mb-8">
-							Te hemos enviado un email de confirmación a{' '}
-							<span className="font-bold text-text-black">
-								{inscripcionData.emailResponsable}
-							</span>
-						</p>
+						{/* Éxito */}
+						<div className="text-center space-y-3">
+							<CheckCircle2 size={44} className="text-neverland-green mx-auto" />
+							<h1 className="text-2xl sm:text-3xl font-display font-black text-text-black">
+								¡Inscripción confirmada!
+							</h1>
+							<p className="text-sm text-gray-500">
+								Te hemos enviado un email de confirmación a{' '}
+								<span className="font-bold text-text-black">{inscripcionData.emailResponsable}</span>
+							</p>
+						</div>
 
-						{/* Resumen */}
-						<div className="bg-gray-50/50 rounded-[24px] p-5 space-y-3 text-left mb-8">
-							<h3 className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center mb-4">
-								Resumen de la inscripción
-							</h3>
+						<div className="border-t border-gray-100" />
 
-							<div className="flex items-center gap-3">
-								<div className="w-9 h-9 rounded-xl bg-neverland-green/10 flex items-center justify-center text-neverland-green shrink-0">
-									<User size={16} />
-								</div>
-								<div>
-									<p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-										Niño
-									</p>
-									<p className="font-display font-black text-sm text-text-black">
-										{inscripcionData.nombreNiño}
-										{inscripcionData.edadNiño ? ` (${inscripcionData.edadNiño} años)` : ''}
-									</p>
-								</div>
+						{/* Nombre del taller — destacado */}
+						<h2 className="text-2xl sm:text-3xl font-display font-black text-energy-orange text-center leading-tight">
+							{taller.nombre}
+						</h2>
+
+						{/* Datos — iconos sin fondo */}
+						<div className="space-y-3">
+							<div className="flex items-center gap-2.5">
+								<Calendar size={17} className="text-neverland-green shrink-0" />
+								<span className="text-sm text-gray-700">{fechaFormateada}</span>
 							</div>
 
-							<div className="flex items-center gap-3">
-								<div className="w-9 h-9 rounded-xl bg-neverland-green/10 flex items-center justify-center text-neverland-green shrink-0">
-									<Calendar size={16} />
-								</div>
-								<div>
-									<p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-										Taller
-									</p>
-									<p className="font-display font-black text-sm text-text-black">
-										{taller.nombre}
-									</p>
-									<p className="text-[10px] text-gray-400 font-medium">
-										{fechaFormateada}
-									</p>
-								</div>
-							</div>
-
-							{taller.horario?.inicio && (
-								<div className="flex items-center gap-3">
-									<div className="w-9 h-9 rounded-xl bg-energy-orange/10 flex items-center justify-center text-energy-orange shrink-0">
-										<Clock size={16} />
-									</div>
-									<div>
-										<p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-											Horario
-										</p>
-										<p className="font-display font-black text-sm text-text-black">
-											{taller.horario.inicio} - {taller.horario.fin}
-										</p>
-									</div>
+							{horaStr && (
+								<div className="flex items-center gap-2.5">
+									<Clock size={17} className="text-neverland-green shrink-0" />
+									<span className="text-sm text-gray-700">{horaStr}</span>
 								</div>
 							)}
 
-							<div className="flex items-center gap-3">
-								<div className="w-9 h-9 rounded-xl bg-energy-orange/10 flex items-center justify-center text-energy-orange shrink-0">
-									<Euro size={16} />
-								</div>
-								<div>
-									<p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-										Precio
-									</p>
-									<p className="font-display font-black text-sm text-energy-orange">
-										{taller.precio}€
-									</p>
-								</div>
+							<div className="flex items-center gap-2.5">
+								<User size={17} className="text-neverland-green shrink-0" />
+								<span className="text-sm text-gray-700">
+									{inscripcionData.nombreNiño}
+									{inscripcionData.edadNiño ? ` (${inscripcionData.edadNiño} años)` : ''}
+								</span>
 							</div>
 						</div>
 
-						{/* Botón Google Calendar */}
+						<div className="border-t border-gray-100" />
+
+						{/* Precio */}
+						<div className="text-center">
+							<p className="font-display font-black text-base text-energy-orange">
+								Precio {taller.precio}€
+							</p>
+						</div>
+
+						{/* Google Calendar */}
 						<a
-							href={generarGoogleCalendarUrl()}
+							href={generarGoogleCalendarUrl(taller)}
 							target="_blank"
 							rel="noopener noreferrer"
-							className="flex items-center justify-center gap-2 w-full py-3.5 bg-white text-neverland-green rounded-2xl font-display font-black text-[10px] uppercase tracking-wider border-2 border-neverland-green/20 hover:bg-neverland-green hover:text-white hover:border-neverland-green transition-all shadow-sm mb-3 group"
+							className="flex items-center justify-center gap-2 w-full py-3 bg-neverland-green text-white rounded-2xl font-display font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group"
 						>
 							<Calendar size={16} />
 							Añadir a Google Calendar
-							<ExternalLink
-								size={12}
-								className="group-hover:translate-x-0.5 transition-transform"
-							/>
+							<ExternalLink size={12} className="group-hover:translate-x-0.5 transition-transform" />
 						</a>
 
-						{/* Volver a talleres */}
-						<Link
-							to="/talleres"
-							className="inline-flex items-center gap-2 text-gray-400 hover:text-neverland-green transition-colors font-display font-bold text-[10px] uppercase tracking-wider"
-						>
-							<ArrowLeft size={12} />
-							Volver a talleres
-						</Link>
+						{/* Volver */}
+						<div className="text-center">
+							<Link
+								to="/talleres"
+								className="inline-flex items-center gap-2 text-gray-400 hover:text-neverland-green transition-colors font-display font-bold text-[10px] uppercase tracking-wider"
+							>
+								<ArrowLeft size={12} />
+								Volver a talleres
+							</Link>
+						</div>
+
 					</div>
-				</motion.div>
+				</div>
 			</div>
 		</>
 	);

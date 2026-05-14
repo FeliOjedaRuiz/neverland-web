@@ -53,7 +53,7 @@ const WorkshopsSection = () => {
 	const { ref, controls, variants } = useScrollReveal();
 
 	return (
-		<section id="actividades" className="py-20 bg-cream-bg">
+		<section id="actividades" className="py-20 bg-white">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<motion.div
 					ref={ref}

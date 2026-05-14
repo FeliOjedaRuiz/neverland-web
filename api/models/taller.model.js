@@ -4,7 +4,7 @@ const inscripcionSchema = new mongoose.Schema({
   nombreNiño: { type: String, required: true, maxlength: 100 },
   edadNiño: { type: Number, max: 99 },
   nombreResponsable: { type: String, required: true, maxlength: 100 },
-  telefonoResponsable: { type: String, required: true },
+  telefonoResponsable: { type: String, required: true, maxlength: 20 },
   emailResponsable: { type: String, required: true },
   privacyPolicyConsent: { type: Boolean, required: true },
   marketingConsent: { type: Boolean, default: false },
