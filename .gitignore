@@ -38,3 +38,4 @@ google-credentials.json
 
 # AI Agent Specific
 .agent/history/
+.atl/

@@ -239,6 +239,67 @@ module.exports.deleteCalendarEvent = async (eventId) => {
 };
 
 /**
+ * Creates a calendar event for a Taller.
+ * @param {Object} taller - The taller object from database
+ */
+module.exports.createTallerCalendarEvent = async (taller) => {
+  if (!calendar) {
+    console.warn('Google Calendar not initialized. Skipping taller event creation.');
+    return null;
+  }
+
+  try {
+    const dateBase = new Date(taller.fecha);
+    const dateStr = dateBase.toISOString().split('T')[0];
+
+    const startTime = `${dateStr}T${taller.horario.inicio}:00`;
+    const endTime = `${dateStr}T${taller.horario.fin}:00`;
+
+    const eventResource = {
+      summary: `🎨 Taller: ${taller.nombre}`,
+      description: `Taller: ${taller.nombre}\nDescripción: ${taller.descripcion || 'Sin descripción'}\nPrecio: ${taller.precio}€\nAforo: ${taller.aforo}\nTurnos: ${(taller.turnos || []).join(', ')}`,
+      colorId: '4', // Púrpura para talleres
+      start: {
+        dateTime: startTime,
+        timeZone: 'Europe/Madrid',
+      },
+      end: {
+        dateTime: endTime,
+        timeZone: 'Europe/Madrid',
+      },
+      extendedProperties: {
+        private: {
+          source: 'neverland',
+          type: 'taller',
+          tallerId: String(taller._id)
+        }
+      }
+    };
+
+    let response;
+    if (taller.googleEventId) {
+      response = await calendar.events.update({
+        calendarId: calendarId,
+        eventId: taller.googleEventId,
+        resource: eventResource,
+      });
+      console.log(`Taller calendar event updated: ${response.data.htmlLink}`);
+    } else {
+      response = await calendar.events.insert({
+        calendarId: calendarId,
+        resource: eventResource,
+      });
+      console.log(`Taller calendar event created: ${response.data.htmlLink}`);
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('Error creating taller calendar event:', error);
+    return null;
+  }
+};
+
+/**
  * Lists calendar events within a time range.
  * @param {Date} timeMin - Start time
  * @param {Date} timeMax - End time

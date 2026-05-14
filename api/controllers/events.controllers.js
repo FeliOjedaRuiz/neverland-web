@@ -1,5 +1,6 @@
 // GGA Test: Control de precisión en reservas
 const Event = require('../models/event.model');
+const Taller = require('../models/taller.model');
 const createError = require('http-errors');
 const googleService = require('../services/google.service');
 const mailer = require('../config/mailer.config');
@@ -594,11 +595,31 @@ module.exports.checkAvailability = async (req, res, next) => {
 
     eventosDB.forEach(evento => {
       const fechaEventoTexto = toLocalISO(evento.fecha);
-      // El solapamiento entre salas se gestiona manualmente. 
-      // Si hay un evento en BD local, bloquea EXCLUSIVAMENTE su turno designado.
       if (evento.turno) {
-        ocupados.push({ date: fechaEventoTexto, shift: evento.turno, id: String(evento._id) });
+        ocupados.push({ 
+          date: fechaEventoTexto, 
+          shift: evento.turno, 
+          id: String(evento._id), 
+          tipo: evento.tipo,
+          motivo: evento.tipo === 'bloqueo' ? (evento.notasAdmin || 'Bloqueado') : undefined
+        });
       }
+    });
+
+    // 1.5 Talleres (bloquean turnos en el calendario)
+    const talleres = await Taller.find({
+      fecha: { $gte: fechaInicio, $lte: fechaFin }
+    });
+
+    talleres.forEach(taller => {
+      const fechaEventoTexto = toLocalISO(taller.fecha);
+      (taller.turnos || []).forEach(turno => {
+        // Evitar duplicados con eventos existentes
+        const yaExiste = ocupados.some(o => o.date === fechaEventoTexto && o.shift === turno);
+        if (!yaExiste) {
+          ocupados.push({ date: fechaEventoTexto, shift: turno, id: `taller-${taller._id}`, tipo: 'taller', nombre: taller.nombre });
+        }
+      });
     });
 
     // 2. Google Calendar Events
@@ -623,6 +644,11 @@ module.exports.checkAvailability = async (req, res, next) => {
         // Ignorar eventos que NO son de Neverland ni tienen palabras clave
         if (!esNeverland && !turnoPalabraClave && !tienePalabraClaveGeneral) return;
 
+        // Los talleres ya se procesaron desde la BD (lineas 609-623).
+        // Saltar eventos de GC que sean talleres para evitar duplicados y falsos solapamientos.
+        const esTallerGC = gEvento.extendedProperties?.private?.type === 'taller';
+        if (esTallerGC) return;
+
         // Standard ISO 8601 strings work in all JS engines, safeParseDate strips times!
         const inicio = gEvento.start.dateTime ? new Date(gEvento.start.dateTime) : safeParseDate(gEvento.start.date);
         const fin = gEvento.end.dateTime ? new Date(gEvento.end.dateTime) : safeParseDate(gEvento.end.date);
@@ -633,13 +659,22 @@ module.exports.checkAvailability = async (req, res, next) => {
           let actual = createSafeDate(inicio);
           while (actual < fin) {
             const fechaTexto = toLocalISO(actual);
+            // Determinar tipo basado en palabras clave
+            const esBloqueoGoogle = resumen.includes('#BLOQUEO');
+            const tipoAsignado = esBloqueoGoogle ? 'bloqueo' : (esNeverland ? 'reserva' : 'bloqueo');
             if (turnoABloquear) {
-              // Bloquea solo el turno específico
-              ocupados.push({ date: fechaTexto, shift: turnoABloquear, id: idReserva || gEvento.id });
+              // Bloquea solo el turno específico - con deduplicación
+              const yaExiste = ocupados.some(o => o.date === fechaTexto && o.shift === turnoABloquear);
+              if (!yaExiste) {
+                ocupados.push({ date: fechaTexto, shift: turnoABloquear, id: idReserva || gEvento.id, tipo: tipoAsignado });
+              }
             } else {
               // Bloquea todos los turnos (ej: #BLOQUEO o #NEVERLAND sin turno específico)
               ['T1', 'T2', 'T3'].forEach(turno => {
-                ocupados.push({ date: fechaTexto, shift: turno, id: idReserva || gEvento.id });
+                const yaExiste = ocupados.some(o => o.date === fechaTexto && o.shift === turno);
+                if (!yaExiste) {
+                  ocupados.push({ date: fechaTexto, shift: turno, id: idReserva || gEvento.id, tipo: tipoAsignado });
+                }
               });
             }
             actual.setDate(actual.getDate() + 1);
@@ -653,8 +688,14 @@ module.exports.checkAvailability = async (req, res, next) => {
         const turnoABloquear = turnoEvento || turnoPalabraClave;
         if (turnoABloquear) {
           // 1. Por metadatos (App) o Palabra Clave específica (#T1, #T2, #T3)
-          // Bloquea EXCLUSIVAMENTE su propio turno.
-          ocupados.push({ date: fechaEventoTexto, shift: turnoABloquear, id: idReserva || gEvento.id });
+          // Determinar tipo
+          const esBloqueoGoogle = resumen.includes('#BLOQUEO');
+          const tipoAsignado = esBloqueoGoogle ? 'bloqueo' : (esNeverland ? 'reserva' : 'bloqueo');
+          // Bloquea EXCLUSIVAMENTE su propio turno - con deduplicación
+          const yaExiste = ocupados.some(o => o.date === fechaEventoTexto && o.shift === turnoABloquear);
+          if (!yaExiste) {
+            ocupados.push({ date: fechaEventoTexto, shift: turnoABloquear, id: idReserva || gEvento.id, tipo: tipoAsignado });
+          }
           return;
         }
 
@@ -667,7 +708,13 @@ module.exports.checkAvailability = async (req, res, next) => {
           finTurno.setHours(tiempo.end[0], tiempo.end[1], 0, 0);
 
           if (inicio < finTurno && fin > inicioTurno) {
-            ocupados.push({ date: fechaEventoTexto, shift: idTurno, id: idReserva || gEvento.id });
+            const esBloqueoGoogle = resumen.includes('#BLOQUEO');
+            const tipoAsignado = esBloqueoGoogle ? 'bloqueo' : (esNeverland ? 'reserva' : 'bloqueo');
+            // Con deduplicación
+            const yaExiste = ocupados.some(o => o.date === fechaEventoTexto && o.shift === idTurno);
+            if (!yaExiste) {
+              ocupados.push({ date: fechaEventoTexto, shift: idTurno, id: idReserva || gEvento.id, tipo: tipoAsignado });
+            }
           }
         });
       });
