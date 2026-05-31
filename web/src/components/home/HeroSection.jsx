@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays, Calculator } from 'lucide-react';
+import { Cake, Sparkles, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade, Pagination } from 'swiper/modules';
@@ -9,6 +9,32 @@ import 'swiper/css/pagination';
 
 import { motion } from 'framer-motion';
 import logo from '../../assets/neverland_logo.svg';
+
+const HeroCard = ({ to, icon: Icon, accent, iconBg, iconColor, title, description, ctaText, cardBg }) => (
+<Link
+		to={to}
+		className={`group relative flex-1 max-w-[360px] flex items-center ${cardBg} rounded-2xl shadow-lg overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl active:scale-[0.97] max-sm:max-w-full max-sm:w-full`}
+	>
+		<div className="py-4 px-4 sm:px-4 flex flex-row items-center gap-2 sm:gap-3 w-full">
+			<div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shrink-0`}>
+				<Icon size={20} className={iconColor} />
+			</div>
+
+			<div className="flex-1 min-w-0">
+				<h3 className="font-display font-bold text-[1rem] sm:text-[1.05rem] text-text-black leading-tight">
+					{title}
+				</h3>
+			</div>
+
+			<span className={`inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full font-display font-semibold text-xs sm:text-sm transition-all duration-250 bg-gradient-to-r ${accent} text-white shadow-md group-hover:shadow-lg shrink-0`}>
+				{ctaText}
+				<ArrowRight size={14} className="transition-transform duration-250 group-hover:translate-x-1" />
+			</span>
+		</div>
+
+		<div className={`absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r ${accent}`} />
+	</Link>
+);
 
 const HeroSection = () => {
 	const CLOUDINARY_BASE =
@@ -47,22 +73,22 @@ const HeroSection = () => {
 									alt={`Neverland Slide ${index + 1}`}
 									className="w-full h-full object-cover object-center"
 								/>
-								<div className="absolute inset-0 bg-black/20"></div>
+								<div className="absolute inset-0 bg-black/30"></div>
 							</div>
 						</SwiperSlide>
 					))}
 				</Swiper>
 			</div>
 
-			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center flex flex-col items-center ">
+			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center flex flex-col items-center w-full">
 				<motion.img
 					src={logo}
 					alt="Neverland Logo"
-					className="h-32 sm:h-48 lg:h-64 w-auto mb-6 drop-shadow-2xl"
+					className="h-28 sm:h-40 lg:h-52 w-auto mb-4 sm:mb-6 drop-shadow-2xl"
 					initial={{ opacity: 0, y: -20, scale: 0.8 }}
 					animate={{
 						opacity: 1,
-						y: [0, -15, 0],
+						y: [0, -8, 0],
 						scale: [1, 1.05, 1],
 					}}
 					transition={{
@@ -80,29 +106,43 @@ const HeroSection = () => {
 					}}
 				/>
 
-				<h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-bold text-white max-w-3xl mx-auto drop-shadow-[0_4px_4px_rgba(0,0,0,0.4)] mb-2 tracking-tight">
+				<h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-bold text-white max-w-3xl mx-auto drop-shadow-[0_4px_4px_rgba(0,0,0,0.4)] mb-1 sm:mb-2 tracking-tight">
 					Parque Infantil en Cúllar Vega
 				</h1>
-				<p className="mt-2 text-xl sm:text-2xl md:text-3xl font-display font-semibold text-white max-w-2xl mx-auto mb-10 drop-shadow-md tracking-wide">
+				<p className="mt-1 sm:mt-2 text-base sm:text-xl md:text-2xl lg:text-3xl font-display font-semibold text-white max-w-2xl mx-auto mb-6 sm:mb-8 drop-shadow-md tracking-wide opacity-95">
 					Donde los sueños se hacen realidad y la diversión nunca termina.
 				</p>
 
-				<div className="flex flex-col sm:flex-row justify-center gap-4 animate-fade-in-up delay-200">
-					<Link
+				{/* Two Worlds Cards */}
+				<motion.div
+					className="flex flex-col sm:flex-row items-stretch justify-center gap-3 sm:gap-4 w-full max-w-[720px]"
+					initial={{ opacity: 0, y: 30 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ delay: 0.4, duration: 0.6, ease: 'easeOut' }}
+				>
+					<HeroCard
 						to="/presupuesto"
-						className="flex items-center justify-center gap-3 bg-energy-orange text-white px-8 py-4 rounded-full text-xl font-display font-bold shadow-xl hover:bg-[#c95b22] transition-all hover:scale-110 hover:-translate-y-1 active:scale-95"
-					>
-						<Calculator size={28} />
-						Calcula tu precio
-					</Link>
-					<Link
-						to="/booking"
-						className="flex items-center justify-center gap-2 px-8 py-4 rounded-full text-lg font-display font-bold text-white bg-neverland-green backdrop-blur-sm hover:bg-green-700 transition-all hover:scale-105 shadow-lg active:scale-95"
-					>
-						<CalendarDays size={22} />
-						Ver disponibilidad
-					</Link>
-				</div>
+						icon={Cake}
+						accent="from-orange-400 to-energy-orange"
+						iconBg="bg-orange-50"
+						iconColor="text-energy-orange"
+						title="Cumpleaños mágicos"
+						description="Calcula tu presupuesto y reserva la fiesta perfecta en minutos."
+						ctaText="Calcular precio"
+						cardBg="bg-white/80 backdrop-blur-sm"
+					/>
+					<HeroCard
+						to="/talleres"
+						icon={Sparkles}
+						accent="from-emerald-400 to-neverland-green"
+						iconBg="bg-green-50"
+						iconColor="text-neverland-green"
+						title="Talleres creativos"
+						description="Descubre las próximas sesiones temáticas e inscribe a los peques."
+						ctaText="Ver talleres"
+						cardBg="bg-white/80 backdrop-blur-sm"
+					/>
+				</motion.div>
 			</div>
 		</section>
 	);
