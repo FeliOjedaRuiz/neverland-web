@@ -63,10 +63,20 @@ module.exports.cancelarInscripcion = async (req, res, next) => {
     }
 
     // Eliminar inscripción
-    await Taller.findByIdAndUpdate(
+    const tallerActualizado = await Taller.findByIdAndUpdate(
       req.params.id,
-      { $pull: { inscripciones: { _id: req.params.inscripcionId } } }
+      { $pull: { inscripciones: { _id: req.params.inscripcionId } } },
+      { new: true }
     );
+
+    // Actualizar Google Calendar con la lista actualizada de inscriptos
+    if (tallerActualizado && tallerActualizado.googleEventId) {
+      try {
+        await googleService.createTallerCalendarEvent(tallerActualizado);
+      } catch (gErr) {
+        console.error('Google Calendar sync failed during taller inscription cancellation:', gErr);
+      }
+    }
 
     // Redirigir a página de confirmación en frontend
     const WEB_URL = process.env.WEB_URL || 'http://localhost:5173';
@@ -353,6 +363,15 @@ module.exports.inscribir = async (req, res, next) => {
       console.error('Taller confirmation email failed:', mErr);
     }
 
+    // Actualizar Google Calendar con la nueva lista de inscriptos
+    if (resultado.googleEventId) {
+      try {
+        await googleService.createTallerCalendarEvent(resultado);
+      } catch (gErr) {
+        console.error('Google Calendar sync failed during taller inscription:', gErr);
+      }
+    }
+
     // Devolver datos públicos + flag de éxito
     const publicData = {
       id: resultado.id,
@@ -386,6 +405,15 @@ module.exports.eliminarInscripcion = async (req, res, next) => {
 
     if (!taller) throw createError(404, 'Taller no encontrado');
 
+    // Actualizar Google Calendar con la lista actualizada de inscriptos
+    if (taller.googleEventId) {
+      try {
+        await googleService.createTallerCalendarEvent(taller);
+      } catch (gErr) {
+        console.error('Google Calendar sync failed during taller inscription removal:', gErr);
+      }
+    }
+
     res.json(taller);
   } catch (error) {
     next(error);
@@ -409,6 +437,16 @@ module.exports.editarInscripcion = async (req, res, next) => {
     if (emailResponsable !== undefined) inscripcion.emailResponsable = emailResponsable;
 
     await taller.save();
+
+    // Actualizar Google Calendar con los datos editados de la inscripción
+    if (taller.googleEventId) {
+      try {
+        await googleService.createTallerCalendarEvent(taller);
+      } catch (gErr) {
+        console.error('Google Calendar sync failed during taller inscription edit:', gErr);
+      }
+    }
+
     res.json(taller);
   } catch (error) {
     next(error);

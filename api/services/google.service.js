@@ -255,9 +255,16 @@ module.exports.createTallerCalendarEvent = async (taller) => {
     const startTime = `${dateStr}T${taller.horario.inicio}:00`;
     const endTime = `${dateStr}T${taller.horario.fin}:00`;
 
+    // Build inscriptos list
+    let inscriptosSection = '';
+    if (taller.inscripciones && taller.inscripciones.length > 0) {
+      const nombresNinos = taller.inscripciones.map(ins => `  - ${ins.nombreNiño}`).join('\n');
+      inscriptosSection = `\n\n📋 INSCRIPTOS (${taller.inscripciones.length}):\n${nombresNinos}`;
+    }
+
     const eventResource = {
       summary: `🎨 Taller: ${taller.nombre}`,
-      description: `Taller: ${taller.nombre}\nDescripción: ${taller.descripcion || 'Sin descripción'}\nPrecio: ${taller.precio}€\nAforo: ${taller.aforo}\nTurnos: ${(taller.turnos || []).join(', ')}`,
+      description: `Taller: ${taller.nombre}\nDescripción: ${taller.descripcion || 'Sin descripción'}\nPrecio: ${taller.precio}€\nAforo: ${taller.aforo}\nTurnos: ${(taller.turnos || []).join(', ')}${inscriptosSection}`,
       colorId: '4', // Púrpura para talleres
       start: {
         dateTime: startTime,
