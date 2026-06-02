@@ -50,21 +50,32 @@ module.exports.list = async (req, res, next) => {
 module.exports.cancelarInscripcion = async (req, res, next) => {
   try {
     const { email } = req.query;
-    const taller = await Taller.findById(req.params.id);
-    if (!taller) throw createError(404, 'Taller no encontrado');
+    const WEB_URL = process.env.WEB_URL || 'http://localhost:5173';
 
-    // Buscar inscripción por _id
-    const inscripcion = taller.inscripciones.id(req.params.inscripcionId);
-    if (!inscripcion) throw createError(404, 'Inscripción no encontrada');
-
-    // Verificar email
-    if (!email || inscripcion.emailResponsable.toLowerCase() !== email.toLowerCase()) {
-      throw createError(403, 'Email no válido para cancelar esta inscripción');
+    if (!email) {
+      return res.redirect(302, `${WEB_URL}/talleres/cancelacion?exitosa=false&error=email_no_valido`);
     }
 
-    // Eliminar inscripción
-    const tallerActualizado = await Taller.findByIdAndUpdate(
-      req.params.id,
+    // Buscar la inscripción específica (proyección para traer solo esa)
+    const taller = await Taller.findOne(
+      { _id: req.params.id, 'inscripciones._id': req.params.inscripcionId },
+      { nombre: 1, inscripciones: 1 }
+    );
+
+    if (!taller || !taller.inscripciones || taller.inscripciones.length === 0) {
+      return res.redirect(302, `${WEB_URL}/talleres/cancelacion?exitosa=false&error=error`);
+    }
+
+    const inscripcion = taller.inscripciones[0];
+
+    // Verificar email (case-insensitive)
+    if (inscripcion.emailResponsable.toLowerCase() !== email.toLowerCase()) {
+      return res.redirect(302, `${WEB_URL}/talleres/cancelacion?exitosa=false&error=email_no_valido`);
+    }
+
+    // Eliminación atómica
+    const tallerActualizado = await Taller.findOneAndUpdate(
+      { _id: req.params.id },
       { $pull: { inscripciones: { _id: req.params.inscripcionId } } },
       { new: true }
     );
@@ -79,13 +90,10 @@ module.exports.cancelarInscripcion = async (req, res, next) => {
     }
 
     // Redirigir a página de confirmación en frontend
-    const WEB_URL = process.env.WEB_URL || 'http://localhost:5173';
     res.redirect(302, `${WEB_URL}/talleres/cancelacion?exitosa=true&taller=${encodeURIComponent(taller.nombre)}&nino=${encodeURIComponent(inscripcion.nombreNiño)}`);
   } catch (error) {
-    // Si hay error, redirigir a frontend con mensaje de error
     const WEB_URL = process.env.WEB_URL || 'http://localhost:5173';
-    const msg = error.status === 403 ? 'email_no_valido' : 'error';
-    res.redirect(302, `${WEB_URL}/talleres/cancelacion?exitosa=false&error=${msg}`);
+    res.redirect(302, `${WEB_URL}/talleres/cancelacion?exitosa=false&error=error`);
   }
 };
 

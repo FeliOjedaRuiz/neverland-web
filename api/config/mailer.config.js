@@ -317,8 +317,8 @@ module.exports.sendTallerConfirmationEmail = async (taller, inscripcion) => {
         .summary-row .emoji { font-size: 18px; }
         .total-row { border-top: 1px solid #E5E7EB; margin-top: 18px; padding-top: 12px; font-weight: 800; font-size: 16px; color: #F07D3E; }
         .btn-gcal { display: inline-block; border: 2px solid #24635A; color: #24635A; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: 800; font-size: 14px; background: #ffffff; margin: 5px; }
-        .cancel-link { display: inline-block; color: #9CA3AF; font-size: 11px; text-decoration: none; margin-top: 15px; }
-        .cancel-link:hover { color: #6B7280; text-decoration: underline; }
+        .btn-cancel { display: inline-block; background-color: #DC2626; color: #FFFFFF; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: 800; font-size: 14px; margin-top: 20px; }
+        .btn-cancel:hover { background-color: #B91C1C; }
         .footer { background-color: #F9FAFB; padding: 30px; text-align: center; font-size: 12px; color: #9CA3AF; }
       </style>
     </head>
@@ -367,7 +367,7 @@ module.exports.sendTallerConfirmationEmail = async (taller, inscripcion) => {
           </div>
 
           <div style="margin-top: 20px;">
-            <a href="${cancelUrl}" class="cancel-link">Cancelar inscripción</a>
+            <a href="${cancelUrl}" class="btn-cancel">Cancelar inscripción</a>
           </div>
         </div>
         <div class="footer">
