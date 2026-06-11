@@ -2206,12 +2206,12 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 
 			<div className="flex gap-3 pt-6 border-t border-gray-100">
 				<button
-					onClick={() =>
+					onClick={() => {
+						const { precioApplied, menuNombre: _staleMenuNombre, ...cleanNiños } = niñosExt;
 						onSave({
 							...current,
 							niños: {
-								...niñosExt,
-								// [NEW] Capture the current name of the menu
+								...cleanNiños,
 								menuNombre: config?.menusNiños?.find(
 									(m) => String(m.id || m._id) === String(niñosExt.menuId),
 								)?.nombre,
@@ -2224,8 +2224,8 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 								...current.extras,
 								alergenos: alergenos,
 							},
-						})
-					}
+						});
+					}}
 					className="flex-1 py-4 bg-neverland-green text-white rounded-2xl font-black text-sm shadow-lg shadow-neverland-green/20 transition-all active:scale-95"
 				>
 					Guardar
@@ -2456,7 +2456,10 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 
 			<div className="flex gap-3 pt-6 border-t border-gray-100">
 				<button
-					onClick={() => onSave(formData)}
+					onClick={() => {
+						const { precioTallerApplied, precioPersonajeApplied, precioPinataApplied, ...cleanExtras } = formData;
+						onSave(cleanExtras);
+					}}
 					className="flex-1 py-4 bg-neverland-green text-white rounded-2xl font-black text-sm shadow-lg shadow-neverland-green/20 transition-all active:scale-95"
 				>
 					Guardar Cambios

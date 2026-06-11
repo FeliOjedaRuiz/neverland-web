@@ -488,6 +488,23 @@ module.exports.update = async (req, res, next) => {
         extras: { ...stripIds(oldDetalles.extras), ...(newDetalles.extras || {}) }
       };
 
+      // Second-pass invalidation on merged result to catch stale snapshots from client payload.
+      // newDetalles may contain old snapshot prices — use event.set() to reliably clear them
+      // when the corresponding selection changed (comparing newDetalles vs oldDetalles).
+      if (newDetalles.niños?.menuId && String(newDetalles.niños.menuId) !== String(oldDetalles.niños?.menuId)) {
+        event.set('detalles.niños.precioApplied', undefined);
+        event.set('detalles.niños.menuNombre', undefined);
+      }
+      if (newDetalles.extras?.taller && newDetalles.extras.taller !== oldDetalles.extras?.taller) {
+        event.set('detalles.extras.precioTallerApplied', undefined);
+      }
+      if (newDetalles.extras?.personaje && newDetalles.extras.personaje !== oldDetalles.extras?.personaje) {
+        event.set('detalles.extras.precioPersonajeApplied', undefined);
+      }
+      if (newDetalles.extras?.pinata !== undefined && newDetalles.extras.pinata !== oldDetalles.extras?.pinata) {
+        event.set('detalles.extras.precioPinataApplied', undefined);
+      }
+
       validateEventData(event.toObject());
       delete req.body.detalles;
     }

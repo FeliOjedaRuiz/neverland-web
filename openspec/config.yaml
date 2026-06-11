@@ -1,0 +1,35 @@
+schema: spec-driven
+
+context: |
+  Tech stack: MERN (MongoDB, Express 4, React 19 + Vite 7, Node.js)
+  Architecture: Monorepo — api/ (Express + Mongoose), web/ (React + Vite + Tailwind 4)
+  Testing: Jest + Supertest + mongodb-memory-server (api), Vitest + Testing Library + jsdom (web)
+  Style: Pure JavaScript (no TypeScript), Tailwind CSS, mobile-first with dvh units, safeParseDate for dates
+  Language: Spanish (documentation, UI labels, variable names)
+  Conventions: Thin controllers → services/, JWT auth middleware, rate limiting, CORS + Helmet, conventional commits
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Reference existing changes/ folder for prior work
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 21119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    - Follow existing code patterns
+    - Pure JavaScript only — no TypeScript
+    - Mobile-first: use dvh units, safeParseDate for dates, text-base on inputs
+    tdd: true
+    test_command: "cd api && npm test && cd ../web && npm run test:run"
+  verify:
+    test_command: "cd api && npm test && cd ../web && npm run test:run"
+    build_command: "cd web && npm run build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas

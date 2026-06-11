@@ -59,7 +59,10 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
       ],
       plusFinDeSemana: 1.5,
       preciosAdultos: [],
-      workshops: [{ name: 'Magia', priceBase: 25, pricePlus: 30 }],
+      workshops: [
+        { name: 'Magia', priceBase: 25, pricePlus: 30 },
+        { name: 'Pintura', priceBase: 20, pricePlus: 25 }
+      ],
       characters: [{ name: 'Minnie', precio: 40 }],
       preciosExtras: { personaje: 40, pinata: 15, extension30: 30, extension60: 50 }
     });
@@ -183,6 +186,86 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
       // 15 niños * 15€ = 225€ + extensión 30min (30€) = 255€
       expect(res.body.precioTotal).toBe(255);
       expect(res.body.horario.extensionMinutos).toBe(30);
+    });
+  });
+
+  // =====================================================
+  // REGRESIÓN: Actualización de taller en reserva existente
+  // Bug: snapshots stale tras PATCH si el cliente envía valores antiguos
+  // =====================================================
+  describe('Actualización de reserva — recálculo de precios al cambiar taller', () => {
+    it('Debería recalcular precioTotal y actualizar precioTallerApplied al cambiar taller de Magia a Pintura', async () => {
+      // Paso 1: Crear reserva con taller Magia (priceBase: 25)
+      const createRes = await request(app)
+        .post('/api/v1/events')
+        .send(budgetFlowPayload);
+
+      expect(createRes.statusCode).toBe(201);
+      expect(createRes.body.detalles.extras.taller).toBe('Magia');
+      expect(createRes.body.detalles.extras.precioTallerApplied).toBe(25);
+      const precioConMagia = createRes.body.precioTotal;
+      const eventId = createRes.body.id;
+
+      // Paso 2: PATCH — cambiar taller a Pintura (priceBase: 20)
+      // Enviar stale precioTallerApplied: 25 (como haría el frontend con datos desactualizados)
+      const patchRes = await request(app)
+        .patch(`/api/v1/events/${eventId}`)
+        .send({
+          detalles: {
+            extras: {
+              taller: 'Pintura',
+              personaje: 'ninguno',
+              pinata: true,
+              observaciones: 'Mesa cerca de la puerta',
+              alergenos: 'Frutos secos',
+              extension: 0,
+              extensionType: 'default',
+              precioTallerApplied: 25 // STALE — debería ser 20 tras el recálculo
+            }
+          }
+        });
+
+      expect(patchRes.statusCode).toBe(200);
+      // precioTotal debe reflejar precioBase de Pintura (20) en lugar de Magia (25)
+      // Diferencia: 25 - 20 = 5€ menos
+      expect(patchRes.body.precioTotal).toBe(precioConMagia - 5);
+      expect(patchRes.body.detalles.extras.precioTallerApplied).toBe(20);
+    });
+
+    it('Debería recalcular precioTotal al remover taller (cambiar a "ninguno")', async () => {
+      // Paso 1: Crear reserva con taller Magia
+      const createRes = await request(app)
+        .post('/api/v1/events')
+        .send(budgetFlowPayload);
+
+      expect(createRes.statusCode).toBe(201);
+      expect(createRes.body.detalles.extras.taller).toBe('Magia');
+      const precioConMagia = createRes.body.precioTotal;
+      const eventId = createRes.body.id;
+
+      // Paso 2: PATCH — quitar taller
+      // Enviar stale precioTallerApplied: 25 (como haría el frontend con datos desactualizados)
+      const patchRes = await request(app)
+        .patch(`/api/v1/events/${eventId}`)
+        .send({
+          detalles: {
+            extras: {
+              taller: 'ninguno',
+              personaje: 'ninguno',
+              pinata: true,
+              observaciones: 'Mesa cerca de la puerta',
+              alergenos: 'Frutos secos',
+              extension: 0,
+              extensionType: 'default',
+              precioTallerApplied: 25 // STALE — debería eliminarse tras quitar taller
+            }
+          }
+        });
+
+      expect(patchRes.statusCode).toBe(200);
+      // Sin taller, precioTotal baja en 25€ (priceBase de Magia)
+      expect(patchRes.body.precioTotal).toBe(precioConMagia - 25);
+      expect(patchRes.body.detalles.extras.precioTallerApplied).toBeUndefined();
     });
   });
 });
