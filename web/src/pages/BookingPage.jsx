@@ -31,6 +31,7 @@ import Step5Workshops from '../components/booking/Step5Workshops';
 import Step6Characters from '../components/booking/Step6Characters';
 import Step7Extras from '../components/booking/Step7Extras';
 import Step8Summary from '../components/booking/Step8Summary';
+import PackPriceBanner from '../components/booking/PackPriceBanner';
 import BookingSuccess from '../components/booking/BookingSuccess';
 import DataProtectionModal from '../components/booking/DataProtectionModal';
 
@@ -52,6 +53,7 @@ const DEFAULT_CONFIG = {
 		tallerBase: 25,
 		tallerPlus: 30,
 		personaje: 40,
+		precioPack3Personajes: 100,
 		pinata: 15,
 		extension30: 30,
 		extension60: 50,
@@ -91,7 +93,7 @@ const BookingPage = () => {
 		},
 		extras: {
 			taller: null,
-			personaje: null,
+			personajes: [],
 			pinata: false,
 			observaciones: '',
 			alergenos: '',
@@ -504,6 +506,8 @@ const BookingPage = () => {
 						)}
 					</div>
 					<div className="z-50 shrink-0 pb-[env(safe-area-inset-bottom)] bg-white sm:rounded-b-3xl w-full">
+						{/* Pack price banner — fixed above navigation, only on characters step */}
+						{step === 5 && <PackPriceBanner formData={formData} prices={prices} />}
 						<BookingNavigation
 							step={step}
 							loading={loading}

@@ -115,7 +115,7 @@ module.exports.createCalendarEvent = async (booking) => {
       comidaItems.forEach(c => { precioAdultos += (c.cantidad || 0) * (c.precioUnitario || 0); });
       if (precioAdultos > 0) precioLines.push(`  Comida Adultos = ${precioAdultos.toFixed(2)}€`);
       if (detalles?.extras?.precioTallerApplied > 0) precioLines.push(`  Actividad (${detalles.extras.taller}) = ${detalles.extras.precioTallerApplied.toFixed(2)}€`);
-      if (detalles?.extras?.precioPersonajeApplied > 0) precioLines.push(`  Personaje (${detalles.extras.personaje}) = ${detalles.extras.precioPersonajeApplied.toFixed(2)}€`);
+      if (detalles?.extras?.precioPersonajeApplied > 0) precioLines.push(`  Personajes (${(detalles.extras.personajes || []).join(', ')}) = ${detalles.extras.precioPersonajeApplied.toFixed(2)}€`);
       if (detalles?.extras?.precioPinataApplied > 0) precioLines.push(`  Piñata = ${detalles.extras.precioPinataApplied.toFixed(2)}€`);
       if (booking.horario?.costoExtension > 0) precioLines.push(`  Extensión (+${booking.horario.extensionMinutos}min) = ${booking.horario.costoExtension.toFixed(2)}€`);
       if (detalles?.extras?.costoExtra && detalles.extras.costoExtra !== 0) {
@@ -138,7 +138,7 @@ module.exports.createCalendarEvent = async (booking) => {
 
 **✨ ACTIVIDADES Y EXTRAS**:
 - **Taller**: ${detalles?.extras?.taller && detalles.extras.taller !== 'ninguno' ? detalles.extras.taller : 'No'}
-- **Personaje**: ${detalles?.extras?.personaje && detalles.extras.personaje !== 'ninguno' ? detalles.extras.personaje : 'No'}
+- **Personajes**: ${(detalles?.extras?.personajes?.length > 0) ? detalles.extras.personajes.join(', ') : 'No'}
 - **Piñata**: ${detalles?.extras?.pinata ? 'Sí' : 'No'}
 - **Extensión**: ${booking.horario?.extensionMinutos || 0} min
 

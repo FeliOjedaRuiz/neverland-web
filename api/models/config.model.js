@@ -47,9 +47,10 @@ const configSchema = new mongoose.Schema({
     }
   ],
   preciosExtras: {
-    tallerBase: { type: Number, default: 25 }, // Hasta 15 niños
-    tallerPlus: { type: Number, default: 30 }, // 16 o más
+    tallerBase: { type: Number, default: 25 },
+    tallerPlus: { type: Number, default: 30 },
     personaje: { type: Number, default: 40 },
+    precioPack3Personajes: { type: Number, default: 100 },
     pinata: { type: Number, default: 15 },
     extension30: { type: Number, default: 30 },
     extension60: { type: Number, default: 50 }

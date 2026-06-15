@@ -350,6 +350,7 @@ const ConfigurationPanel = () => {
 		tallerBase: 'Actividad Económica (≤15)',
 		tallerPlus: 'Actividad Premium (>15)',
 		personaje: 'Personaje Animado',
+		precioPack3Personajes: 'Pack 3 personajes',
 		pinata: 'Piñata Neverland',
 		extension30: 'Extra 30 Min',
 		extension60: 'Extra 60 Min',

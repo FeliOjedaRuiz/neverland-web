@@ -207,10 +207,10 @@ ${publicUrl}
               <span class="summary-label">Extra:</span>
               <span class="summary-value">${tallerText}</span>
             </div>` : ''}
-            ${detalles.extras.personaje !== 'ninguno' ? `
+            ${(detalles.extras.personajes?.length > 0) ? `
             <div class="summary-row">
               <span class="summary-label">Extra:</span>
-              <span class="summary-value">Visita de ${detalles.extras.personaje}</span>
+              <span class="summary-value">Visita de ${detalles.extras.personajes.join(', ')}</span>
             </div>` : ''}
             ${detalles.extras.pinata ? `
             <div class="summary-row">

@@ -17,6 +17,7 @@ const DEFAULT_CONFIG = {
 		tallerBase: 25,
 		tallerPlus: 30,
 		personaje: 40,
+		precioPack3Personajes: 100,
 		pinata: 15,
 		extension30: 30,
 		extension60: 50,
@@ -395,6 +396,11 @@ const PricingPage = () => {
 									{ label: '📸 Fotos con los niños', style: 'bg-green-50 text-neverland-green border border-green-100' },
 								]}
 							/>
+							{extras.precioPack3Personajes && (
+								<p className="text-center text-sm font-medium text-green-600 mt-2">
+									Pack 3: {extras.precioPack3Personajes}€
+								</p>
+							)}
 						</motion.section>
 
 						{/* ── DURACIÓN BASE (puente contextual) ── */}

@@ -11,12 +11,13 @@ const Step6Characters = ({
 	prices,
 }) => {
 	const [selectedCharForModal, setSelectedCharForModal] = useState(null);
+	const [toastMessage, setToastMessage] = useState(null);
 
 	const filteredChars = (CHARACTERS || []).filter((c) =>
 		!c.suspended && (c.nombre || c.name || '').toLowerCase().includes(charSearch.toLowerCase()),
 	);
 
-	const selectedCharName = formData.extras.personaje;
+	const selectedPersonajes = formData.extras.personajes || [];
 
 	// Sync with browser history for mobile "back" button
 	useEffect(() => {
@@ -36,6 +37,14 @@ const Step6Characters = ({
 		};
 	}, [selectedCharForModal]);
 
+	// Toast auto-dismiss
+	useEffect(() => {
+		if (toastMessage) {
+			const timer = setTimeout(() => setToastMessage(null), 3000);
+			return () => clearTimeout(timer);
+		}
+	}, [toastMessage]);
+
 	const openModal = (char) => setSelectedCharForModal(char);
 	const closeModal = () => {
 		if (selectedCharForModal) {
@@ -45,12 +54,40 @@ const Step6Characters = ({
 	};
 
 	const selectCharacter = (name) => {
-		setFormData({
-			...formData,
-			extras: { ...formData.extras, personaje: name },
-		});
+		const current = formData.extras.personajes || [];
+
+		if (current.includes(name)) {
+			// Deseleccionar: quitar del array
+			setFormData({
+				...formData,
+				extras: { ...formData.extras, personajes: current.filter(p => p !== name) },
+			});
+		} else {
+			// Seleccionar: añadir solo si < 3
+			if (current.length >= 3) {
+				setToastMessage('El máximo es 3 personajes');
+				return;
+			}
+			setFormData({
+				...formData,
+				extras: { ...formData.extras, personajes: [...current, name] },
+			});
+		}
+
 		if (selectedCharForModal) closeModal();
 	};
+
+	const clearAllPersonajes = () => {
+		setFormData({
+			...formData,
+			extras: { ...formData.extras, personajes: [] },
+		});
+	};
+
+	// Dynamic price display is rendered at page level (PackPriceBanner) so it
+	// stays fixed above the navigation buttons regardless of scroll position.
+	const showQuitarTodos = selectedPersonajes.length >= 2;
+	const isPackActive = selectedPersonajes.length === 3;
 
 	return (
 		<div className="flex flex-col h-full overflow-hidden relative">
@@ -75,22 +112,24 @@ const Step6Characters = ({
 					<motion.div
 						whileHover={{ y: -2 }}
 						whileTap={{ scale: 0.98 }}
-						onClick={() => selectCharacter('ninguno')}
+						onClick={clearAllPersonajes}
 						className={`p-4 rounded-3xl border-2 transition-all cursor-pointer flex items-center justify-between px-6 ${
-							selectedCharName === 'ninguno'
+							selectedPersonajes.length === 0
 								? 'border-gray-400 bg-gray-100 shadow-inner'
 								: 'border-white bg-white shadow-sm hover:border-gray-200'
 						}`}
 					>
 						<div className="flex items-center gap-4">
-							<div className={`w-10 h-10 rounded-full flex items-center justify-center ${selectedCharName === 'ninguno' ? 'bg-gray-200 text-gray-400' : 'bg-gray-50 text-gray-300'}`}>
+							<div className={`w-10 h-10 rounded-full flex items-center justify-center ${selectedPersonajes.length === 0 ? 'bg-gray-200 text-gray-400' : 'bg-gray-50 text-gray-300'}`}>
 								<X size={20} />
 							</div>
 							<div className="flex flex-col">
-								<span className={`font-black text-sm uppercase tracking-wide ${selectedCharName === 'ninguno' ? 'text-gray-600' : 'text-gray-400'}`}>Sin Visita</span>
+								<span className={`font-black text-sm uppercase tracking-wide ${selectedPersonajes.length === 0 ? 'text-gray-600' : 'text-gray-400'}`}>
+									{showQuitarTodos ? 'Quitar todos' : 'Sin Visita'}
+								</span>
 							</div>
 						</div>
-						{selectedCharName === 'ninguno' && (
+						{selectedPersonajes.length === 0 && (
 							<CheckCircle className="text-gray-500" size={24} fill="currentColor" stroke="white" />
 						)}
 					</motion.div>
@@ -99,8 +138,9 @@ const Step6Characters = ({
 				<div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
 					{filteredChars.map((char) => {
 						const charName = char.nombre || char.name;
-						const isSelected = selectedCharName === charName;
-						
+						const isSelected = selectedPersonajes.includes(charName);
+						const showStrikethrough = isPackActive && isSelected;
+
 						return (
 							<motion.div
 								key={char.id || charName}
@@ -127,7 +167,7 @@ const Step6Characters = ({
 											<span className="text-[8px] font-black uppercase tracking-widest opacity-50">Personaje</span>
 										</div>
 									)}
-									
+
 									{/* Selection Overlay */}
 									{isSelected && (
 										<div className="absolute inset-0 bg-purple-500/20 backdrop-blur-[1px] flex items-center justify-center">
@@ -145,7 +185,7 @@ const Step6Characters = ({
 									<h3 className={`font-black text-xs sm:text-sm leading-tight mb-1 line-clamp-2 ${isSelected ? 'text-purple-600' : 'text-gray-800'}`}>
 										{charName}
 									</h3>
-									<p className="font-black text-sm text-purple-500">
+									<p className={`font-black text-sm ${showStrikethrough ? 'text-gray-400 line-through decoration-2' : 'text-purple-500'}`}>
 										{prices?.preciosExtras?.personaje || 40}€
 									</p>
 								</div>
@@ -163,6 +203,22 @@ const Step6Characters = ({
 					</div>
 				)}
 			</div>
+
+			{/* Dynamic Price Display se renderiza en PackPriceBanner a nivel de página */}
+
+			{/* Toast Message */}
+			<AnimatePresence>
+				{toastMessage && (
+					<motion.div
+						initial={{ opacity: 0, y: 20 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: 20 }}
+						className="absolute bottom-4 left-4 right-4 mx-auto max-w-sm bg-gray-900 text-white px-4 py-3 rounded-2xl shadow-xl z-[1001]"
+					>
+						<p className="text-sm font-bold text-center">{toastMessage}</p>
+					</motion.div>
+				)}
+			</AnimatePresence>
 
 			{/* Modal Detail */}
 			<AnimatePresence>
@@ -201,7 +257,7 @@ const Step6Characters = ({
 											<ImageIcon size={48} strokeWidth={1} />
 										</div>
 									)}
-									<div className="absolute bottom-4 right-4 bg-purple-600 text-white px-4 py-2 rounded-2xl font-black text-lg sm:text-xl shadow-lg flex items-center gap-1">
+									<div className={`absolute bottom-4 right-4 px-4 py-2 rounded-2xl font-black text-lg sm:text-xl shadow-lg flex items-center gap-1 ${isPackActive ? 'bg-gray-400 text-white line-through decoration-2' : 'bg-purple-600 text-white'}`}>
 										{prices?.preciosExtras?.personaje || 40}€
 									</div>
 								</div>
@@ -244,13 +300,16 @@ const Step6Characters = ({
 										onClick={() => selectCharacter(selectedCharForModal.nombre || selectedCharForModal.name)}
 										className="w-full py-3 sm:py-3.5 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-black shadow-lg shadow-purple-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base"
 									>
-										{selectedCharName === (selectedCharForModal.nombre || selectedCharForModal.name) ? (
+										{selectedPersonajes.includes(selectedCharForModal.nombre || selectedCharForModal.name) ? (
 											<>
-												<CheckCircle size={20} strokeWidth={3} />
-												PERSONAJE SELECCIONADO
+												<X size={20} strokeWidth={3} />
+												QUITAR
 											</>
 										) : (
-											'SELECCIONAR PERSONAJE'
+											<>
+												<CheckCircle size={20} strokeWidth={3} />
+												AÑADIR
+											</>
 										)}
 									</button>
 								</div>

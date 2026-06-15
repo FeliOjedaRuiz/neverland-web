@@ -223,16 +223,16 @@ const ReservationDetailModal = ({ reservation, onClose }) => {
 								</span>
 							</div>
 							<div
-								className={`p-4 rounded-2xl border flex flex-col items-center gap-1 transition-all ${reservation.detalles?.extras?.personaje !== 'ninguno' ? 'bg-purple-50 border-purple-100 text-purple-600' : 'bg-gray-50 border-gray-100 text-gray-300'}`}
+								className={`p-4 rounded-2xl border flex flex-col items-center gap-1 transition-all ${(reservation.detalles?.extras?.personajes?.length || 0) > 0 ? 'bg-purple-50 border-purple-100 text-purple-600' : 'bg-gray-50 border-gray-100 text-gray-300'}`}
 							>
 								<Smile size={20} />
 								<span className="text-[10px] font-black uppercase">
-									Personaje
+									Personajes
 								</span>
 								<span className="text-xs font-bold text-center capitalize">
-									{reservation.detalles?.extras?.personaje === 'ninguno'
+									{(reservation.detalles?.extras?.personajes?.length || 0) === 0
 										? 'No'
-										: reservation.detalles?.extras?.personaje}
+										: reservation.detalles.extras.personajes.join(', ')}
 								</span>
 							</div>
 							<div

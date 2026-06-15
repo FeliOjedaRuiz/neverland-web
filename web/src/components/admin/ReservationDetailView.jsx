@@ -932,18 +932,18 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 							<div className="grid grid-cols-1 gap-3">
 								{/* Actividad */}
 								<div
-									className={`p-3 rounded-2xl border flex items-center gap-4 transition-all ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-50/50 border-blue-100' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
+									className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-50/50 border-blue-100' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
 								>
 									<div
-										className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}
+										className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}
 									>
-										<Sparkles size={18} />
+										<Sparkles size={20} />
 									</div>
-									<div className="min-w-0 flex flex-1 justify-between items-center">
-										<p className="text-[9px] text-gray-400 font-black uppercase tracking-tight">
+									<div className="min-w-0 flex-1">
+										<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
 											Actividad
 										</p>
-										<p className="text-sm font-black text-gray-800 truncate">
+										<p className="font-display font-black text-lg text-text-black truncate">
 											{reservation.detalles?.extras?.taller === 'ninguno'
 												? 'Sin actividad'
 												: reservation.detalles?.extras?.taller}
@@ -951,57 +951,80 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 									</div>
 								</div>
 
-								{/* Personaje */}
+								{/* Personajes */}
 								<div
-									className={`p-3 rounded-[24px] border flex items-center gap-4 transition-all ${reservation.detalles?.extras?.personaje !== 'ninguno' ? 'bg-purple-50/50 border-purple-100 shadow-sm' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
+									className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${(reservation.detalles?.extras?.personajes?.length || 0) > 0 ? 'bg-purple-50/50 border-purple-100 shadow-sm' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
 								>
-									<div
-										className={`w-12 h-12 rounded-2xl overflow-hidden shrink-0 shadow-inner flex items-center justify-center ${reservation.detalles?.extras?.personaje !== 'ninguno' ? 'bg-purple-100 border border-purple-200' : 'bg-gray-100'}`}
-									>
-										{(() => {
-											const activeChar = reservation.detalles?.extras?.personaje;
-											if (!activeChar || activeChar === 'ninguno') return <Smile size={20} className="text-gray-400" />;
-											
-											const characterData = config?.characters?.find(c => (c.nombre || c.name) === activeChar);
-											if (characterData?.imageUrl) {
-												return <img src={characterData.imageUrl} className="w-full h-full object-cover" alt={activeChar} />;
-											}
-											return <Smile size={20} className="text-purple-600" />;
-										})()}
+									{/* Avatar chips for each character */}
+									<div className="flex shrink-0">
+										{(reservation.detalles?.extras?.personajes?.length || 0) === 0 ? (
+											<div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
+												<Smile size={20} className="text-gray-400" />
+											</div>
+										) : (
+											reservation.detalles.extras.personajes.map((charName, idx) => {
+												const characterData = config?.characters?.find(c => (c.nombre || c.name) === charName);
+											 const isLast = idx === reservation.detalles.extras.personajes.length - 1;
+												return (
+													<div
+														key={idx}
+														className={`w-10 h-10 rounded-xl overflow-hidden shadow-inner flex items-center justify-center border-2 border-white ${
+															!isLast ? '-ml-2' : ''
+														}`}
+														style={{ zIndex: reservation.detalles.extras.personajes.length - idx }}
+													>
+														{characterData?.imageUrl ? (
+															<img src={characterData.imageUrl} className="w-full h-full object-cover" alt={charName} />
+														) : (
+															<Smile size={20} className="text-purple-600" />
+														)}
+													</div>
+												);
+											})
+										)}
 									</div>
 									<div className="min-w-0 flex flex-1 justify-between items-center">
-										<div>
+										<div className="min-w-0">
 											<p className="text-[9px] text-gray-400 font-black uppercase tracking-tight mb-0.5">
-												Personaje
+												Personaje{(reservation.detalles?.extras?.personajes?.length || 0) > 1 ? 's' : ''}
 											</p>
-											<p className="text-sm font-black text-gray-800 truncate">
-												{reservation.detalles?.extras?.personaje === 'ninguno'
-													? 'Sin personaje'
-													: reservation.detalles?.extras?.personaje}
-											</p>
+											{(reservation.detalles?.extras?.personajes?.length || 0) === 0 ? (
+												<p className="font-display font-black text-lg text-gray-400 truncate">Sin personaje</p>
+											) : (
+												<p className="font-display font-black text-lg text-text-black truncate">
+													{reservation.detalles.extras.personajes.join(', ')}
+												</p>
+											)}
 										</div>
-										{reservation.detalles?.extras?.personaje !== 'ninguno' && (
-											<span className="text-[10px] font-black text-purple-600 bg-purple-100 px-2 py-1 rounded-lg">
-												+{config?.preciosExtras?.personaje || 0}€
-											</span>
+										{(reservation.detalles?.extras?.personajes?.length || 0) > 0 && (
+											<div className="flex flex-col items-end gap-1 shrink-0">
+												<span className="text-[10px] font-black text-purple-600 bg-purple-100 px-2 py-1 rounded-lg">
+													+{reservation.detalles?.extras?.precioPersonajeApplied || 0}€
+												</span>
+												{(reservation.detalles?.extras?.personajes?.length || 0) === 3 && (
+													<span className="text-[9px] font-black text-white bg-gradient-to-r from-purple-500 to-pink-500 px-2 py-0.5 rounded-full">
+														Pack 3
+													</span>
+												)}
+											</div>
 										)}
 									</div>
 								</div>
 
 								{/* Piñata */}
 								<div
-									className={`p-3 rounded-2xl border flex items-center gap-4 transition-all ${reservation.detalles?.extras?.pinata ? 'bg-energy-orange/5 border-energy-orange/20 shadow-sm' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
+									className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${reservation.detalles?.extras?.pinata ? 'bg-energy-orange/5 border-energy-orange/20 shadow-sm' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
 								>
 									<div
-										className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.pinata ? 'bg-energy-orange/10 text-energy-orange' : 'bg-gray-100 text-gray-400'}`}
+										className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.pinata ? 'bg-energy-orange/10 text-energy-orange' : 'bg-gray-100 text-gray-400'}`}
 									>
-										<Package size={18} />
+										<Package size={20} />
 									</div>
-									<div className="min-w-0 flex flex-1 justify-between items-center">
-										<p className="text-[9px] text-gray-400 font-black uppercase tracking-tight">
+									<div className="min-w-0 flex-1">
+										<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
 											Piñata
 										</p>
-										<p className="text-sm font-black text-gray-800">
+										<p className="font-display font-black text-lg text-text-black">
 											{reservation.detalles?.extras?.pinata
 												? 'Incluida'
 												: 'No incluida'}
@@ -1169,25 +1192,20 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 									return null;
 								})()}
 
-								{/* Personaje */}
-								{reservation.detalles?.extras?.personaje && reservation.detalles.extras.personaje !== 'ninguno' && (() => {
-									let pPersonaje = reservation.detalles.extras.precioPersonajeApplied;
-									if (pPersonaje == null || pPersonaje === 0) {
-										pPersonaje = config?.preciosExtras?.personaje || 0;
-									}
-									if (pPersonaje > 0) {
-										return (
-											<div className="flex justify-between items-center text-sm">
-												<span className="text-gray-600 font-medium">
-													Personaje ({reservation.detalles.extras.personaje})
-												</span>
-												<span className="font-black text-text-black">
-													{pPersonaje.toFixed(2)}€
-												</span>
-											</div>
-										);
-									}
-									return null;
+								{/* Personajes — usar snapshot del evento (precio histórico cobrado) */}
+								{(() => {
+									const pPersonaje = reservation.detalles?.extras?.precioPersonajeApplied;
+									if (!pPersonaje || pPersonaje <= 0) return null;
+									return (
+										<div className="flex justify-between items-center text-sm">
+											<span className="text-gray-600 font-medium">
+												Personajes ({reservation.detalles.extras.personajes?.join(', ')})
+											</span>
+											<span className="font-black text-text-black">
+												{pPersonaje.toFixed(2)}€
+											</span>
+										</div>
+									);
 								})()}
 
 								{/* Piñata */}
@@ -2243,12 +2261,39 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 
 // Sub-component for Extras Edit
 const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
-	const [formData, setFormData] = useState({ ...current });
+	// Initialize with personajes array (handle legacy personaje string conversion)
+	const initialFormData = { ...current };
+	if (!initialFormData.personajes && initialFormData.personaje) {
+		// Legacy: convert single personaje string to personajes array
+		if (initialFormData.personaje === 'ninguno' || !initialFormData.personaje) {
+			initialFormData.personajes = [];
+		} else {
+			initialFormData.personajes = [initialFormData.personaje];
+		}
+	} else if (!initialFormData.personajes) {
+		initialFormData.personajes = [];
+	}
+
+	const [formData, setFormData] = useState(initialFormData);
 	const [isTallerOpen, setIsTallerOpen] = useState(false);
 	const [isPersonajeOpen, setIsPersonajeOpen] = useState(false);
 
+	// Snapshot original (precio histórico cobrado) y array original de personajes
+	// para detectar si el usuario modificó la selección. Si no la modificó, mantenemos
+	// el precio del snapshot. Si la modificó, recalculamos con el config actual.
+	const originalSnapshot = initialFormData.precioPersonajeApplied || 0;
+	const originalPersonajesSorted = [...(initialFormData.personajes || [])].sort();
+	const currentPersonajesSorted = [...(formData.personajes || [])].sort();
+	const personajesChanged = JSON.stringify(originalPersonajesSorted) !== JSON.stringify(currentPersonajesSorted);
+
+	const unitPrice = config?.preciosExtras?.personaje || 40;
+	const packPrice = config?.preciosExtras?.precioPack3Personajes || 100;
+	const dynamicPrice = (formData.personajes?.length || 0) === 3
+		? packPrice
+		: unitPrice * (formData.personajes?.length || 0);
+	const displayPrice = personajesChanged ? dynamicPrice : originalSnapshot;
+
 	const selectedWs = config?.workshops?.find(ws => ws.name === formData.taller);
-	const selectedChar = config?.characters?.find(c => (c.nombre || c.name) === formData.personaje);
 
 	return (
 		<div className="space-y-8 pb-4">
@@ -2336,11 +2381,11 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 					)}
 				</div>
 
-				{/* PERSONAJE */}
+				{/* PERSONAJES */}
 				<div className="space-y-3">
 					<h5 className="text-[10px] font-black text-purple-500 uppercase tracking-[0.2em] flex items-center gap-2 pl-1">
 						<Users size={14} />
-						Personaje Seleccionado
+						Personajes Seleccionados
 					</h5>
 					
 					{/* Selected Card / Trigger */}
@@ -2350,22 +2395,43 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 							isPersonajeOpen ? 'border-purple-500 bg-white shadow-lg' : 'border-gray-100 bg-gray-50 hover:bg-white hover:border-purple-200'
 						}`}
 					>
-						<div className="flex items-center gap-4">
-							<div className="w-16 h-16 rounded-2xl overflow-hidden bg-white border border-gray-100 shrink-0">
-								{selectedChar?.imageUrl || selectedChar?.image ? (
-									<img src={selectedChar.imageUrl || selectedChar.image} className="w-full h-full object-cover" alt="" />
-								) : (
-									<div className="w-full h-full flex items-center justify-center text-gray-200">
-										{formData.personaje === 'ninguno' ? <X size={24} /> : <Smile size={24} />}
+						<div className="flex items-center gap-3 min-w-0">
+							<div className="flex shrink-0">
+								{(formData.personajes?.length || 0) === 0 ? (
+									<div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-200">
+										<X size={22} />
 									</div>
+								) : (
+									formData.personajes.map((charName, idx) => {
+										const charData = config?.characters?.find(c => (c.nombre || c.name) === charName);
+										const isLast = idx === formData.personajes.length - 1;
+										return (
+											<div
+												key={idx}
+												className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden bg-white border border-gray-100 flex items-center justify-center ${
+													!isLast ? '-mr-3' : ''
+												}`}
+											>
+												{charData?.imageUrl || charData?.image ? (
+													<img src={charData.imageUrl || charData.image} className="w-full h-full object-cover" alt={charName} />
+												) : (
+													<Smile size={22} className="text-purple-400" />
+												)}
+											</div>
+										);
+									})
 								)}
 							</div>
-							<div>
-								<p className="font-display font-black text-lg text-text-black">
-									{formData.personaje === 'ninguno' ? 'Sin personaje' : formData.personaje}
+							<div className="min-w-0 flex-1">
+								<p className="font-display font-black text-lg text-text-black truncate">
+									{(formData.personajes?.length || 0) === 0
+										? 'Sin personaje'
+										: (formData.personajes?.length || 0) === 1
+										? formData.personajes[0]
+										: `${formData.personajes?.length} personajes`}
 								</p>
-								<p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-									{isPersonajeOpen ? 'Cerrar selector' : 'Pulsa para cambiar personaje'}
+								<p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">
+									{isPersonajeOpen ? 'Cerrar selector' : 'Pulsa para cambiar personajes'}
 								</p>
 							</div>
 						</div>
@@ -2374,17 +2440,44 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 						</div>
 					</div>
 
+					{/* Selected character chips (removable) */}
+					{(formData.personajes?.length || 0) > 0 && (
+						<div className="flex flex-wrap gap-2 animate-in fade-in duration-200">
+							{formData.personajes.map((charName, idx) => (
+								<div
+									key={idx}
+									className="flex items-center gap-1.5 pl-2 pr-1 py-1 bg-purple-100 rounded-full border border-purple-200"
+								>
+									<span className="text-xs font-black text-purple-700">{charName}</span>
+									<button
+										type="button"
+										onClick={(e) => {
+											e.stopPropagation();
+											setFormData({
+												...formData,
+												personajes: formData.personajes.filter((_, i) => i !== idx),
+											});
+										}}
+										className="w-5 h-5 rounded-full bg-purple-200 hover:bg-purple-300 flex items-center justify-center transition-colors"
+									>
+										<X size={12} className="text-purple-600" />
+									</button>
+								</div>
+							))}
+						</div>
+					)}
+
 					{/* Collapsible Picker */}
 					{isPersonajeOpen && (
 						<div className="p-5 bg-gray-50 rounded-[32px] border-2 border-dashed border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in slide-in-from-top-4 duration-300">
-							{/* Opción Ninguno */}
+							{/* Opción Ninguno (clear all) */}
 							<div
 								onClick={() => {
-									setFormData({ ...formData, personaje: 'ninguno' });
+									setFormData({ ...formData, personajes: [] });
 									setIsPersonajeOpen(false);
 								}}
 								className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
-									formData.personaje === 'ninguno' ? 'border-purple-500' : 'border-transparent hover:border-purple-200'
+									(formData.personajes?.length || 0) === 0 ? 'border-purple-500' : 'border-transparent hover:border-purple-200'
 								}`}
 							>
 								<div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-300">
@@ -2394,15 +2487,33 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 							</div>
 							{config?.characters?.map((char, idx) => {
 								const name = char.nombre || char.name;
+								const isSelected = (formData.personajes || []).includes(name);
 								return (
 									<div
 										key={idx}
 										onClick={() => {
-											setFormData({ ...formData, personaje: name });
-											setIsPersonajeOpen(false);
+											const current = formData.personajes || [];
+											if (isSelected) {
+												// Remove
+												setFormData({
+													...formData,
+													personajes: current.filter(n => n !== name),
+												});
+											} else {
+												// Add (max 3)
+												if (current.length >= 3) {
+													toast('Máximo 3 personajes');
+													return;
+												}
+												setFormData({
+													...formData,
+													personajes: [...current, name],
+												});
+											}
+											// Keep picker open on selection
 										}}
 										className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
-											formData.personaje === name ? 'border-purple-500' : 'border-transparent hover:border-purple-200'
+											isSelected ? 'border-purple-500' : 'border-transparent hover:border-purple-200'
 										}`}
 									>
 										<div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100">
@@ -2415,9 +2526,34 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 											)}
 										</div>
 										<span className="text-xs font-black text-text-black truncate">{name}</span>
+										{isSelected && (
+											<div className="ml-auto w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
+												<Check size={12} className="text-white" />
+											</div>
+										)}
 									</div>
 								);
 							})}
+						</div>
+					)}
+
+					{/* Dynamic price display */}
+					{(formData.personajes?.length || 0) > 0 && (
+						<div className="flex flex-col items-end gap-1 animate-in fade-in duration-200">
+							{formData.personajes.length === 3 ? (
+								<span className="text-sm font-black text-purple-600 bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-100">
+									Pack 3: {displayPrice}€
+								</span>
+							) : (
+								<span className="text-sm font-black text-purple-600 bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-100">
+									{(formData.personajes.length || 0)}×{unitPrice}€ = {displayPrice}€
+								</span>
+							)}
+							{personajesChanged && originalSnapshot > 0 && (
+								<span className="text-[9px] font-bold text-gray-400 italic">
+									Antes: {originalSnapshot}€
+								</span>
+							)}
 						</div>
 					)}
 				</div>

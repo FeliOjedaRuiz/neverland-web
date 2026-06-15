@@ -33,7 +33,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
       adultos: { cantidad: 5, comida: [] },
       extras: {
         taller: 'Magia',
-        personaje: 'ninguno',
+        personajes: [],
         pinata: true,
         observaciones: 'Mesa cerca de la puerta',
         alergenos: 'Frutos secos',
@@ -190,6 +190,264 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
   });
 
   // =====================================================
+  // Multi-Personajes: pricing para 0, 1, 2, 3 personajes
+  // =====================================================
+  describe('Cálculo de precios multi-personaje', () => {
+    // Usar fecha fija Tuesday para evitar problemas de timezone en tests
+    // 2026-07-07 es martes (getDay=2)
+    const martesDate = '2026-07-07T00:00:00.000Z';
+
+    it('Debería calcular precio base sin personajes (0€ extra)', async () => {
+      const payload = {
+        ...budgetFlowPayload,
+        fecha: martesDate,
+        detalles: {
+          ...budgetFlowPayload.detalles,
+          extras: { ...budgetFlowPayload.detalles.extras, personajes: [], taller: 'ninguno', pinata: false }
+        }
+      };
+
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payload);
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.personajes).toEqual([]);
+      // Verificar que personajes no añade nada al precio
+      expect(res.body.detalles.extras.precioPersonajeApplied).toBeUndefined();
+      // El precio base debe ser aproximadamente 225 (15 niños * 15€)
+      // o 247.5 si el servidor aplica plus de fin de semana
+      expect([225, 247.5]).toContain(res.body.precioTotal);
+    });
+
+    it('Debería calcular 40€ para 1 personaje (sin plus fin de semana)', async () => {
+      const payload = {
+        ...budgetFlowPayload,
+        fecha: martesDate,
+        detalles: {
+          ...budgetFlowPayload.detalles,
+          extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa'], taller: 'ninguno', pinata: false }
+        }
+      };
+
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payload);
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.personajes).toEqual(['Elsa']);
+      expect(res.body.detalles.extras.precioPersonajeApplied).toBe(40);
+      // Verificar que el precio total incluye los 40€ de personaje
+      const basePrice = res.body.precioTotal - 40;
+      expect([225, 247.5]).toContain(basePrice);
+    });
+
+    it('Debería calcular 80€ para 2 personajes', async () => {
+      const payload = {
+        ...budgetFlowPayload,
+        fecha: martesDate,
+        detalles: {
+          ...budgetFlowPayload.detalles,
+          extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa', 'Anna'], taller: 'ninguno', pinata: false }
+        }
+      };
+
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payload);
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.personajes).toEqual(['Elsa', 'Anna']);
+      expect(res.body.detalles.extras.precioPersonajeApplied).toBe(80);
+      const basePrice = res.body.precioTotal - 80;
+      expect([225, 247.5]).toContain(basePrice);
+    });
+
+    it('Debería calcular 100€ para pack de 3 personajes', async () => {
+      const payload = {
+        ...budgetFlowPayload,
+        fecha: martesDate,
+        detalles: {
+          ...budgetFlowPayload.detalles,
+          extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa', 'Anna', 'Olaf'], taller: 'ninguno', pinata: false }
+        }
+      };
+
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payload);
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.personajes).toEqual(['Elsa', 'Anna', 'Olaf']);
+      expect(res.body.detalles.extras.precioPersonajeApplied).toBe(100);
+      const basePrice = res.body.precioTotal - 100;
+      expect([225, 247.5]).toContain(basePrice);
+    });
+
+    it('Debería rechazar más de 3 personajes con error 400', async () => {
+      const payload = {
+        ...budgetFlowPayload,
+        fecha: martesDate,
+        detalles: {
+          ...budgetFlowPayload.detalles,
+          extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa', 'Anna', 'Olaf', 'Frozen'], taller: 'ninguno', pinata: false }
+        }
+      };
+
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payload);
+
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('Debería usar precioPack3Personajes del Config si está definido', async () => {
+      // Crear config con precioPack3Personajes personalizado
+      await Config.deleteMany({});
+      await Config.create({
+        menusNiños: [{ id: 'menu-1', nombre: 'Menú Aventura', precio: 15 }],
+        plusFinDeSemana: 1.5,
+        preciosAdultos: [],
+        workshops: [],
+        characters: [],
+        preciosExtras: { personaje: 40, pinata: 15, precioPack3Personajes: 120 }
+      });
+
+      const payload = {
+        ...budgetFlowPayload,
+        fecha: martesDate,
+        detalles: {
+          ...budgetFlowPayload.detalles,
+          extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa', 'Anna', 'Olaf'], taller: 'ninguno', pinata: false }
+        }
+      };
+
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payload);
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.precioPersonajeApplied).toBe(120);
+    });
+  });
+
+  // =====================================================
+  // Snapshot invalidation: personajes array comparison
+  // =====================================================
+  describe('Actualización de personajes — invalidación de snapshot', () => {
+    it('Debería recalcular precioPersonajeApplied al cambiar personajes', async () => {
+      // Crear reserva con 1 personaje
+      const createRes = await request(app)
+        .post('/api/v1/events')
+        .send({
+          ...budgetFlowPayload,
+          detalles: {
+            ...budgetFlowPayload.detalles,
+            extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa'], taller: 'ninguno', pinata: false }
+          }
+        });
+
+      expect(createRes.statusCode).toBe(201);
+      expect(createRes.body.detalles.extras.personajes).toEqual(['Elsa']);
+      expect(createRes.body.detalles.extras.precioPersonajeApplied).toBe(40);
+      const precioCon1 = createRes.body.precioTotal;
+      const eventId = createRes.body.id;
+
+      // PATCH: cambiar a 2 personajes
+      const patchRes = await request(app)
+        .patch(`/api/v1/events/${eventId}`)
+        .send({
+          detalles: {
+            extras: {
+              personajes: ['Elsa', 'Anna'],
+              taller: 'ninguno',
+              pinata: false,
+              observaciones: '',
+              alergenos: ''
+            }
+          }
+        });
+
+      expect(patchRes.statusCode).toBe(200);
+      expect(patchRes.body.detalles.extras.personajes).toEqual(['Elsa', 'Anna']);
+      expect(patchRes.body.detalles.extras.precioPersonajeApplied).toBe(80);
+      expect(patchRes.body.precioTotal).toBe(precioCon1 + 40);
+    });
+
+    it('NO debería invalidar snapshot si el array de personajes es igual (mismos elementos, diferente orden)', async () => {
+      // Crear reserva con 2 personajes
+      const createRes = await request(app)
+        .post('/api/v1/events')
+        .send({
+          ...budgetFlowPayload,
+          detalles: {
+            ...budgetFlowPayload.detalles,
+            extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Anna', 'Elsa'], taller: 'ninguno', pinata: false }
+          }
+        });
+
+      expect(createRes.statusCode).toBe(201);
+      const precioCon2 = createRes.body.precioTotal;
+      const eventId = createRes.body.id;
+
+      // PATCH: mismo personajes, diferente orden
+      const patchRes = await request(app)
+        .patch(`/api/v1/events/${eventId}`)
+        .send({
+          detalles: {
+            extras: {
+              personajes: ['Elsa', 'Anna'],
+              taller: 'ninguno',
+              pinata: false,
+              observaciones: '',
+              alergenos: ''
+            }
+          }
+        });
+
+      expect(patchRes.statusCode).toBe(200);
+      // Precio NO debería cambiar (snapshot preservado)
+      expect(patchRes.body.precioTotal).toBe(precioCon2);
+    });
+
+    it('Debería eliminar snapshot precioPersonajeApplied al quitar todos los personajes', async () => {
+      // Crear reserva con 1 personaje
+      const createRes = await request(app)
+        .post('/api/v1/events')
+        .send({
+          ...budgetFlowPayload,
+          detalles: {
+            ...budgetFlowPayload.detalles,
+            extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa'], taller: 'ninguno', pinata: false }
+          }
+        });
+
+      expect(createRes.statusCode).toBe(201);
+      expect(createRes.body.detalles.extras.precioPersonajeApplied).toBe(40);
+      const eventId = createRes.body.id;
+
+      // PATCH: quitar personajes (array vacío)
+      const patchRes = await request(app)
+        .patch(`/api/v1/events/${eventId}`)
+        .send({
+          detalles: {
+            extras: {
+              personajes: [],
+              taller: 'ninguno',
+              pinata: false,
+              observaciones: '',
+              alergenos: ''
+            }
+          }
+        });
+
+      expect(patchRes.statusCode).toBe(200);
+      expect(patchRes.body.detalles.extras.personajes).toEqual([]);
+      expect(patchRes.body.detalles.extras.precioPersonajeApplied).toBeUndefined();
+    });
+  });
+
+  // =====================================================
   // REGRESIÓN: Actualización de taller en reserva existente
   // Bug: snapshots stale tras PATCH si el cliente envía valores antiguos
   // =====================================================
@@ -214,7 +472,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
           detalles: {
             extras: {
               taller: 'Pintura',
-              personaje: 'ninguno',
+              personajes: [],
               pinata: true,
               observaciones: 'Mesa cerca de la puerta',
               alergenos: 'Frutos secos',
@@ -251,7 +509,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
           detalles: {
             extras: {
               taller: 'ninguno',
-              personaje: 'ninguno',
+              personajes: [],
               pinata: true,
               observaciones: 'Mesa cerca de la puerta',
               alergenos: 'Frutos secos',

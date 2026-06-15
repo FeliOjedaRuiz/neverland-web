@@ -45,6 +45,7 @@ const validateEventData = (data) => {
 
     if (detalles.extras?.observaciones?.length > 500) throw createError(400, 'Observaciones demasiado largas (máx 500)');
     if (detalles.extras?.alergenos?.length > 500) throw createError(400, 'Alérgenos demasiado largos (máx 500)');
+    if (detalles.extras?.personajes?.length > 3) throw createError(400, 'Máximo 3 personajes permitidos');
   }
 };
 
@@ -135,13 +136,17 @@ const calculateEventPrice = async (eventData, config) => {
       total += tallerPrice;
     }
 
-    if (detalles.extras.personaje && detalles.extras.personaje !== 'ninguno') {
-      let charPrice = detalles.extras.precioPersonajeApplied;
-      if (charPrice === undefined || charPrice === null) {
-        charPrice = safeConfig.preciosExtras?.personaje || 40;
-        detalles.extras.precioPersonajeApplied = charPrice;
+    // Multi-personaje pricing: array-based
+    const personajes = detalles.extras.personajes || [];
+    if (personajes.length > 0) {
+      let charTotal = detalles.extras.precioPersonajeApplied;
+      if (charTotal === undefined || charTotal === null) {
+        const precioUnitario = safeConfig.preciosExtras?.personaje || 40;
+        const precioPack3 = safeConfig.preciosExtras?.precioPack3Personajes || 100;
+        charTotal = personajes.length === 3 ? precioPack3 : precioUnitario * personajes.length;
+        detalles.extras.precioPersonajeApplied = charTotal;
       }
-      total += charPrice;
+      total += charTotal;
     }
 
     if (detalles.extras.pinata) {
@@ -468,8 +473,13 @@ module.exports.update = async (req, res, next) => {
       if (newDetalles.extras?.taller && newDetalles.extras.taller !== oldDetalles.extras?.taller) {
         delete oldDetalles.extras.precioTallerApplied;
       }
-      if (newDetalles.extras?.personaje && newDetalles.extras.personaje !== oldDetalles.extras?.personaje) {
-        delete oldDetalles.extras.precioPersonajeApplied;
+      // Multi-personaje: compare sorted arrays to detect content changes
+      {
+        const oldChars = (oldDetalles.extras?.personajes || []).slice().sort();
+        const newChars = (newDetalles.extras?.personajes || []).slice().sort();
+        if (JSON.stringify(oldChars) !== JSON.stringify(newChars)) {
+          delete oldDetalles.extras.precioPersonajeApplied;
+        }
       }
       if (newDetalles.extras?.pinata !== undefined && newDetalles.extras.pinata !== oldDetalles.extras?.pinata) {
         delete oldDetalles.extras.precioPinataApplied;
@@ -498,8 +508,13 @@ module.exports.update = async (req, res, next) => {
       if (newDetalles.extras?.taller && newDetalles.extras.taller !== oldDetalles.extras?.taller) {
         event.set('detalles.extras.precioTallerApplied', undefined);
       }
-      if (newDetalles.extras?.personaje && newDetalles.extras.personaje !== oldDetalles.extras?.personaje) {
-        event.set('detalles.extras.precioPersonajeApplied', undefined);
+      // Multi-personaje: compare sorted arrays (order-independent)
+      {
+        const oldChars = (oldDetalles.extras?.personajes || []).slice().sort();
+        const newChars = (newDetalles.extras?.personajes || []).slice().sort();
+        if (JSON.stringify(oldChars) !== JSON.stringify(newChars)) {
+          event.set('detalles.extras.precioPersonajeApplied', undefined);
+        }
       }
       if (newDetalles.extras?.pinata !== undefined && newDetalles.extras.pinata !== oldDetalles.extras?.pinata) {
         event.set('detalles.extras.precioPinataApplied', undefined);
