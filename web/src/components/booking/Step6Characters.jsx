@@ -95,7 +95,7 @@ const Step6Characters = ({
 	};
 
 	const priceDisplay = getPriceDisplay();
-	const showQuitarTodos = selectedPersonajes.length >= 1;
+	const showQuitarTodos = selectedPersonajes.length >= 2;
 
 	return (
 		<div className="flex flex-col h-full overflow-hidden relative">

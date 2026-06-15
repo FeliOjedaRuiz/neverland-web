@@ -107,7 +107,7 @@ const DayDetailView = () => {
 								niños: { cantidad: 12, menuId: 1 },
 								extras: {
 									taller: 'ninguno',
-									personaje: 'ninguno',
+									personajes: [],
 									pinata: false,
 								},
 								adultos: [],
