@@ -11,12 +11,13 @@ const Step6Characters = ({
 	prices,
 }) => {
 	const [selectedCharForModal, setSelectedCharForModal] = useState(null);
+	const [toastMessage, setToastMessage] = useState(null);
 
 	const filteredChars = (CHARACTERS || []).filter((c) =>
 		!c.suspended && (c.nombre || c.name || '').toLowerCase().includes(charSearch.toLowerCase()),
 	);
 
-	const selectedCharName = formData.extras.personaje;
+	const selectedPersonajes = formData.extras.personajes || [];
 
 	// Sync with browser history for mobile "back" button
 	useEffect(() => {
@@ -36,6 +37,14 @@ const Step6Characters = ({
 		};
 	}, [selectedCharForModal]);
 
+	// Toast auto-dismiss
+	useEffect(() => {
+		if (toastMessage) {
+			const timer = setTimeout(() => setToastMessage(null), 3000);
+			return () => clearTimeout(timer);
+		}
+	}, [toastMessage]);
+
 	const openModal = (char) => setSelectedCharForModal(char);
 	const closeModal = () => {
 		if (selectedCharForModal) {
@@ -45,12 +54,48 @@ const Step6Characters = ({
 	};
 
 	const selectCharacter = (name) => {
-		setFormData({
-			...formData,
-			extras: { ...formData.extras, personaje: name },
-		});
+		const current = formData.extras.personajes || [];
+
+		if (current.includes(name)) {
+			// Deseleccionar: quitar del array
+			setFormData({
+				...formData,
+				extras: { ...formData.extras, personajes: current.filter(p => p !== name) },
+			});
+		} else {
+			// Seleccionar: añadir solo si < 3
+			if (current.length >= 3) {
+				setToastMessage('El máximo es 3 personajes');
+				return;
+			}
+			setFormData({
+				...formData,
+				extras: { ...formData.extras, personajes: [...current, name] },
+			});
+		}
+
 		if (selectedCharForModal) closeModal();
 	};
+
+	const clearAllPersonajes = () => {
+		setFormData({
+			...formData,
+			extras: { ...formData.extras, personajes: [] },
+		});
+	};
+
+	// Dynamic price display
+	const getPriceDisplay = () => {
+		const count = selectedPersonajes.length;
+		if (count === 0) return null;
+		if (count === 1) return `${prices?.preciosExtras?.personaje || 40}€`;
+		if (count === 2) return `${(prices?.preciosExtras?.personaje || 40) * 2}€`;
+		if (count === 3) return `Pack 3: ${prices?.preciosExtras?.precioPack3Personajes || 100}€`;
+		return null;
+	};
+
+	const priceDisplay = getPriceDisplay();
+	const showQuitarTodos = selectedPersonajes.length >= 1;
 
 	return (
 		<div className="flex flex-col h-full overflow-hidden relative">
@@ -75,22 +120,24 @@ const Step6Characters = ({
 					<motion.div
 						whileHover={{ y: -2 }}
 						whileTap={{ scale: 0.98 }}
-						onClick={() => selectCharacter('ninguno')}
+						onClick={clearAllPersonajes}
 						className={`p-4 rounded-3xl border-2 transition-all cursor-pointer flex items-center justify-between px-6 ${
-							selectedCharName === 'ninguno'
+							selectedPersonajes.length === 0
 								? 'border-gray-400 bg-gray-100 shadow-inner'
 								: 'border-white bg-white shadow-sm hover:border-gray-200'
 						}`}
 					>
 						<div className="flex items-center gap-4">
-							<div className={`w-10 h-10 rounded-full flex items-center justify-center ${selectedCharName === 'ninguno' ? 'bg-gray-200 text-gray-400' : 'bg-gray-50 text-gray-300'}`}>
+							<div className={`w-10 h-10 rounded-full flex items-center justify-center ${selectedPersonajes.length === 0 ? 'bg-gray-200 text-gray-400' : 'bg-gray-50 text-gray-300'}`}>
 								<X size={20} />
 							</div>
 							<div className="flex flex-col">
-								<span className={`font-black text-sm uppercase tracking-wide ${selectedCharName === 'ninguno' ? 'text-gray-600' : 'text-gray-400'}`}>Sin Visita</span>
+								<span className={`font-black text-sm uppercase tracking-wide ${selectedPersonajes.length === 0 ? 'text-gray-600' : 'text-gray-400'}`}>
+									{showQuitarTodos ? 'Quitar todos' : 'Sin Visita'}
+								</span>
 							</div>
 						</div>
-						{selectedCharName === 'ninguno' && (
+						{selectedPersonajes.length === 0 && (
 							<CheckCircle className="text-gray-500" size={24} fill="currentColor" stroke="white" />
 						)}
 					</motion.div>
@@ -99,7 +146,7 @@ const Step6Characters = ({
 				<div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
 					{filteredChars.map((char) => {
 						const charName = char.nombre || char.name;
-						const isSelected = selectedCharName === charName;
+						const isSelected = selectedPersonajes.includes(charName);
 						
 						return (
 							<motion.div
@@ -163,6 +210,27 @@ const Step6Characters = ({
 					</div>
 				)}
 			</div>
+
+			{/* Dynamic Price Display */}
+			{priceDisplay && (
+				<div className="shrink-0 py-3 text-center border-t border-purple-100 bg-purple-50/30">
+					<span className="font-black text-purple-600 text-lg">{priceDisplay}</span>
+				</div>
+			)}
+
+			{/* Toast Message */}
+			<AnimatePresence>
+				{toastMessage && (
+					<motion.div
+						initial={{ opacity: 0, y: 20 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: 20 }}
+						className="absolute bottom-4 left-4 right-4 mx-auto max-w-sm bg-gray-900 text-white px-4 py-3 rounded-2xl shadow-xl z-[1001]"
+					>
+						<p className="text-sm font-bold text-center">{toastMessage}</p>
+					</motion.div>
+				)}
+			</AnimatePresence>
 
 			{/* Modal Detail */}
 			<AnimatePresence>
@@ -244,13 +312,16 @@ const Step6Characters = ({
 										onClick={() => selectCharacter(selectedCharForModal.nombre || selectedCharForModal.name)}
 										className="w-full py-3 sm:py-3.5 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-black shadow-lg shadow-purple-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base"
 									>
-										{selectedCharName === (selectedCharForModal.nombre || selectedCharForModal.name) ? (
+										{selectedPersonajes.includes(selectedCharForModal.nombre || selectedCharForModal.name) ? (
 											<>
-												<CheckCircle size={20} strokeWidth={3} />
-												PERSONAJE SELECCIONADO
+												<X size={20} strokeWidth={3} />
+												QUITAR
 											</>
 										) : (
-											'SELECCIONAR PERSONAJE'
+											<>
+												<CheckCircle size={20} strokeWidth={3} />
+												AÑADIR
+											</>
 										)}
 									</button>
 								</div>

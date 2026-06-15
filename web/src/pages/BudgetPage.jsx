@@ -51,6 +51,7 @@ const DEFAULT_CONFIG = {
 		tallerBase: 25,
 		tallerPlus: 30,
 		personaje: 40,
+		precioPack3Personajes: 100,
 		pinata: 15,
 		extension30: 30,
 		extension60: 50,
@@ -91,7 +92,7 @@ const BudgetPage = () => {
 		},
 		extras: {
 			taller: null,
-			personaje: null,
+			personajes: [],
 			pinata: false,
 			observaciones: '',
 			alergenos: '',

@@ -9,6 +9,7 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
       tallerBase: 25,
       tallerPlus: 30,
       personaje: 40,
+      precioPack3Personajes: 100,
       pinata: 15,
       extension30: 30,
       extension60: 50
@@ -86,6 +87,73 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
       };
 
       expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(20);
+    });
+
+    it('debería calcular 0€ cuando no hay personajes seleccionados', () => {
+      const formData = {
+        fecha: '2026-05-13',
+        niños: { cantidad: 10, menuId: 'm1' },
+        adultos: { comida: [] },
+        extras: { taller: 'ninguno', personajes: [] }
+      };
+
+      // 10 niños * 10€ = 100€ (sin personajes)
+      expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(100);
+    });
+
+    it('debería calcular 40€ para 1 personaje', () => {
+      const formData = {
+        fecha: '2026-05-13',
+        niños: { cantidad: 10, menuId: 'm1' },
+        adultos: { comida: [] },
+        extras: { taller: 'ninguno', personajes: ['Elsa'] }
+      };
+
+      // 100€ (menú) + 40€ (1 personaje) = 140€
+      expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(140);
+    });
+
+    it('debería calcular 80€ para 2 personajes', () => {
+      const formData = {
+        fecha: '2026-05-13',
+        niños: { cantidad: 10, menuId: 'm1' },
+        adultos: { comida: [] },
+        extras: { taller: 'ninguno', personajes: ['Elsa', 'Anna'] }
+      };
+
+      // 100€ (menú) + 80€ (2 personajes) = 180€
+      expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(180);
+    });
+
+    it('debería calcular 100€ (pack) para 3 personajes', () => {
+      const formData = {
+        fecha: '2026-05-13',
+        niños: { cantidad: 10, menuId: 'm1' },
+        adultos: { comida: [] },
+        extras: { taller: 'ninguno', personajes: ['Elsa', 'Anna', 'Mickey'] }
+      };
+
+      // 100€ (menú) + 100€ (pack 3 personajes) = 200€
+      expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(200);
+    });
+
+    it('debería usar precioPack3Personajes del mockPrices', () => {
+      const customPrices = {
+        ...mockPrices,
+        preciosExtras: {
+          ...mockPrices.preciosExtras,
+          precioPack3Personajes: 95
+        }
+      };
+      const formData = {
+        fecha: '2026-05-13',
+        niños: { cantidad: 10, menuId: 'm1' },
+        adultos: { comida: [] },
+        extras: { taller: 'ninguno', personajes: ['A', 'B', 'C'] }
+      };
+
+      // 100€ (menú) + 95€ (pack custom) = 195€
+      expect(calculateBookingTotal(formData, customPrices, mockMenus)).toBe(195);
     });
   });
 

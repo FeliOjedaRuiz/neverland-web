@@ -48,9 +48,12 @@ export const calculateBookingTotal = (formData, prices, childrenMenusWithPrices)
     }
   }
 
-  // 4. Otros Extras
-  if (formData.extras?.personaje && formData.extras.personaje !== 'ninguno') {
-    total += prices.preciosExtras?.personaje || 40;
+  // 4. Personajes (multi-select: hasta 3)
+  const personajes = formData.extras?.personajes || [];
+  if (personajes.length > 0) {
+    const precioUnitario = prices.preciosExtras?.personaje || 40;
+    const precioPack3 = prices.preciosExtras?.precioPack3Personajes || 100;
+    total += personajes.length === 3 ? precioPack3 : precioUnitario * personajes.length;
   }
   if (formData.extras?.pinata) {
     total += prices.preciosExtras?.pinata || 15;

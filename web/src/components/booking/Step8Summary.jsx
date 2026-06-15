@@ -108,30 +108,45 @@ const Step8Summary = ({
 							</span>
 						</div>
 					)}
-					{formData.extras.personaje !== 'ninguno' && (
+					{formData.extras.personajes && formData.extras.personajes.length > 0 && (
 						<div className="flex flex-col gap-2 p-3 bg-purple-50/50 rounded-2xl border border-purple-100/50 mb-1">
 							<div className="flex justify-between items-center">
 								<div className="flex items-center gap-3">
-									<div className="w-10 h-10 rounded-xl overflow-hidden bg-white shadow-sm shrink-0 border border-purple-100">
-										{(() => {
-											const char = (prices.characters || []).find(c => (c.nombre || c.name) === formData.extras.personaje);
-											return char?.imageUrl ? (
-												<img src={char.imageUrl} alt={char.nombre} className="w-full h-full object-cover" />
-											) : (
-												<div className="w-full h-full flex items-center justify-center text-purple-200 bg-purple-50">
-													<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-												</div>
-											);
-										})()}
-									</div>
 									<div className="flex flex-col">
 										<p className="text-[10px] text-purple-400 font-black uppercase tracking-widest leading-none mb-1">Visita Especial</p>
-										<span className="font-black text-purple-600 text-sm">{formData.extras.personaje}</span>
+										<div className="flex flex-wrap gap-2">
+											{formData.extras.personajes.map((charName, idx) => {
+												const char = (prices.characters || []).find(c => (c.nombre || c.name) === charName);
+												return (
+													<div key={charName} className="flex items-center gap-1.5">
+														<div className="w-8 h-8 rounded-lg overflow-hidden bg-white shadow-sm shrink-0 border border-purple-100">
+															{char?.imageUrl ? (
+																<img src={char.imageUrl} alt={charName} className="w-full h-full object-cover" />
+															) : (
+																<div className="w-full h-full flex items-center justify-center text-purple-200 bg-purple-50">
+																	<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+																</div>
+															)}
+														</div>
+														<span className="font-black text-purple-600 text-xs">{charName}</span>
+													</div>
+												);
+											})}
+										</div>
 									</div>
 								</div>
-								<span className="font-black text-purple-600">
-									{prices.preciosExtras?.personaje || 0}€
-								</span>
+								<div className="flex flex-col items-end">
+									{formData.extras.personajes.length === 3 && (
+										<span className="text-[9px] font-black text-purple-400 uppercase tracking-widest mb-0.5">Pack 3</span>
+									)}
+									<span className="font-black text-purple-600">
+										{(() => {
+											const count = formData.extras.personajes.length;
+											if (count === 3) return prices.preciosExtras?.precioPack3Personajes || 100;
+											return (prices.preciosExtras?.personaje || 40) * count;
+										})()}€
+									</span>
+								</div>
 							</div>
 						</div>
 					)}

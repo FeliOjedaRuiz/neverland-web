@@ -33,7 +33,7 @@ describe('Step8Summary Component', () => {
 		adultos: { cantidad: 2, comida: [] },
 		extras: {
 			taller: 'ninguno',
-			personaje: 'ninguno',
+			personajes: [],
 			pinata: false,
 			observaciones: '',
 			alergenos: '',
@@ -64,7 +64,7 @@ describe('Step8Summary Component', () => {
 			extras: {
 				...baseFormData.extras,
 				taller: 'Cocina',
-				personaje: 'Pirata',
+				personajes: ['Pirata'],
 				pinata: true,
 				extension: 30,
 				observaciones: 'Nota de prueba',
