@@ -932,18 +932,18 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 							<div className="grid grid-cols-1 gap-3">
 								{/* Actividad */}
 								<div
-									className={`p-3 rounded-[24px] border flex items-center gap-3 transition-all ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-50/50 border-blue-100' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
+									className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-50/50 border-blue-100' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
 								>
 									<div
-										className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}
+										className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}
 									>
-										<Sparkles size={22} />
+										<Sparkles size={20} />
 									</div>
 									<div className="min-w-0 flex-1">
-										<p className="text-[9px] text-gray-400 font-black uppercase tracking-tight mb-0.5">
+										<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
 											Actividad
 										</p>
-										<p className="text-sm font-black text-gray-800 truncate">
+										<p className="font-display font-black text-lg text-text-black truncate">
 											{reservation.detalles?.extras?.taller === 'ninguno'
 												? 'Sin actividad'
 												: reservation.detalles?.extras?.taller}
@@ -953,12 +953,12 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 
 								{/* Personajes */}
 								<div
-									className={`p-3 rounded-[24px] border flex items-center gap-3 transition-all ${(reservation.detalles?.extras?.personajes?.length || 0) > 0 ? 'bg-purple-50/50 border-purple-100 shadow-sm' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
+									className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${(reservation.detalles?.extras?.personajes?.length || 0) > 0 ? 'bg-purple-50/50 border-purple-100 shadow-sm' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
 								>
 									{/* Avatar chips for each character */}
 									<div className="flex shrink-0">
 										{(reservation.detalles?.extras?.personajes?.length || 0) === 0 ? (
-											<div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center">
+											<div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
 												<Smile size={20} className="text-gray-400" />
 											</div>
 										) : (
@@ -968,8 +968,8 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 												return (
 													<div
 														key={idx}
-														className={`w-12 h-12 rounded-2xl overflow-hidden shadow-inner flex items-center justify-center border-2 border-white ${
-															!isLast ? '-ml-3' : ''
+														className={`w-10 h-10 rounded-xl overflow-hidden shadow-inner flex items-center justify-center border-2 border-white ${
+															!isLast ? '-ml-2' : ''
 														}`}
 														style={{ zIndex: reservation.detalles.extras.personajes.length - idx }}
 													>
@@ -984,21 +984,16 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 										)}
 									</div>
 									<div className="min-w-0 flex flex-1 justify-between items-center">
-										<div>
+										<div className="min-w-0">
 											<p className="text-[9px] text-gray-400 font-black uppercase tracking-tight mb-0.5">
 												Personaje{(reservation.detalles?.extras?.personajes?.length || 0) > 1 ? 's' : ''}
 											</p>
 											{(reservation.detalles?.extras?.personajes?.length || 0) === 0 ? (
-												<p className="text-sm font-black text-gray-400 truncate">Sin personaje</p>
+												<p className="font-display font-black text-lg text-gray-400 truncate">Sin personaje</p>
 											) : (
-												<div className="flex flex-wrap gap-1">
-													{reservation.detalles.extras.personajes.map((charName, idx) => (
-														<span key={idx} className="text-sm font-black text-gray-800 truncate">
-															{idx > 0 && ', '}
-															{charName}
-														</span>
-													))}
-												</div>
+												<p className="font-display font-black text-lg text-text-black truncate">
+													{reservation.detalles.extras.personajes.join(', ')}
+												</p>
 											)}
 										</div>
 										{(reservation.detalles?.extras?.personajes?.length || 0) > 0 && (
@@ -1018,18 +1013,18 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 
 								{/* Piñata */}
 								<div
-									className={`p-3 rounded-2xl border flex items-center gap-4 transition-all ${reservation.detalles?.extras?.pinata ? 'bg-energy-orange/5 border-energy-orange/20 shadow-sm' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
+									className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${reservation.detalles?.extras?.pinata ? 'bg-energy-orange/5 border-energy-orange/20 shadow-sm' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
 								>
 									<div
-										className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.pinata ? 'bg-energy-orange/10 text-energy-orange' : 'bg-gray-100 text-gray-400'}`}
+										className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.pinata ? 'bg-energy-orange/10 text-energy-orange' : 'bg-gray-100 text-gray-400'}`}
 									>
-										<Package size={18} />
+										<Package size={20} />
 									</div>
-									<div className="min-w-0 flex flex-1 justify-between items-center">
-										<p className="text-[9px] text-gray-400 font-black uppercase tracking-tight">
+									<div className="min-w-0 flex-1">
+										<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
 											Piñata
 										</p>
-										<p className="text-sm font-black text-gray-800">
+										<p className="font-display font-black text-lg text-text-black">
 											{reservation.detalles?.extras?.pinata
 												? 'Incluida'
 												: 'No incluida'}
