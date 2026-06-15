@@ -2278,6 +2278,21 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 	const [isTallerOpen, setIsTallerOpen] = useState(false);
 	const [isPersonajeOpen, setIsPersonajeOpen] = useState(false);
 
+	// Snapshot original (precio histórico cobrado) y array original de personajes
+	// para detectar si el usuario modificó la selección. Si no la modificó, mantenemos
+	// el precio del snapshot. Si la modificó, recalculamos con el config actual.
+	const originalSnapshot = initialFormData.precioPersonajeApplied || 0;
+	const originalPersonajesSorted = [...(initialFormData.personajes || [])].sort();
+	const currentPersonajesSorted = [...(formData.personajes || [])].sort();
+	const personajesChanged = JSON.stringify(originalPersonajesSorted) !== JSON.stringify(currentPersonajesSorted);
+
+	const unitPrice = config?.preciosExtras?.personaje || 40;
+	const packPrice = config?.preciosExtras?.precioPack3Personajes || 100;
+	const dynamicPrice = (formData.personajes?.length || 0) === 3
+		? packPrice
+		: unitPrice * (formData.personajes?.length || 0);
+	const displayPrice = personajesChanged ? dynamicPrice : originalSnapshot;
+
 	const selectedWs = config?.workshops?.find(ws => ws.name === formData.taller);
 
 	return (
@@ -2524,14 +2539,19 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 
 					{/* Dynamic price display */}
 					{(formData.personajes?.length || 0) > 0 && (
-						<div className="flex justify-end animate-in fade-in duration-200">
+						<div className="flex flex-col items-end gap-1 animate-in fade-in duration-200">
 							{formData.personajes.length === 3 ? (
 								<span className="text-sm font-black text-purple-600 bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-100">
-									Pack 3: {config?.preciosExtras?.precioPack3Personajes || 100}€
+									Pack 3: {displayPrice}€
 								</span>
 							) : (
 								<span className="text-sm font-black text-purple-600 bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-100">
-									{(formData.personajes.length || 0)}×{config?.preciosExtras?.personaje || 40}€ = {(formData.personajes.length || 0) * (config?.preciosExtras?.personaje || 40)}€
+									{(formData.personajes.length || 0)}×{unitPrice}€ = {displayPrice}€
+								</span>
+							)}
+							{personajesChanged && originalSnapshot > 0 && (
+								<span className="text-[9px] font-bold text-gray-400 italic">
+									Antes: {originalSnapshot}€
 								</span>
 							)}
 						</div>
