@@ -96,6 +96,10 @@ const Step6Characters = ({
 
 	const priceDisplay = getPriceDisplay();
 	const showQuitarTodos = selectedPersonajes.length >= 2;
+	const isPackActive = selectedPersonajes.length === 3;
+	const unitPrice = prices?.preciosExtras?.personaje || 40;
+	const packPrice = prices?.preciosExtras?.precioPack3Personajes || 100;
+	const savingsAmount = (unitPrice * 3) - packPrice; // 120 - 100 = 20€ saved with pack
 
 	return (
 		<div className="flex flex-col h-full overflow-hidden relative">
@@ -147,7 +151,8 @@ const Step6Characters = ({
 					{filteredChars.map((char) => {
 						const charName = char.nombre || char.name;
 						const isSelected = selectedPersonajes.includes(charName);
-						
+						const showStrikethrough = isPackActive && isSelected;
+
 						return (
 							<motion.div
 								key={char.id || charName}
@@ -174,7 +179,7 @@ const Step6Characters = ({
 											<span className="text-[8px] font-black uppercase tracking-widest opacity-50">Personaje</span>
 										</div>
 									)}
-									
+
 									{/* Selection Overlay */}
 									{isSelected && (
 										<div className="absolute inset-0 bg-purple-500/20 backdrop-blur-[1px] flex items-center justify-center">
@@ -192,7 +197,7 @@ const Step6Characters = ({
 									<h3 className={`font-black text-xs sm:text-sm leading-tight mb-1 line-clamp-2 ${isSelected ? 'text-purple-600' : 'text-gray-800'}`}>
 										{charName}
 									</h3>
-									<p className="font-black text-sm text-purple-500">
+									<p className={`font-black text-sm ${showStrikethrough ? 'text-gray-400 line-through decoration-2' : 'text-purple-500'}`}>
 										{prices?.preciosExtras?.personaje || 40}€
 									</p>
 								</div>
@@ -211,10 +216,17 @@ const Step6Characters = ({
 				)}
 			</div>
 
-			{/* Dynamic Price Display */}
+			{/* Dynamic Price Display — sticky sobre la navegación */}
 			{priceDisplay && (
-				<div className="shrink-0 py-3 text-center border-t border-purple-100 bg-purple-50/30">
-					<span className="font-black text-purple-600 text-lg">{priceDisplay}</span>
+				<div className="sticky bottom-0 z-40 shrink-0 py-3 px-4 text-center border-t border-purple-200 bg-gradient-to-r from-purple-50 via-pink-50 to-purple-50 shadow-[0_-4px_20px_-4px_rgba(168,85,247,0.15)]">
+					<div className="flex items-center justify-center gap-2">
+						<span className="font-black text-purple-700 text-base sm:text-lg">{priceDisplay}</span>
+						{isPackActive && (
+							<span className="inline-flex items-center gap-1 text-[10px] font-black text-white bg-gradient-to-r from-pink-500 to-purple-500 px-2 py-0.5 rounded-full uppercase tracking-wider">
+								Ahorras {savingsAmount}€
+							</span>
+						)}
+					</div>
 				</div>
 			)}
 
@@ -269,7 +281,7 @@ const Step6Characters = ({
 											<ImageIcon size={48} strokeWidth={1} />
 										</div>
 									)}
-									<div className="absolute bottom-4 right-4 bg-purple-600 text-white px-4 py-2 rounded-2xl font-black text-lg sm:text-xl shadow-lg flex items-center gap-1">
+									<div className={`absolute bottom-4 right-4 px-4 py-2 rounded-2xl font-black text-lg sm:text-xl shadow-lg flex items-center gap-1 ${isPackActive ? 'bg-gray-400 text-white line-through decoration-2' : 'bg-purple-600 text-white'}`}>
 										{prices?.preciosExtras?.personaje || 40}€
 									</div>
 								</div>
