@@ -1002,9 +1002,9 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 											)}
 										</div>
 										{(reservation.detalles?.extras?.personajes?.length || 0) > 0 && (
-											<div className="flex flex-col items-end gap-1">
+											<div className="flex flex-col items-end gap-1 shrink-0">
 												<span className="text-[10px] font-black text-purple-600 bg-purple-100 px-2 py-1 rounded-lg">
-													+{config?.preciosExtras?.precioPersonajeApplied || 0}€
+													+{reservation.detalles?.extras?.precioPersonajeApplied || 0}€
 												</span>
 												{(reservation.detalles?.extras?.personajes?.length || 0) === 3 && (
 													<span className="text-[9px] font-black text-white bg-gradient-to-r from-purple-500 to-pink-500 px-2 py-0.5 rounded-full">
@@ -2393,11 +2393,11 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 							isPersonajeOpen ? 'border-purple-500 bg-white shadow-lg' : 'border-gray-100 bg-gray-50 hover:bg-white hover:border-purple-200'
 						}`}
 					>
-						<div className="flex items-center gap-4">
+						<div className="flex items-center gap-3 min-w-0">
 							<div className="flex shrink-0">
 								{(formData.personajes?.length || 0) === 0 ? (
-									<div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-200">
-										<X size={24} />
+									<div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-200">
+										<X size={22} />
 									</div>
 								) : (
 									formData.personajes.map((charName, idx) => {
@@ -2406,29 +2406,29 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 										return (
 											<div
 												key={idx}
-												className={`w-16 h-16 rounded-2xl overflow-hidden bg-white border border-gray-100 flex items-center justify-center ${
+												className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden bg-white border border-gray-100 flex items-center justify-center ${
 													!isLast ? '-mr-3' : ''
 												}`}
 											>
 												{charData?.imageUrl || charData?.image ? (
 													<img src={charData.imageUrl || charData.image} className="w-full h-full object-cover" alt={charName} />
 												) : (
-													<Smile size={24} className="text-purple-400" />
+													<Smile size={22} className="text-purple-400" />
 												)}
 											</div>
 										);
 									})
 								)}
 							</div>
-							<div>
-								<p className="font-display font-black text-lg text-text-black">
+							<div className="min-w-0 flex-1">
+								<p className="font-display font-black text-lg text-text-black truncate">
 									{(formData.personajes?.length || 0) === 0
 										? 'Sin personaje'
 										: (formData.personajes?.length || 0) === 1
 										? formData.personajes[0]
 										: `${formData.personajes?.length} personajes`}
 								</p>
-								<p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+								<p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">
 									{isPersonajeOpen ? 'Cerrar selector' : 'Pulsa para cambiar personajes'}
 								</p>
 							</div>
