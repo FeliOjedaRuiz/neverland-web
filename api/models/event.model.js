@@ -57,7 +57,14 @@ const eventSchema = new mongoose.Schema({
     extras: {
       taller: { type: String, default: 'ninguno' },
       precioTallerApplied: { type: Number }, // [NEW] Snapshot
-      personaje: { type: String, default: 'ninguno' },
+      personajes: {
+        type: [String],
+        default: [],
+        validate: {
+          validator: v => v.length <= 3,
+          message: 'Máximo 3 personajes permitidos'
+        }
+      },
       precioPersonajeApplied: { type: Number }, // [NEW] Snapshot
       pinata: { type: Boolean, default: false },
       precioPinataApplied: { type: Number }, // [NEW] Snapshot
