@@ -932,15 +932,15 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 							<div className="grid grid-cols-1 gap-3">
 								{/* Actividad */}
 								<div
-									className={`p-3 rounded-2xl border flex items-center gap-4 transition-all ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-50/50 border-blue-100' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
+									className={`p-3 rounded-[24px] border flex items-center gap-3 transition-all ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-50/50 border-blue-100' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
 								>
 									<div
-										className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}
+										className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}
 									>
-										<Sparkles size={18} />
+										<Sparkles size={22} />
 									</div>
-									<div className="min-w-0 flex flex-1 justify-between items-center">
-										<p className="text-[9px] text-gray-400 font-black uppercase tracking-tight">
+									<div className="min-w-0 flex-1">
+										<p className="text-[9px] text-gray-400 font-black uppercase tracking-tight mb-0.5">
 											Actividad
 										</p>
 										<p className="text-sm font-black text-gray-800 truncate">
