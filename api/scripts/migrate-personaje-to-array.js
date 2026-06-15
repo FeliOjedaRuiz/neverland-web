@@ -11,11 +11,9 @@
  * - Añade `precioPack3Personajes: 100` al Config si no existe
  */
 
+require('dotenv').config();
 const mongoose = require('mongoose');
-const path = require('path');
 
-// Cargar configuración de la app
-const app = require('../app');
 const Event = require('../models/event.model');
 const Config = require('../models/config.model');
 
@@ -54,8 +52,9 @@ async function migrate() {
     }
     console.log('');
 
-    // 2. Migrar eventos
-    const eventos = await Event.find({});
+    // 2. Migrar eventos — usar lean() para evitar defaults de Mongoose que harían
+    //    que `extras.personajes` siempre sea [] aunque no esté en la DB
+    const eventos = await Event.find({}).lean();
     stats.total = eventos.length;
     console.log(`Procesando ${stats.total} eventos...\n`);
 
@@ -94,18 +93,22 @@ async function migrate() {
           newPrecioPersonajeApplied = undefined; // No price for no characters
         }
 
-        // Update the document
-        extras.personajes = newPersonajes;
+        // Update via updateOne (evento is lean plain object, no .save())
+        const updateOps = {
+          $set: {
+            'detalles.extras.personajes': newPersonajes,
+          },
+          $unset: {
+            'detalles.extras.personaje': '',
+          }
+        };
         if (newPrecioPersonajeApplied !== undefined) {
-          extras.precioPersonajeApplied = newPrecioPersonajeApplied;
+          updateOps.$set['detalles.extras.precioPersonajeApplied'] = newPrecioPersonajeApplied;
         } else {
-          extras.precioPersonajeApplied = undefined;
+          updateOps.$unset['detalles.extras.precioPersonajeApplied'] = '';
         }
 
-        // Remove old field
-        delete extras.personaje;
-
-        await evento.save();
+        await Event.updateOne({ _id: evento._id }, updateOps);
         stats.converted++;
 
         const chars = newPersonajes.join(', ') || '(ninguno)';
