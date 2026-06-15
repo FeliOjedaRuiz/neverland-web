@@ -84,22 +84,10 @@ const Step6Characters = ({
 		});
 	};
 
-	// Dynamic price display
-	const getPriceDisplay = () => {
-		const count = selectedPersonajes.length;
-		if (count === 0) return null;
-		if (count === 1) return `${prices?.preciosExtras?.personaje || 40}€`;
-		if (count === 2) return `${(prices?.preciosExtras?.personaje || 40) * 2}€`;
-		if (count === 3) return `Pack 3: ${prices?.preciosExtras?.precioPack3Personajes || 100}€`;
-		return null;
-	};
-
-	const priceDisplay = getPriceDisplay();
+	// Dynamic price display is rendered at page level (PackPriceBanner) so it
+	// stays fixed above the navigation buttons regardless of scroll position.
 	const showQuitarTodos = selectedPersonajes.length >= 2;
 	const isPackActive = selectedPersonajes.length === 3;
-	const unitPrice = prices?.preciosExtras?.personaje || 40;
-	const packPrice = prices?.preciosExtras?.precioPack3Personajes || 100;
-	const savingsAmount = (unitPrice * 3) - packPrice; // 120 - 100 = 20€ saved with pack
 
 	return (
 		<div className="flex flex-col h-full overflow-hidden relative">
@@ -216,19 +204,7 @@ const Step6Characters = ({
 				)}
 			</div>
 
-			{/* Dynamic Price Display — sticky sobre la navegación */}
-			{priceDisplay && (
-				<div className="sticky bottom-0 z-40 shrink-0 py-3 px-4 text-center border-t border-purple-200 bg-gradient-to-r from-purple-50 via-pink-50 to-purple-50 shadow-[0_-4px_20px_-4px_rgba(168,85,247,0.15)]">
-					<div className="flex items-center justify-center gap-2">
-						<span className="font-black text-purple-700 text-base sm:text-lg">{priceDisplay}</span>
-						{isPackActive && (
-							<span className="inline-flex items-center gap-1 text-[10px] font-black text-white bg-gradient-to-r from-pink-500 to-purple-500 px-2 py-0.5 rounded-full uppercase tracking-wider">
-								Ahorras {savingsAmount}€
-							</span>
-						)}
-					</div>
-				</div>
-			)}
+			{/* Dynamic Price Display se renderiza en PackPriceBanner a nivel de página */}
 
 			{/* Toast Message */}
 			<AnimatePresence>
