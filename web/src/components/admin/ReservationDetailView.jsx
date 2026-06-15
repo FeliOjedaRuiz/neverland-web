@@ -1192,28 +1192,20 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 									return null;
 								})()}
 
-								{/* Personajes */}
-								{(reservation.detalles?.extras?.personajes?.length || 0) > 0 && (() => {
-									let pPersonaje = reservation.detalles.extras.precioPersonajeApplied;
-									if (pPersonaje == null || pPersonaje === 0) {
-										const count = reservation.detalles.extras.personajes.length;
-										const unit = config?.preciosExtras?.personaje || 40;
-										const pack = config?.preciosExtras?.precioPack3Personajes || 100;
-										pPersonaje = count === 3 ? pack : unit * count;
-									}
-									if (pPersonaje > 0) {
-										return (
-											<div className="flex justify-between items-center text-sm">
-												<span className="text-gray-600 font-medium">
-													Personajes ({reservation.detalles.extras.personajes.join(', ')})
-												</span>
-												<span className="font-black text-text-black">
-													{pPersonaje.toFixed(2)}€
-												</span>
-											</div>
-										);
-									}
-									return null;
+								{/* Personajes — usar snapshot del evento (precio histórico cobrado) */}
+								{(() => {
+									const pPersonaje = reservation.detalles?.extras?.precioPersonajeApplied;
+									if (!pPersonaje || pPersonaje <= 0) return null;
+									return (
+										<div className="flex justify-between items-center text-sm">
+											<span className="text-gray-600 font-medium">
+												Personajes ({reservation.detalles.extras.personajes?.join(', ')})
+											</span>
+											<span className="font-black text-text-black">
+												{pPersonaje.toFixed(2)}€
+											</span>
+										</div>
+									);
 								})()}
 
 								{/* Piñata */}
