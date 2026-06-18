@@ -12,7 +12,7 @@ import {
 	Search,
 	X,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getReservations } from '../../services/api';
 import { formatSafeDate } from '../../utils/safeDate';
 
@@ -20,7 +20,8 @@ const ReservationInbox = () => {
 	const navigate = useNavigate();
 	const [reservations, setReservations] = useState([]);
 	const [loading, setLoading] = useState(true);
-	const [filter, setFilter] = useState('pendiente'); // pendiente, confirmado, historial
+	const [searchParams, setSearchParams] = useSearchParams();
+	const filter = searchParams.get('filter') || 'pendiente'; // pendiente, confirmado, historial
 	const [sortBy, setSortBy] = useState('createdAt'); // createdAt (reciente), fecha (evento)
 	const [order, setOrder] = useState('desc');
 	const [page, setPage] = useState(1);
@@ -87,7 +88,7 @@ const ReservationInbox = () => {
 	};
 
 	const handleFilterChange = (newFilter) => {
-		setFilter(newFilter);
+		setSearchParams({ filter: newFilter });
 		if (newFilter === 'pendiente') {
 			setSortBy('createdAt');
 			setOrder('desc');
@@ -153,7 +154,7 @@ const ReservationInbox = () => {
 								setSearchTerm(e.target.value);
 								setPage(1);
 							}}
-							className="w-full pl-10 pr-4 py-2 bg-white border border-gray-100 rounded-2xl text-sm font-bold text-text-black placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-neverland-green/20 focus:border-neverland-green transition-all shadow-sm"
+							className="w-full pl-10 pr-4 py-2 bg-white border border-gray-100 rounded-2xl text-base font-bold text-text-black placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-neverland-green/20 focus:border-neverland-green transition-all shadow-sm"
 						/>
 						{searchTerm && (
 							<button
