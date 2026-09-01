@@ -14,6 +14,14 @@ if (process.env.NODE_ENV !== 'test') {
 	require('./config/db.config');
 }
 const app = express();
+
+// Bootstrap config catalog seed after DB connection
+if (process.env.NODE_ENV !== 'test') {
+	const { bootstrap: bootstrapConfig } = require('./controllers/config.controllers');
+	mongoose.connection.once('open', () => {
+		bootstrapConfig();
+	});
+}
 app.set('trust proxy', 1); // trust first proxy
 
 const cors = require('./config/cors.config');

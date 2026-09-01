@@ -60,3 +60,34 @@ module.exports.uploadImage = (req, res, next) => {
   }
   res.json({ imageUrl: req.file.path });
 };
+
+const PINATA_CATALOG_ITEM = {
+  id: 'pinata',
+  slug: 'pinata',
+  nombre: 'Piñata Neverland',
+  descripcion: 'Piñata temática Neverland',
+  precio: 15,
+  imageUrl: '',
+  suspended: false,
+  active: true
+};
+
+module.exports.bootstrap = async () => {
+  try {
+    let config = await Config.findOne();
+
+    if (!config) {
+      config = await Config.create({});
+    }
+
+    const hasPinata = config.extrasCatalogo && config.extrasCatalogo.some(item => item.slug === 'pinata');
+
+    if (!hasPinata) {
+      config.extrasCatalogo.push(PINATA_CATALOG_ITEM);
+      await config.save();
+      console.log('[Config bootstrap] Piñata catalog item seeded');
+    }
+  } catch (error) {
+    console.error('[Config bootstrap] Failed to seed Piñata catalog item:', error);
+  }
+};

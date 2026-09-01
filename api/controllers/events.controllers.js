@@ -119,6 +119,43 @@ const calculateEventPrice = async (eventData, config) => {
 
   // 3. Extras
   if (detalles?.extras) {
+    // 3a. Generic catalog extras
+    if (Array.isArray(detalles.extras.catalogoItemIds)) {
+      const catalogItems = safeConfig.extrasCatalogo || [];
+      const catalogoItemIds = detalles.extras.catalogoItemIds;
+      const seen = new Set();
+      let catalogTotal = 0;
+
+      for (const itemId of catalogoItemIds) {
+        if (seen.has(itemId)) {
+          throw createError(400, `Extra del catálogo duplicado: ${itemId}`);
+        }
+        seen.add(itemId);
+
+        const item = catalogItems.find(i => i.slug === itemId);
+        if (!item || !item.active || item.suspended) {
+          throw createError(400, `Extra del catálogo no válido, inactivo o suspendido: ${itemId}`);
+        }
+
+        if (item.slug === 'pinata') {
+          detalles.extras.pinata = true;
+          detalles.extras.precioPinataApplied = item.precio;
+        } else {
+          catalogTotal += item.precio || 0;
+        }
+      }
+
+      detalles.extras.precioCatalogoApplied = catalogTotal;
+      total += catalogTotal;
+
+      // Sync Piñata dual-write: catalog selection is authoritative
+      const includesPinata = catalogoItemIds.includes('pinata');
+      detalles.extras.pinata = includesPinata;
+      if (!includesPinata) {
+        detalles.extras.precioPinataApplied = undefined;
+      }
+    }
+
     if (detalles.extras.taller && detalles.extras.taller !== 'ninguno') {
       let tallerPrice = detalles.extras.precioTallerApplied;
       if (tallerPrice === undefined || tallerPrice === null) {
@@ -466,12 +503,16 @@ module.exports.update = async (req, res, next) => {
       const newDetalles = req.body.detalles;
 
       // Invalidate snapshots if crucial selections changed
+      let shouldInvalidateCatalogSnapshot = false;
+
       if (newDetalles.niños?.menuId && String(newDetalles.niños.menuId) !== String(oldDetalles.niños?.menuId)) {
         delete oldDetalles.niños.precioApplied;
         delete oldDetalles.niños.menuNombre;
+        shouldInvalidateCatalogSnapshot = true;
       }
       if (newDetalles.extras?.taller && newDetalles.extras.taller !== oldDetalles.extras?.taller) {
         delete oldDetalles.extras.precioTallerApplied;
+        shouldInvalidateCatalogSnapshot = true;
       }
       // Multi-personaje: compare sorted arrays to detect content changes
       {
@@ -479,10 +520,29 @@ module.exports.update = async (req, res, next) => {
         const newChars = (newDetalles.extras?.personajes || []).slice().sort();
         if (JSON.stringify(oldChars) !== JSON.stringify(newChars)) {
           delete oldDetalles.extras.precioPersonajeApplied;
+          shouldInvalidateCatalogSnapshot = true;
         }
       }
       if (newDetalles.extras?.pinata !== undefined && newDetalles.extras.pinata !== oldDetalles.extras?.pinata) {
         delete oldDetalles.extras.precioPinataApplied;
+        shouldInvalidateCatalogSnapshot = true;
+      }
+      // Catalog extras: compare sorted arrays to detect selection changes
+      {
+        const oldCatalog = (oldDetalles.extras?.catalogoItemIds || []).slice().sort();
+        const newCatalog = (newDetalles.extras?.catalogoItemIds || []).slice().sort();
+        if (JSON.stringify(oldCatalog) !== JSON.stringify(newCatalog)) {
+          shouldInvalidateCatalogSnapshot = true;
+        }
+      }
+      // Horario extension changes affect total price
+      if (newDetalles.horario?.extensionMinutos !== undefined && newDetalles.horario.extensionMinutos !== oldDetalles.horario?.extensionMinutos) {
+        delete oldDetalles.horario.costoExtension;
+        shouldInvalidateCatalogSnapshot = true;
+      }
+
+      if (shouldInvalidateCatalogSnapshot) {
+        delete oldDetalles.extras.precioCatalogoApplied;
       }
 
       const stripIds = (obj) => {
@@ -501,12 +561,16 @@ module.exports.update = async (req, res, next) => {
       // Second-pass invalidation on merged result to catch stale snapshots from client payload.
       // newDetalles may contain old snapshot prices — use event.set() to reliably clear them
       // when the corresponding selection changed (comparing newDetalles vs oldDetalles).
+      let shouldInvalidateCatalogSnapshotSecondPass = false;
+
       if (newDetalles.niños?.menuId && String(newDetalles.niños.menuId) !== String(oldDetalles.niños?.menuId)) {
         event.set('detalles.niños.precioApplied', undefined);
         event.set('detalles.niños.menuNombre', undefined);
+        shouldInvalidateCatalogSnapshotSecondPass = true;
       }
       if (newDetalles.extras?.taller && newDetalles.extras.taller !== oldDetalles.extras?.taller) {
         event.set('detalles.extras.precioTallerApplied', undefined);
+        shouldInvalidateCatalogSnapshotSecondPass = true;
       }
       // Multi-personaje: compare sorted arrays (order-independent)
       {
@@ -514,10 +578,29 @@ module.exports.update = async (req, res, next) => {
         const newChars = (newDetalles.extras?.personajes || []).slice().sort();
         if (JSON.stringify(oldChars) !== JSON.stringify(newChars)) {
           event.set('detalles.extras.precioPersonajeApplied', undefined);
+          shouldInvalidateCatalogSnapshotSecondPass = true;
         }
       }
       if (newDetalles.extras?.pinata !== undefined && newDetalles.extras.pinata !== oldDetalles.extras?.pinata) {
         event.set('detalles.extras.precioPinataApplied', undefined);
+        shouldInvalidateCatalogSnapshotSecondPass = true;
+      }
+      // Catalog extras: compare sorted arrays to detect selection changes
+      {
+        const oldCatalog = (oldDetalles.extras?.catalogoItemIds || []).slice().sort();
+        const newCatalog = (newDetalles.extras?.catalogoItemIds || []).slice().sort();
+        if (JSON.stringify(oldCatalog) !== JSON.stringify(newCatalog)) {
+          shouldInvalidateCatalogSnapshotSecondPass = true;
+        }
+      }
+      // Horario extension changes affect total price
+      if (newDetalles.horario?.extensionMinutos !== undefined && newDetalles.horario.extensionMinutos !== oldDetalles.horario?.extensionMinutos) {
+        event.set('detalles.horario.costoExtension', undefined);
+        shouldInvalidateCatalogSnapshotSecondPass = true;
+      }
+
+      if (shouldInvalidateCatalogSnapshotSecondPass) {
+        event.set('detalles.extras.precioCatalogoApplied', undefined);
       }
 
       validateEventData(event.toObject());
