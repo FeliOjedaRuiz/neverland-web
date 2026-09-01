@@ -5,6 +5,7 @@ import { X, Image as ImageIcon, ChevronRight, Clock } from 'lucide-react';
 import { getConfig } from '../services/api';
 import SEO from '../components/common/SEO';
 import { BUDGET_ASSETS } from '../constants/budgetAssets';
+import { filterActiveCatalog } from '../utils/bookingUtils';
 
 // --- Fallback defaults (igual que BudgetPage) ---
 const DEFAULT_CONFIG = {
@@ -251,6 +252,9 @@ const PricingPage = () => {
 	const menusNiñosActivos = (config.menusNiños || []).filter((m) => !m.suspended && m.active !== false);
 	const adultsActivos = (config.preciosAdultos || []).filter((m) => !m.suspended && m.active !== false);
 	const extras = config.preciosExtras || DEFAULT_CONFIG.preciosExtras;
+	const extrasCatalogoActivos = filterActiveCatalog(config.extrasCatalogo || []).filter(
+		(item) => item.slug !== 'pinata',
+	);
 
 	return (
 		<div className="min-h-dvh bg-cream-bg pb-20">
@@ -471,6 +475,64 @@ const PricingPage = () => {
 								/>
 							</div>
 						</motion.section>
+
+						{/* ── EXTRAS ADICIONALES DEL CATÁLOGO ── */}
+						{extrasCatalogoActivos.length > 0 && (
+							<motion.section
+								variants={sectionVariants}
+								initial="hidden"
+								whileInView="visible"
+								viewport={{ once: true, margin: '-60px' }}
+							>
+								<SectionHeader
+									emoji="🎀"
+									title="Extras Adicionales"
+									subtitle="Personaliza tu fiesta con más detalles"
+									accentColor="bg-pink-100"
+								/>
+								<div className="space-y-3">
+									{extrasCatalogoActivos.map((item) => (
+										<div
+											key={item.id}
+											className="bg-white rounded-2xl border border-pink-100 hover:border-pink-200 transition-colors shadow-sm p-4 flex items-center gap-4"
+										>
+											<div className="w-11 h-11 rounded-xl bg-gray-50 flex items-center justify-center text-2xl shrink-0 border border-gray-100 overflow-hidden">
+												{item.imageUrl ? (
+													<img src={item.imageUrl} alt={item.nombre} className="w-full h-full object-cover" />
+												) : (
+													<span>{item.nombre?.charAt(0) || '✨'}</span>
+												)}
+											</div>
+											<div className="flex-1 min-w-0">
+												<p className="font-bold text-gray-800 text-sm leading-tight">{item.nombre}</p>
+												{item.descripcion && (
+													<p className="text-xs text-gray-400 font-medium mt-0.5 truncate">{item.descripcion}</p>
+												)}
+											</div>
+											<div className="text-right shrink-0">
+												<span className="font-black text-lg text-gray-800">{Number(item.precio || 0).toFixed(0)}€</span>
+											</div>
+										</div>
+									))}
+								</div>
+								<div className="mt-4 flex flex-col sm:flex-row gap-3">
+									<Link
+										to="/presupuesto"
+										className="flex-1 text-center bg-pink-500 text-white px-5 py-3 rounded-2xl font-display font-bold shadow-md shadow-pink-500/20 hover:bg-pink-600 transition-all active:scale-95 flex items-center justify-center gap-2"
+									>
+										🧮 Añadir a tu presupuesto
+										<ChevronRight size={18} />
+									</Link>
+									<Link
+										to="/booking"
+										className="flex-1 text-center text-pink-600 px-5 py-3 rounded-2xl font-display font-bold border-2 border-pink-200 hover:border-pink-500 transition-all active:scale-95 flex items-center justify-center gap-2"
+									>
+										📅 Reservar fecha
+										<ChevronRight size={18} />
+									</Link>
+								</div>
+							</motion.section>
+						)}
 
 						{/* ── CTA FINAL ── */}
 						<motion.section

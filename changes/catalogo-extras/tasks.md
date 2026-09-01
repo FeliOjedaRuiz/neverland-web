@@ -104,43 +104,43 @@ WU2.1 (bookingUtils) ──┐
                        └── WU2.7 (PricingPage)
 ```
 
-- [ ] **2.1** — `web/src/utils/bookingUtils.js`: Add catalog filter + sum helpers
+- [x] **2.1** — `web/src/utils/bookingUtils.js`: Add catalog filter + sum helpers
   - **What**: Add `filterActiveCatalog(items)` returning `items.filter(i => i.active && !i.suspended)`, `sumCatalogPrices(selectedIds, catalogItems)` returning total price of selected items, and `getCatalogItemById(id, catalogItems)` returning the item or null. Export all three.
   - **Dependencies**: None (pure utils)
   - **Lines**: ~25
   - **Acceptance**: `filterActiveCatalog` excludes suspended/inactive; `sumCatalogPrices` returns correct sum; unit tests pass
 
-- [ ] **2.2** — `web/src/pages/BookingPage.jsx`: Load `extrasCatalogo`, add `catalogoItemIds` to formData default
+- [x] **2.2** — `web/src/pages/BookingPage.jsx`: Load `extrasCatalogo`, add `catalogoItemIds` to formData default
   - **What**: In the config fetch (around line 46–103), extract `extrasCatalogo` from config response. Initialize `catalogoItemIds: []` in formData defaults. Pass `extrasCatalogo` as prop to `Step7Extras`, `Step8Summary`.
   - **Dependencies**: 1.1 (config returns `extrasCatalogo`)
   - **Lines**: ~20
   - **Acceptance**: BookingPage loads catalog from config; formData includes `catalogoItemIds`; Step7Extras receives `extrasCatalogo` prop
 
-- [ ] **2.3** — `web/src/pages/BudgetPage.jsx`: Same as WU2.2 for budget flow
+- [x] **2.3** — `web/src/pages/BudgetPage.jsx`: Same as WU2.2 for budget flow
   - **What**: Mirror WU2.2 changes: extract `extrasCatalogo`, initialize `catalogoItemIds: []`, pass to `Step7Extras` and `StepBudgetSummary`.
   - **Dependencies**: 1.1
   - **Lines**: ~20
   - **Acceptance**: BudgetPage loads catalog; formData includes `catalogoItemIds`; child components receive prop
 
-- [ ] **2.4** — `web/src/components/booking/Step7Extras.jsx`: Piñata toggle + "Otros extras" checkboxes block
+- [x] **2.4** — `web/src/components/booking/Step7Extras.jsx`: Piñata toggle + "Otros extras" checkboxes block
   - **What**: Keep existing Piñata toggle as-is (visual dedicated toggle). Below it, add a section "Otros extras" rendering `filterActiveCatalog(extrasCatalogo).filter(i => i.slug !== 'pinata')` as checkboxes. Each checkbox toggles its `id` in `catalogoItemIds` array. Piñata toggle adds/removes `'pinata'` from `catalogoItemIds` (in addition to existing `pinata` boolean). Show item name, description snippet, and price per checkbox. Handle empty catalog gracefully (no section rendered).
   - **Dependencies**: 2.1, 2.2 or 2.3
   - **Lines**: ~60
   - **Acceptance**: Piñata toggle still works; other catalog items appear as checkboxes; selecting updates `catalogoItemIds`; suspended/inactive items are hidden
 
-- [ ] **2.5** — `web/src/components/booking/Step8Summary.jsx`: Render catalog items + Piñata in summary
+- [x] **2.5** — `web/src/components/booking/Step8Summary.jsx`: Render catalog items + Piñata in summary
   - **What**: After existing extras summary lines, iterate `catalogoItemIds` and render each selected item's name + price. Show Piñata separately (existing behavior preserved). Show `precioCatalogoApplied` total. Handle empty array (no catalog section). Handle items not found in catalog (show ID as fallback).
   - **Dependencies**: 2.1, 2.2
   - **Lines**: ~40
   - **Acceptance**: Summary shows selected catalog items with prices; Piñata still shows in its dedicated section; total includes catalog
 
-- [ ] **2.6** — `web/src/components/booking/StepBudgetSummary.jsx`: Same as WU2.5 for budget summary
+- [x] **2.6** — `web/src/components/booking/StepBudgetSummary.jsx`: Same as WU2.5 for budget summary
   - **What**: Mirror WU2.5 changes in the budget summary component. Render catalog items, prices, and total.
   - **Dependencies**: 2.1, 2.3
   - **Lines**: ~35
   - **Acceptance**: Budget summary shows catalog items and prices; total is correct
 
-- [ ] **2.7** — `web/src/pages/PricingPage.jsx`: New "Extras Adicionales" section
+- [x] **2.7** — `web/src/pages/PricingPage.jsx`: New "Extras Adicionales" section
   - **What**: Fetch `extrasCatalogo` from config (already available via context or fetch). Add a public "Extras Adicionales" section showing `filterActiveCatalog(items)` with name, description, price, and image. Do not expose suspended/inactive items. Style consistent with existing pricing sections.
   - **Dependencies**: 1.1
   - **Lines**: ~50

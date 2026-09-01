@@ -1,6 +1,21 @@
 import { safeParseDate } from './safeDate';
 
 /**
+ * Helpers para el catálogo genérico de extras.
+ */
+export const filterActiveCatalog = (items) =>
+  (items || []).filter((i) => i.active && !i.suspended);
+
+export const getCatalogItemById = (id, catalogItems) =>
+  (catalogItems || []).find((item) => String(item.id) === String(id)) || null;
+
+export const sumCatalogPrices = (selectedIds, catalogItems) =>
+  (selectedIds || []).reduce((total, id) => {
+    const item = getCatalogItemById(id, catalogItems);
+    return total + (item ? Number(item.precio) || 0 : 0);
+  }, 0);
+
+/**
  * Lógica de cálculo de precios y validación de pasos para el proceso de reserva.
  * Soporta tanto el flujo de BookingPage (pasos 1-8) como BudgetPage (pasos 1-9).
  */
@@ -64,6 +79,13 @@ export const calculateBookingTotal = (formData, prices, childrenMenusWithPrices)
   if (formData.extras?.extension === 60) {
     total += prices.preciosExtras?.extension60 || 50;
   }
+
+  // 5. Extras del catálogo genérico (Piñata se factura por el bloque legacy)
+  const activeCatalog = filterActiveCatalog(prices.extrasCatalogo);
+  const catalogIds = (formData.extras?.catalogoItemIds || []).filter(
+    (id) => id !== 'pinata',
+  );
+  total += sumCatalogPrices(catalogIds, activeCatalog);
 
   return total;
 };

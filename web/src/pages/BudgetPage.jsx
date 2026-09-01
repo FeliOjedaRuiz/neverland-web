@@ -48,6 +48,7 @@ const DEFAULT_CONFIG = {
 	preciosAdultos: [],
 	workshops: [],
 	characters: [],
+	extrasCatalogo: [],
 	preciosExtras: {
 		tallerBase: 25,
 		tallerPlus: 30,
@@ -99,6 +100,7 @@ const BudgetPage = () => {
 			alergenos: '',
 			extension: 0,
 			extensionType: 'default',
+			catalogoItemIds: [],
 		},
 	});
 
@@ -145,6 +147,8 @@ const BudgetPage = () => {
 						data.preciosAdultos = normalizeList(data.preciosAdultos);
 					if (data.characters)
 						data.characters = normalizeList(data.characters);
+					if (data.extrasCatalogo)
+						data.extrasCatalogo = normalizeList(data.extrasCatalogo);
 
 					setPrices((prev) => ({ ...prev, ...data }));
 				}
@@ -582,23 +586,25 @@ const BudgetPage = () => {
 											prices={prices}
 										/>
 									)}
-									{step === 6 && (
-										<Step7Extras
-											formData={formData}
-											setFormData={setFormData}
-											prices={prices}
-										/>
-									)}
-									{step === 7 && (
-										<StepBudgetSummary
-											formData={formData}
-											prices={prices}
-											calculateTotal={calculateTotal}
-											childrenMenusWithPrices={childrenMenusWithPrices}
-											workshops={prices.workshops}
-											onNext={nextStep}
-										/>
-									)}
+								{step === 6 && (
+									<Step7Extras
+										formData={formData}
+										setFormData={setFormData}
+										prices={prices}
+										extrasCatalogo={prices.extrasCatalogo}
+									/>
+								)}
+								{step === 7 && (
+									<StepBudgetSummary
+										formData={formData}
+										prices={prices}
+										calculateTotal={calculateTotal}
+										childrenMenusWithPrices={childrenMenusWithPrices}
+										workshops={prices.workshops}
+										extrasCatalogo={prices.extrasCatalogo}
+										onNext={nextStep}
+									/>
+								)}
 									{step === 8 && (
 										<Step1Date
 											formData={formData}

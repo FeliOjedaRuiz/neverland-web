@@ -1,5 +1,10 @@
 import React from 'react';
 import { CalendarCheck } from 'lucide-react';
+import {
+	filterActiveCatalog,
+	getCatalogItemById,
+	sumCatalogPrices,
+} from '../../utils/bookingUtils';
 
 const StepBudgetSummary = ({
 	formData,
@@ -7,6 +12,7 @@ const StepBudgetSummary = ({
 	calculateTotal,
 	childrenMenusWithPrices,
 	workshops,
+	extrasCatalogo = [],
 	onNext,
 }) => {
 	const total = calculateTotal();
@@ -150,6 +156,43 @@ const StepBudgetSummary = ({
 									: prices.preciosExtras?.extension60 || 0}
 								€
 							</span>
+						</div>
+					)}
+
+					{/* Catálogo de extras adicionales */}
+					{formData.extras.catalogoItemIds?.length > 0 && (
+						<div className="pt-2 border-t border-pink-50 mt-2">
+							<p className="text-[10px] text-pink-400 font-black uppercase tracking-widest mb-2">
+								Extras Adicionales
+							</p>
+							<div className="space-y-1.5">
+								{formData.extras.catalogoItemIds.map((id) => {
+									const item = getCatalogItemById(id, filterActiveCatalog(extrasCatalogo));
+									const name = item?.nombre || id;
+									const price = item ? Number(item.precio || 0) : 0;
+									return (
+										<div key={id} className="flex justify-between text-pink-600 text-xs">
+											<span className="truncate pr-2">{name}</span>
+											<span className="font-bold shrink-0">{price.toFixed(2)}€</span>
+										</div>
+									);
+								})}
+							</div>
+							{formData.extras.pinata && (
+								<div className="flex justify-between text-pink-700 text-xs font-bold mt-2 pt-2 border-t border-pink-100">
+									<span>Subtotal extras</span>
+									<span>
+										{(
+											sumCatalogPrices(
+												formData.extras.catalogoItemIds.filter((id) => id !== 'pinata'),
+												filterActiveCatalog(extrasCatalogo),
+											) +
+											(prices.preciosExtras?.pinata || 0)
+										).toFixed(2)}
+										€
+									</span>
+								</div>
+							)}
 						</div>
 					)}
 
