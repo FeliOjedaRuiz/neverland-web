@@ -1,6 +1,7 @@
 const { google } = require('googleapis');
 const path = require('path');
 const createError = require('http-errors');
+const Config = require('../models/config.model');
 
 const KEYFILE_PATH = path.join(__dirname, '../google-credentials.json');
 
@@ -117,6 +118,22 @@ module.exports.createCalendarEvent = async (booking) => {
       if (detalles?.extras?.precioTallerApplied > 0) precioLines.push(`  Actividad (${detalles.extras.taller}) = ${detalles.extras.precioTallerApplied.toFixed(2)}€`);
       if (detalles?.extras?.precioPersonajeApplied > 0) precioLines.push(`  Personajes (${(detalles.extras.personajes || []).join(', ')}) = ${detalles.extras.precioPersonajeApplied.toFixed(2)}€`);
       if (detalles?.extras?.precioPinataApplied > 0) precioLines.push(`  Piñata = ${detalles.extras.precioPinataApplied.toFixed(2)}€`);
+
+      // Generic catalog extras (snapshot total for historical accuracy)
+      const catalogoItemIds = detalles?.extras?.catalogoItemIds || [];
+      if (catalogoItemIds.length > 0) {
+        const catalogItems = (await Config.findOne().lean())?.extrasCatalogo || [];
+        catalogoItemIds.forEach(itemId => {
+          const item = catalogItems.find(i => i.slug === itemId || String(i.id) === String(itemId));
+          const nombre = item?.nombre || itemId;
+          const precio = item?.precio ?? 0;
+          precioLines.push(`  ${nombre} = ${Number(precio).toFixed(2)}€`);
+        });
+        if (detalles?.extras?.precioCatalogoApplied > 0) {
+          precioLines.push(`  Total catálogo = ${detalles.extras.precioCatalogoApplied.toFixed(2)}€`);
+        }
+      }
+
       if (booking.horario?.costoExtension > 0) precioLines.push(`  Extensión (+${booking.horario.extensionMinutos}min) = ${booking.horario.costoExtension.toFixed(2)}€`);
       if (detalles?.extras?.costoExtra && detalles.extras.costoExtra !== 0) {
         const label = detalles.extras.costoExtra > 0 ? 'Costo Extra' : 'Descuento';

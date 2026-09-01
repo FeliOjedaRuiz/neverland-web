@@ -54,7 +54,19 @@ const configSchema = new mongoose.Schema({
     pinata: { type: Number, default: 15 },
     extension30: { type: Number, default: 30 },
     extension60: { type: Number, default: 50 }
-  }
+  },
+  extrasCatalogo: [
+    {
+      id: String,
+      slug: { type: String, required: true },
+      nombre: String,
+      descripcion: String,
+      precio: { type: Number, min: 0, default: 0 },
+      imageUrl: String,
+      suspended: { type: Boolean, default: false },
+      active: { type: Boolean, default: true }
+    }
+  ]
 }, {
   timestamps: true,
   toJSON: {
