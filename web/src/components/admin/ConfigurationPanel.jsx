@@ -19,6 +19,7 @@ import {
 	Eye,
 	EyeOff,
 	Calendar,
+	Gift,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useOutletContext } from 'react-router-dom';
@@ -112,6 +113,7 @@ const ConfigurationPanel = () => {
 		adults: false,
 		workshops: false,
 		characters: false,
+		extrasCatalogo: false,
 		others: false,
 	});
 	const [uploadingId, setUploadingId] = useState(null);
@@ -119,6 +121,7 @@ const ConfigurationPanel = () => {
 	const [editingAdultMenuIdx, setEditingAdultMenuIdx] = useState(null);
 	const [editingKidsMenuIdx, setEditingKidsMenuIdx] = useState(null);
 	const [editingCharacterIdx, setEditingCharacterIdx] = useState(null);
+	const [editingExtraCatalogoIdx, setEditingExtraCatalogoIdx] = useState(null);
 
 	const toggleSection = (section, forceOpen = false) => {
 		setOpenSections((prev) => ({
@@ -129,7 +132,7 @@ const ConfigurationPanel = () => {
 
 	// Close modal on back button (Native Navigation)
 	useEffect(() => {
-		if (editingWorkshopIdx !== null || editingAdultMenuIdx !== null || editingKidsMenuIdx !== null || editingCharacterIdx !== null) {
+		if (editingWorkshopIdx !== null || editingAdultMenuIdx !== null || editingKidsMenuIdx !== null || editingCharacterIdx !== null || editingExtraCatalogoIdx !== null) {
 			window.history.pushState({ modal: 'editing' }, '');
 			
 			const handlePopState = () => {
@@ -137,12 +140,13 @@ const ConfigurationPanel = () => {
 				setEditingAdultMenuIdx(null);
 				setEditingKidsMenuIdx(null);
 				setEditingCharacterIdx(null);
+				setEditingExtraCatalogoIdx(null);
 			};
 
 			window.addEventListener('popstate', handlePopState);
 			return () => window.removeEventListener('popstate', handlePopState);
 		}
-	}, [editingWorkshopIdx, editingAdultMenuIdx, editingKidsMenuIdx, editingCharacterIdx]);
+	}, [editingWorkshopIdx, editingAdultMenuIdx, editingKidsMenuIdx, editingCharacterIdx, editingExtraCatalogoIdx]);
 
 	// Transformation logic to ensure stable IDs and fields for list items
 	const transformConfig = (data) => {
@@ -173,6 +177,7 @@ const ConfigurationPanel = () => {
 			data.preciosAdultos = normalize(data.preciosAdultos);
 		if (data.workshops) data.workshops = normalize(data.workshops);
 		if (data.characters) data.characters = normalize(data.characters);
+		if (data.extrasCatalogo) data.extrasCatalogo = normalize(data.extrasCatalogo);
 
 		return data;
 	};
@@ -1416,6 +1421,319 @@ const ConfigurationPanel = () => {
 									})()}
 								</AnimatePresence>
 							</div>
+						</AccordionSection>
+
+						{/* Extras Adicionales */}
+						<AccordionSection
+							title="Extras Adicionales"
+							subtitle="Catálogo Genérico"
+							icon={Gift}
+							color="border-l-pink-500"
+							isOpen={openSections.extrasCatalogo}
+							onToggle={() => toggleSection('extrasCatalogo')}
+							action={
+								<button
+									onClick={(e) => {
+										e.stopPropagation();
+										const newIdx = addItem(
+											'extrasCatalogo',
+											{
+												nombre: 'Nuevo Extra',
+												slug: '',
+												descripcion: '',
+												precio: 0,
+												imageUrl: '',
+												suspended: false,
+												active: true,
+												isNew: true,
+											},
+											'extrasCatalogo',
+										);
+										setEditingExtraCatalogoIdx(newIdx);
+										toggleSection('extrasCatalogo', true);
+									}}
+									className="p-1.5 bg-pink-500 text-white rounded-lg hover:scale-110 active:scale-95 transition-all shadow-md shadow-pink-500/20"
+								>
+									<Plus size={18} />
+								</button>
+							}
+						>
+								<div className="py-2">
+									<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+										{(config.extrasCatalogo || []).map((item, idx) => (
+											<button
+												key={item.id || idx}
+												onClick={() => setEditingExtraCatalogoIdx(idx)}
+												className={`group flex items-center gap-4 p-3 bg-gray-50/50 hover:bg-white border border-transparent hover:border-pink-200/30 rounded-3xl transition-all hover:shadow-xl hover:shadow-pink-500/5 text-left ${
+													item.suspended || !item.active ? 'opacity-50' : ''
+												}`}
+											>
+												<div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-200 shrink-0 shadow-inner">
+													{item.imageUrl ? (
+														<img src={item.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+													) : (
+														<div className="w-full h-full flex items-center justify-center text-gray-400">
+															<ImageIcon size={20} />
+														</div>
+													)}
+												</div>
+												<div className="flex-1 min-w-0">
+													<div className="flex items-center gap-2 mb-0.5">
+														<h4 className="font-display font-black text-sm text-text-black truncate group-hover:text-pink-600 transition-colors">
+															{item.nombre || 'Sin nombre'}
+														</h4>
+														{item.suspended && (
+															<span className="px-1.5 py-0.5 bg-gray-200 text-gray-500 rounded-md text-[8px] font-black uppercase">Oculto</span>
+														)}
+														{!item.active && !item.suspended && (
+															<span className="px-1.5 py-0.5 bg-red-100 text-red-500 rounded-md text-[8px] font-black uppercase">Inactivo</span>
+														)}
+													</div>
+													<p className="text-[10px] font-medium text-gray-400 truncate">
+															{item.precio}€
+														</p>
+												</div>
+												<div className="p-2 text-pink-500/0 group-hover:text-pink-500 transition-all transform group-hover:translate-x-1">
+													<Settings2 size={18} />
+												</div>
+											</button>
+										))}
+									</div>
+
+									{/* Modal Editor */}
+									<AnimatePresence>
+										{editingExtraCatalogoIdx !== null && (() => {
+											const item = config.extrasCatalogo[editingExtraCatalogoIdx];
+											const idx = editingExtraCatalogoIdx;
+											const isEditing = !item.isNew;
+
+											const handleSaveCatalogItem = () => {
+												if (!String(item.nombre || '').trim()) {
+													toast.error('El nombre es obligatorio');
+													return;
+												}
+												if (!String(item.slug || '').trim()) {
+													toast.error('El slug es obligatorio');
+													return;
+												}
+												if (item.precio < 0) {
+													toast.error('El precio no puede ser negativo');
+													return;
+												}
+												const duplicate = (config.extrasCatalogo || []).some(
+													(it, i) => i !== idx && String(it.slug).trim() === String(item.slug).trim()
+												);
+												if (duplicate) {
+													toast.error('El slug ya existe en el catálogo');
+													return;
+												}
+												const cleaned = { ...item, isNew: undefined };
+												handleSave({ ...config, extrasCatalogo: config.extrasCatalogo.map((it, i) => (i === idx ? cleaned : it)) });
+												setEditingExtraCatalogoIdx(null);
+												window.history.back();
+											};
+
+											const generateSlug = (name) => {
+												return String(name || '')
+													.toLowerCase()
+													.normalize('NFD')
+													.replace(/[\u0300-\u036f]/g, '')
+													.replace(/[^a-z0-9]+/g, '-')
+													.replace(/^-+|-+$/g, '')
+													.substring(0, 50);
+											};
+
+											return (
+												<motion.div
+													initial={{ opacity: 0 }}
+													animate={{ opacity: 1 }}
+													exit={{ opacity: 0 }}
+													className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-md bg-text-black/20 text-text-black"
+													onClick={(e) => {
+														if (e.target === e.currentTarget) {
+															setEditingExtraCatalogoIdx(null);
+															window.history.back();
+														}
+													}}
+												>
+													<motion.div
+														initial={{ scale: 0.95, y: 20 }}
+														animate={{ scale: 1, y: 0 }}
+														exit={{ scale: 0.95, y: 20 }}
+														className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+														onClick={(e) => e.stopPropagation()}
+													>
+														{/* Image Upload Area */}
+														<div className="relative w-full h-[140px] sm:h-[180px] bg-gray-100 overflow-hidden shrink-0">
+															{item.imageUrl ? (
+																<>
+																	<img
+																		src={item.imageUrl}
+																		alt={item.nombre}
+																		className="w-full h-full object-cover"
+																	/>
+																	<div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+																	<div className="absolute bottom-3 left-6 right-6 flex items-end justify-between">
+																		<label className="flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white rounded-xl transition-all cursor-pointer border border-white/30 group">
+																			<input
+																				type="file"
+																				className="hidden"
+																				accept="image/*"
+																				onChange={(e) => handleImageUpload(e, 'extrasCatalogo', idx)}
+																			/>
+																			<Upload size={16} />
+																			<span className="font-display font-black text-[10px] uppercase tracking-wider">Cambiar Foto</span>
+																		</label>
+																	</div>
+																</>
+															) : (
+																<label className="w-full h-full cursor-pointer flex flex-col items-center justify-center gap-2 group/empty bg-pink-50/20">
+																	<input
+																		type="file"
+																		className="hidden"
+																		accept="image/*"
+																		onChange={(e) => handleImageUpload(e, 'extrasCatalogo', idx)}
+																	/>
+																	<div className="w-10 h-10 rounded-xl bg-white text-pink-400 flex items-center justify-center shadow-sm group-hover/empty:scale-110 transition-all">
+																		<ImageIcon size={20} />
+																	</div>
+																	<p className="text-[9px] font-black text-pink-400 uppercase tracking-widest">Subir Imagen</p>
+																</label>
+															)}
+															{uploadingId === (item.id || idx) && (
+																<div className="absolute inset-0 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center gap-2 z-20">
+																	<Loader2 className="animate-spin text-pink-500" size={24} />
+																	<p className="text-[9px] font-black text-pink-600 uppercase">Subiendo...</p>
+																</div>
+															)}
+															<button
+																onClick={() => {
+																	setEditingExtraCatalogoIdx(null);
+																	window.history.back();
+																}}
+																className="absolute top-3 right-3 z-30 p-1.5 bg-white/90 hover:bg-white text-text-black rounded-full shadow-lg transition-all border border-gray-100 group/close"
+															>
+																<X size={16} className="group-hover:scale-110 transition-transform" />
+															</button>
+														</div>
+
+														{/* Content Area */}
+														<div className="p-5 sm:p-7 flex flex-col gap-4 overflow-y-auto min-h-0">
+															<div className="flex justify-between items-center -mb-1">
+																<div className="w-full max-w-[70%]">
+																	<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Nombre</label>
+																	<input
+																		type="text"
+																		value={item.nombre || ''}
+																		onChange={(e) => {
+																			const nombre = e.target.value;
+																			const updates = { nombre };
+																			if (!isEditing) {
+																				updates.slug = generateSlug(nombre);
+																			}
+																			updateListItem('extrasCatalogo', idx, updates);
+																		}}
+																		className="w-full bg-transparent border-none font-display font-black text-xl text-text-black outline-none placeholder:text-gray-100 focus:text-pink-600 transition-colors"
+																		placeholder="Ej: Snack Bar..."
+																	/>
+																</div>
+																<div className="bg-pink-50 px-4 py-1.5 rounded-2xl border border-pink-100/50 text-right">
+																	<label className="text-[8px] font-black text-pink-500 uppercase tracking-widest block mb-0.5">Precio</label>
+																	<div className="flex items-center gap-1 justify-end">
+																		<input
+																			type="number"
+																			value={item.precio}
+																			min={0}
+																			step="0.5"
+																			onChange={(e) => updateListItem('extrasCatalogo', idx, 'precio', parseFloat(e.target.value))}
+																			className="w-14 bg-transparent text-right font-display font-black text-xl text-pink-500 outline-none"
+																		/>
+																		<span className="font-display font-black text-lg text-pink-500 space-x-0">€</span>
+																	</div>
+																</div>
+															</div>
+
+															<div>
+																<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Slug</label>
+																<input
+																	type="text"
+																	value={item.slug || ''}
+																	disabled={isEditing}
+																	onChange={(e) => updateListItem('extrasCatalogo', idx, 'slug', e.target.value)}
+																	className={`w-full bg-gray-50 p-3 rounded-2xl text-xs font-bold text-text-black border border-transparent focus:bg-white focus:border-pink-200 outline-none transition-all ${
+																		isEditing ? 'text-gray-400 cursor-not-allowed' : ''
+																	}`}
+																	placeholder="slug-del-extra"
+																/>
+																{isEditing && (
+																	<p className="text-[7px] font-bold text-gray-400 mt-1">El slug no se puede editar una vez creado.</p>
+																)}
+															</div>
+
+															<div>
+																<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Descripción</label>
+																<textarea
+																	rows={3}
+																	value={item.descripcion || ''}
+																	onChange={(e) => updateListItem('extrasCatalogo', idx, 'descripcion', e.target.value)}
+																	className="w-full bg-gray-50/50 p-3 rounded-2xl text-xs font-bold text-gray-700 border border-transparent focus:bg-white focus:border-pink-200 outline-none resize-none transition-all leading-tight"
+																	placeholder="Describe el extra..."
+																/>
+															</div>
+
+															<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+																<div className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
+																	<div className="flex items-center justify-between mb-1">
+																		<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Activo</label>
+																		<ToggleSwitch
+																			active={!!item.active}
+																			onChange={() => updateListItem('extrasCatalogo', idx, 'active', !item.active)}
+																		/>
+																	</div>
+																	<p className="text-[7px] font-bold text-gray-400 leading-tight">Visible en la web y reservas.</p>
+																</div>
+																<div className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
+																	<div className="flex items-center justify-between mb-1">
+																		<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Suspendido</label>
+																		<ToggleSwitch
+																			active={!item.suspended}
+																			onChange={() => updateListItem('extrasCatalogo', idx, 'suspended', !item.suspended)}
+																		/>
+																	</div>
+																	<p className="text-[7px] font-bold text-gray-400 leading-tight">Oculto temporalmente sin borrar.</p>
+																</div>
+															</div>
+
+															<div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-auto">
+																<button
+																	onClick={async () => {
+																		if (await removeItem('extrasCatalogo', idx)) {
+																			setEditingExtraCatalogoIdx(null);
+																			window.history.back();
+																		}
+																	}}
+																	className="flex items-center gap-2 px-3 py-2 text-red-500 hover:bg-red-50 rounded-xl transition-all font-display font-black text-[9px] uppercase tracking-wider"
+																>
+																	<Trash2 size={14} /> Eliminar
+																</button>
+																<button
+																	onClick={handleSaveCatalogItem}
+																	className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl transition-all font-display font-black text-[10px] uppercase tracking-wider shadow-lg ${
+																		isItemChanged('extrasCatalogo', item) || item.isNew
+																			? 'bg-pink-500 text-white shadow-pink-500/20 hover:scale-105 active:scale-95'
+																			: 'bg-gray-100 text-gray-300 cursor-not-allowed'
+																	}`}
+																>
+																	<Save size={14} /> Guardar
+																</button>
+															</div>
+														</div>
+													</motion.div>
+												</motion.div>
+											);
+										})()}
+									</AnimatePresence>
+								</div>
 						</AccordionSection>
 
 						{/* Others Prices */}

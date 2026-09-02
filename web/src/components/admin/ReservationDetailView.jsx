@@ -10,6 +10,7 @@ import {
 	Sparkles,
 	Smile,
 	Package,
+	Gift,
 	ChevronLeft,
 	Check,
 	ChevronDown,
@@ -41,6 +42,11 @@ import {
 	checkAvailability,
 } from '../../services/api';
 import { formatSafeDate, formatLongSafeDate } from '../../utils/safeDate';
+import {
+	filterActiveCatalog,
+	getCatalogItemById,
+	sumCatalogPrices,
+} from '../../utils/bookingUtils';
 
 
 const ReservationDetailView = ({ reservation: propReservation }) => {
@@ -131,6 +137,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 		if (data.preciosAdultos) data.preciosAdultos = normalizeList(data.preciosAdultos);
 		if (data.workshops) data.workshops = normalizeList(data.workshops);
 		if (data.characters) data.characters = normalizeList(data.characters);
+		if (data.extrasCatalogo) data.extrasCatalogo = normalizeList(data.extrasCatalogo);
 
 		return data;
 	};
@@ -1024,13 +1031,66 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 										<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
 											Piñata
 										</p>
-										<p className="font-display font-black text-lg text-text-black">
-											{reservation.detalles?.extras?.pinata
-												? 'Incluida'
-												: 'No incluida'}
-										</p>
+										<div className="flex items-center gap-2 flex-wrap">
+											<p className="font-display font-black text-lg text-text-black">
+												{reservation.detalles?.extras?.pinata
+													? 'Incluida'
+													: 'No incluida'}
+											</p>
+											{reservation.detalles?.extras?.pinata &&
+												!(reservation.detalles?.extras?.catalogoItemIds || []).includes('pinata') && (
+													<span className="px-2 py-0.5 bg-energy-orange/10 text-energy-orange rounded-full text-[8px] font-black uppercase">
+														(legacy)
+													</span>
+												)}
+										</div>
 									</div>
 								</div>
+
+								{/* Catálogo de extras */}
+								{(() => {
+									const catalogoItemIds = reservation.detalles?.extras?.catalogoItemIds || [];
+									if (catalogoItemIds.length === 0) return null;
+									return (
+										<>
+											{catalogoItemIds.map((id) => {
+												const item = getCatalogItemById(id, config?.extrasCatalogo || []);
+												const name = item?.nombre || id;
+												const price = item ? Number(item.precio) || 0 : 0;
+												return (
+													<div
+														key={id}
+														className="p-4 rounded-2xl border flex items-center gap-3 transition-all bg-pink-50/50 border-pink-100/50"
+													>
+														<div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-pink-100 text-pink-500">
+															<Gift size={20} />
+														</div>
+														<div className="min-w-0 flex-1">
+															<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
+																{name}
+															</p>
+															<p className="font-display font-black text-lg text-text-black">
+																{price > 0 ? `${price}€` : 'Incluido'}
+															</p>
+														</div>
+													</div>
+												);
+											})}
+											<div className="flex justify-between items-center p-3 bg-pink-100/50 rounded-2xl border border-pink-100">
+												<span className="text-[10px] font-black text-pink-600 uppercase tracking-widest">
+													Subtotal catálogo
+												</span>
+												<span className="font-display font-black text-pink-600">
+													{sumCatalogPrices(
+														catalogoItemIds.filter((id) => id !== 'pinata'),
+														config?.extrasCatalogo || []
+													).toFixed(2)}
+													€
+												</span>
+											</div>
+										</>
+									);
+								})()}
 							</div>
 						</div>
 					</section>
@@ -2273,6 +2333,9 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 	} else if (!initialFormData.personajes) {
 		initialFormData.personajes = [];
 	}
+	if (!Array.isArray(initialFormData.catalogoItemIds)) {
+		initialFormData.catalogoItemIds = [];
+	}
 
 	const [formData, setFormData] = useState(initialFormData);
 	const [isTallerOpen, setIsTallerOpen] = useState(false);
@@ -2559,10 +2622,67 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 				</div>
 			</div>
 
+			{/* Catálogo de extras */}
+			<div className="space-y-3 pt-2">
+				<h5 className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em] flex items-center gap-2 pl-1">
+					<Gift size={14} />
+					Otros extras del catálogo
+				</h5>
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+					{filterActiveCatalog(config?.extrasCatalogo || [])
+						.filter((item) => item.slug !== 'pinata')
+						.map((item) => {
+							const isSelected = (formData.catalogoItemIds || []).includes(item.slug);
+							return (
+								<div
+									key={item.slug}
+									onClick={() => {
+										const current = formData.catalogoItemIds || [];
+										if (isSelected) {
+											setFormData({ ...formData, catalogoItemIds: current.filter((id) => id !== item.slug) });
+										} else {
+											setFormData({ ...formData, catalogoItemIds: [...current, item.slug] });
+										}
+									}}
+									className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
+										isSelected ? 'border-pink-500' : 'border-transparent hover:border-pink-200'
+									}`}
+								>
+										<div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100 bg-gray-50">
+											{item.imageUrl ? (
+												<img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+											) : (
+												<div className="w-full h-full flex items-center justify-center text-gray-300">
+													<Gift size={16} />
+												</div>
+											)}
+										</div>
+										<div className="min-w-0 flex-1">
+											<p className="text-xs font-black text-text-black truncate">{item.nombre || item.slug}</p>
+											<p className="text-[10px] font-bold text-gray-400">{Number(item.precio || 0)}€</p>
+										</div>
+										{isSelected && (
+											<div className="ml-auto w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
+												<Check size={12} className="text-white" />
+											</div>
+										)}
+									</div>
+							);
+						})}
+				</div>
+			</div>
+
 			{/* Piñata */}
 			<div className="pt-2">
 				<div
-					onClick={() => setFormData({ ...formData, pinata: !formData.pinata })}
+					onClick={() => {
+						const nextPinata = !formData.pinata;
+						const current = formData.catalogoItemIds || [];
+						const nextCatalog = nextPinata
+							? [...new Set([...current, 'pinata'])]
+							: current.filter((id) => id !== 'pinata');
+						setFormData({ ...formData, pinata: nextPinata, catalogoItemIds: nextCatalog });
+					}}
 					className={`p-6 rounded-[32px] border-2 transition-all cursor-pointer flex items-center justify-between group overflow-hidden relative ${
 						formData.pinata
 							? 'bg-energy-orange/5 border-energy-orange shadow-md'

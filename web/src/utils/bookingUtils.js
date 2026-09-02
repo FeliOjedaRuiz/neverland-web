@@ -7,12 +7,15 @@ export const filterActiveCatalog = (items) =>
   (items || []).filter((i) => i.active && !i.suspended);
 
 export const getCatalogItemById = (id, catalogItems) =>
-  (catalogItems || []).find((item) => String(item.id) === String(id)) || null;
+  (catalogItems || []).find(
+    (item) => String(item.slug) === String(id) || String(item.id) === String(id)
+  ) || null;
 
 export const sumCatalogPrices = (selectedIds, catalogItems) =>
   (selectedIds || []).reduce((total, id) => {
     const item = getCatalogItemById(id, catalogItems);
-    return total + (item ? Number(item.precio) || 0 : 0);
+    if (!item || item.suspended || item.active === false) return total;
+    return total + (Number(item.precio) || 0);
   }, 0);
 
 /**

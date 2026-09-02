@@ -148,11 +148,15 @@ const calculateEventPrice = async (eventData, config) => {
       detalles.extras.precioCatalogoApplied = catalogTotal;
       total += catalogTotal;
 
-      // Sync Piñata dual-write: catalog selection is authoritative
-      const includesPinata = catalogoItemIds.includes('pinata');
-      detalles.extras.pinata = includesPinata;
-      if (!includesPinata) {
-        detalles.extras.precioPinataApplied = undefined;
+      // Sync Piñata dual-write: catalog selection is authoritative only when
+      // the catalog is non-empty. Empty arrays are the Mongoose default and may
+      // represent legacy reservations where `pinata: true` must be preserved.
+      if (catalogoItemIds.length > 0) {
+        const includesPinata = catalogoItemIds.includes('pinata');
+        detalles.extras.pinata = includesPinata;
+        if (!includesPinata) {
+          detalles.extras.precioPinataApplied = undefined;
+        }
       }
     }
 

@@ -39,6 +39,7 @@ async function calculatePrice(eventData) {
     preciosAdultos: [],
     preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, pinata: 15, extension30: 30, extension60: 50 },
     workshops: [],
+    extrasCatalogo: [{ id: 'pinata', slug: 'pinata', nombre: 'Piñata Neverland', descripcion: 'Piñata temática Neverland', precio: 15, imageUrl: '', suspended: false, active: true }],
   };
 
   let total = 0;
@@ -115,6 +116,34 @@ async function calculatePrice(eventData) {
       total += charPrice;
     }
 
+    // Catalog extras: recalculate snapshot and sync Piñata dual-write
+    if (Array.isArray(detalles.extras.catalogoItemIds) && detalles.extras.catalogoItemIds.length > 0) {
+      const catalogItems = safeConfig.extrasCatalogo || [];
+      const catalogMap = new Map(catalogItems.map((i) => [i.slug, i]));
+      let catalogTotal = 0;
+
+      for (const itemId of detalles.extras.catalogoItemIds) {
+        const item = catalogMap.get(itemId);
+        if (!item || !item.active || item.suspended) continue;
+
+        if (item.slug === 'pinata') {
+          detalles.extras.pinata = true;
+          detalles.extras.precioPinataApplied = item.precio;
+        } else {
+          catalogTotal += item.precio || 0;
+        }
+      }
+
+      // If pinata is not in the catalog selection, clear legacy flag
+      if (!detalles.extras.catalogoItemIds.includes('pinata')) {
+        detalles.extras.pinata = false;
+        detalles.extras.precioPinataApplied = undefined;
+      }
+
+      detalles.extras.precioCatalogoApplied = catalogTotal;
+      total += catalogTotal;
+    }
+
     if (detalles.extras.pinata) {
       let pinataPrice = detalles.extras.precioPinataApplied;
       if (pinataPrice === undefined || pinataPrice === null) {
@@ -148,8 +177,13 @@ async function main() {
   await mongoose.connect(MONGODB_URI);
   console.log('✅ Conectado.\n');
 
-  const events = await Event.find({ publicId: { $in: AFFECTED_IDS } });
-  console.log(`📅 Reservas encontradas: ${events.length} de ${AFFECTED_IDS.length}\n`);
+  const events = await Event.find({
+    $or: [
+      { publicId: { $in: AFFECTED_IDS } },
+      { 'detalles.extras.catalogoItemIds': { $exists: true, $not: { $size: 0 } } }
+    ]
+  });
+  console.log(`📅 Reservas encontradas: ${events.length} (afectadas + con catálogo)\n`);
 
   // Buscar las que no se encontraron
   const found = new Set(events.map((e) => e.publicId));
