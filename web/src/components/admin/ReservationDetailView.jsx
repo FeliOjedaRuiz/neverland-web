@@ -951,7 +951,8 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 											Actividad
 										</p>
 										<p className="font-display font-black text-lg text-text-black truncate">
-											{reservation.detalles?.extras?.taller === 'ninguno'
+											{!reservation.detalles?.extras?.taller ||
+											reservation.detalles?.extras?.taller === 'ninguno'
 												? 'Sin actividad'
 												: reservation.detalles?.extras?.taller}
 										</p>
@@ -1062,13 +1063,8 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 															)}
 														</div>
 														<div className="min-w-0 flex-1">
-															<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight flex items-center gap-2">
+															<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
 																{name}
-																{isLegacy && (
-																	<span className="px-1.5 py-0.5 bg-energy-orange/10 text-energy-orange rounded-full text-[8px] font-black uppercase">
-																		(legacy)
-																	</span>
-																)}
 															</p>
 															<p className="font-display font-black text-lg text-text-black">
 																{price > 0 ? `${price}€` : 'Incluido'}
@@ -2688,7 +2684,12 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 			<div className="flex gap-3 pt-6 border-t border-gray-100">
 				<button
 					onClick={() => {
-						const { precioTallerApplied, precioPersonajeApplied, precioPinataApplied, ...cleanExtras } = formData;
+						// NO borramos los snapshots históricos: precioTallerApplied,
+						// precioPersonajeApplied y precioPinataApplied. El servidor los
+						// recalcula solo si la selección correspondiente cambia (PATCH
+						// invalidation). Borrarlos client-side destruye el precio
+						// histórico de reservas legacy.
+						const { precioTallerApplied, precioPersonajeApplied, ...cleanExtras } = formData;
 						onSave(cleanExtras);
 					}}
 					className="flex-1 py-4 bg-neverland-green text-white rounded-2xl font-black text-sm shadow-lg shadow-neverland-green/20 transition-all active:scale-95"
