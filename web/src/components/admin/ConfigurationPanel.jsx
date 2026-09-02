@@ -1730,7 +1730,7 @@ const ConfigurationPanel = () => {
 							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-2">
 								{Object.entries(config.preciosExtras)
 									.filter(
-										([key]) => key !== 'tallerBase' && key !== 'tallerPlus',
+										([key]) => key !== 'tallerBase' && key !== 'tallerPlus' && key !== 'pinata',
 									)
 									.map(([key, value]) => (
 										<div

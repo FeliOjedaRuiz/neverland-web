@@ -2620,7 +2620,7 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 			<div className="space-y-3 pt-2">
 				<h5 className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em] flex items-center gap-2 pl-1">
 					<Gift size={14} />
-					Extras del catálogo (incluye Piñata)
+					Extras del catálogo
 				</h5>
 				<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 					{filterActiveCatalog(config?.extrasCatalogo || []).map((item) => {
