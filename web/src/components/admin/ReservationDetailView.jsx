@@ -956,6 +956,17 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 												: reservation.detalles?.extras?.taller}
 										</p>
 									</div>
+									{reservation.detalles?.extras?.taller !== 'ninguno' && (() => {
+										const pTaller = reservation.detalles?.extras?.precioTallerApplied;
+										if (!pTaller || pTaller <= 0) return null;
+										return (
+											<div className="flex flex-col items-end gap-1 shrink-0">
+												<span className="text-[10px] font-black text-blue-600 bg-blue-100 px-2 py-1 rounded-lg">
+													+{pTaller}€
+												</span>
+											</div>
+										);
+									})()}
 								</div>
 
 								{/* Personajes */}
@@ -1068,14 +1079,14 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 											})}
 											<div className="flex justify-between items-center p-3 bg-pink-100/50 rounded-2xl border border-pink-100">
 												<span className="text-[10px] font-black text-pink-600 uppercase tracking-widest">
-													Subtotal extras
+													Subtotal actividades y extras
 												</span>
 												<span className="font-display font-black text-pink-600">
-													{sumCatalogPrices(
-														displayIds,
-														config?.extrasCatalogo || []
-													).toFixed(2)}
-													€
+													{(
+														(reservation.detalles?.extras?.precioTallerApplied || 0) +
+														(reservation.detalles?.extras?.precioPersonajeApplied || 0) +
+														sumCatalogPrices(displayIds, config?.extrasCatalogo || [])
+													).toFixed(2)}€
 												</span>
 											</div>
 										</>
@@ -2351,6 +2362,11 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 	const displayPrice = personajesChanged ? dynamicPrice : originalSnapshot;
 
 	const selectedWs = config?.workshops?.find(ws => ws.name === formData.taller);
+	const editorTallerPrice = selectedWs
+		? (niñosExt.cantidad > 15
+			? (selectedWs.precioPlus || selectedWs.pricePlus || 0)
+			: (selectedWs.precioBase || selectedWs.priceBase || 0))
+		: 0;
 
 	return (
 		<div className="space-y-8 pb-4">
@@ -2363,13 +2379,13 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 					</h5>
 					
 					{/* Selected Card / Trigger */}
-					<div 
+					<div
 						onClick={() => setIsTallerOpen(!isTallerOpen)}
 						className={`p-4 rounded-[32px] border-2 transition-all cursor-pointer flex items-center justify-between group ${
 							isTallerOpen ? 'border-blue-500 bg-white shadow-lg' : 'border-gray-100 bg-gray-50 hover:bg-white hover:border-blue-200'
 						}`}
 					>
-						<div className="flex items-center gap-4">
+						<div className="flex items-center gap-4 min-w-0 flex-1">
 							<div className="w-16 h-16 rounded-2xl overflow-hidden bg-white border border-gray-100 shrink-0">
 								{selectedWs?.imageUrl || selectedWs?.image ? (
 									<img src={selectedWs.imageUrl || selectedWs.image} className="w-full h-full object-cover" alt="" />
@@ -2379,14 +2395,19 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 									</div>
 								)}
 							</div>
-							<div>
-								<p className="font-display font-black text-lg text-text-black">
+							<div className="min-w-0 flex-1">
+								<p className="font-display font-black text-lg text-text-black truncate">
 									{formData.taller === 'ninguno' ? 'Sin actividad especial' : formData.taller}
 								</p>
 								<p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
 									{isTallerOpen ? 'Cerrar selector' : 'Pulsa para cambiar actividad'}
 								</p>
 							</div>
+							{formData.taller !== 'ninguno' && editorTallerPrice > 0 && (
+								<span className="text-[10px] font-black text-blue-600 bg-blue-100 px-2 py-1 rounded-lg shrink-0">
+									+{editorTallerPrice}€
+								</span>
+							)}
 						</div>
 						<div className={`p-2 rounded-full transition-transform duration-300 ${isTallerOpen ? 'rotate-180 bg-blue-500 text-white' : 'bg-white text-gray-300'}`}>
 							<ChevronDown size={20} />
