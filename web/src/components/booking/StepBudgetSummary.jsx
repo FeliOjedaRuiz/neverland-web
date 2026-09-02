@@ -160,36 +160,57 @@ const StepBudgetSummary = ({
 					)}
 
 					{/* Catálogo de extras adicionales (incluye Piñata — no es caso especial) */}
-					{formData.extras.catalogoItemIds?.length > 0 && (
-						<div className="pt-2 border-t border-pink-50 mt-2">
-							<p className="text-[10px] text-pink-400 font-black uppercase tracking-widest mb-2">
-								Extras Adicionales
-							</p>
-							<div className="space-y-1.5">
-								{formData.extras.catalogoItemIds.map((id) => {
-									const item = getCatalogItemById(id, filterActiveCatalog(extrasCatalogo));
-									const name = item?.nombre || id;
-									const price = item ? Number(item.precio || 0) : 0;
-									return (
-										<div key={id} className="flex justify-between text-pink-600 text-xs">
-											<span className="truncate pr-2">{name}</span>
-											<span className="font-bold shrink-0">{price.toFixed(2)}€</span>
-										</div>
-									);
-								})}
+					{(() => {
+						const hasCatalogo = formData.extras.catalogoItemIds?.length > 0;
+						const hasTaller = formData.extras.taller && formData.extras.taller !== 'ninguno';
+						const hasPersonajes = (formData.extras.personajes?.length || 0) > 0;
+						const hasLegacyPinata =
+							formData.extras.pinata &&
+							!(formData.extras.catalogoItemIds || []).includes('pinata');
+						if (!hasCatalogo && !hasTaller && !hasPersonajes && !hasLegacyPinata) return null;
+						const tallerSnap = formData.extras.precioTallerApplied || 0;
+						const personajesSnap = formData.extras.precioPersonajeApplied || 0;
+						const legacyPinataSnap = hasLegacyPinata
+							? (formData.extras.precioPinataApplied || prices.preciosExtras?.pinata || 0)
+							: 0;
+						return (
+							<div className="pt-2 border-t border-pink-50 mt-2">
+								<p className="text-[10px] text-pink-400 font-black uppercase tracking-widest mb-2">
+									Extras Adicionales
+								</p>
+								{hasCatalogo && (
+									<div className="space-y-1.5">
+										{formData.extras.catalogoItemIds.map((id) => {
+											const item = getCatalogItemById(id, filterActiveCatalog(extrasCatalogo));
+											const name = item?.nombre || id;
+											const price = item ? Number(item.precio || 0) : 0;
+											return (
+												<div key={id} className="flex justify-between text-pink-600 text-xs">
+													<span className="truncate pr-2">{name}</span>
+													<span className="font-bold shrink-0">{price.toFixed(2)}€</span>
+												</div>
+											);
+										})}
+									</div>
+								)}
+								<div className="flex justify-between text-pink-700 text-xs font-bold mt-2 pt-2 border-t border-pink-100">
+									<span>Subtotal actividades y extras</span>
+									<span>
+										{(
+											tallerSnap +
+											personajesSnap +
+											legacyPinataSnap +
+											sumCatalogPrices(
+												formData.extras.catalogoItemIds || [],
+												filterActiveCatalog(extrasCatalogo),
+											)
+										).toFixed(2)}
+										€
+									</span>
+								</div>
 							</div>
-							<div className="flex justify-between text-pink-700 text-xs font-bold mt-2 pt-2 border-t border-pink-100">
-								<span>Subtotal extras</span>
-								<span>
-									{sumCatalogPrices(
-										formData.extras.catalogoItemIds,
-										filterActiveCatalog(extrasCatalogo),
-									).toFixed(2)}
-									€
-								</span>
-							</div>
-						</div>
-					)}
+						);
+					})()}
 
 					{/* Allergens */}
 					{formData.extras.alergenos && (
