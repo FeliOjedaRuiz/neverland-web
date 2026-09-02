@@ -37,9 +37,9 @@ async function calculatePrice(eventData) {
     menusNiños: [],
     plusFinDeSemana: 1.5,
     preciosAdultos: [],
-    preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, pinata: 15, extension30: 30, extension60: 50 },
+    preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, extension30: 30, extension60: 50 },
     workshops: [],
-    extrasCatalogo: [{ id: 'pinata', slug: 'pinata', nombre: 'Piñata Neverland', descripcion: 'Piñata temática Neverland', precio: 15, imageUrl: '', suspended: false, active: true }],
+    extrasCatalogo: [{ id: 'pinata', slug: 'pinata', nombre: 'Piñata Neverland', descripcion: 'Piñata temática Neverland', precio: 15, imageUrl: '', active: true }],
   };
 
   let total = 0;
@@ -116,38 +116,37 @@ async function calculatePrice(eventData) {
       total += charPrice;
     }
 
-    // Catalog extras: recalculate snapshot and sync Piñata dual-write
+    // Catalog extras: recalculate snapshot (Piñata is just another item)
     if (Array.isArray(detalles.extras.catalogoItemIds) && detalles.extras.catalogoItemIds.length > 0) {
       const catalogItems = safeConfig.extrasCatalogo || [];
       const catalogMap = new Map(catalogItems.map((i) => [i.slug, i]));
       let catalogTotal = 0;
+      let includesPinata = false;
 
       for (const itemId of detalles.extras.catalogoItemIds) {
         const item = catalogMap.get(itemId);
-        if (!item || !item.active || item.suspended) continue;
+        if (!item || !item.active) continue;
 
-        if (item.slug === 'pinata') {
-          detalles.extras.pinata = true;
-          detalles.extras.precioPinataApplied = item.precio;
-        } else {
-          catalogTotal += item.precio || 0;
-        }
-      }
-
-      // If pinata is not in the catalog selection, clear legacy flag
-      if (!detalles.extras.catalogoItemIds.includes('pinata')) {
-        detalles.extras.pinata = false;
-        detalles.extras.precioPinataApplied = undefined;
+        catalogTotal += item.precio || 0;
+        if (item.slug === 'pinata') includesPinata = true;
       }
 
       detalles.extras.precioCatalogoApplied = catalogTotal;
       total += catalogTotal;
+
+      // Backcompat dual-write of legacy fields
+      const pinataItem = catalogMap.get('pinata');
+      detalles.extras.pinata = includesPinata;
+      detalles.extras.precioPinataApplied = includesPinata && pinataItem ? pinataItem.precio : undefined;
     }
 
-    if (detalles.extras.pinata) {
+    // Legacy fallback for old reservations with empty catalogoItemIds but pinata: true
+    const catalogHandledSelection = Array.isArray(detalles.extras.catalogoItemIds) && detalles.extras.catalogoItemIds.length > 0;
+    if (detalles.extras.pinata && !catalogHandledSelection) {
       let pinataPrice = detalles.extras.precioPinataApplied;
       if (pinataPrice === undefined || pinataPrice === null) {
-        pinataPrice = safeConfig.preciosExtras?.pinata || 15;
+        const pinataCatalogItem = (safeConfig.extrasCatalogo || []).find(i => i.slug === 'pinata');
+        pinataPrice = pinataCatalogItem ? pinataCatalogItem.precio : 15;
         detalles.extras.precioPinataApplied = pinataPrice;
       }
       total += pinataPrice;

@@ -182,11 +182,11 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
         preciosAdultos: [],
         workshops: [{ name: 'Magia', priceBase: 25, pricePlus: 30 }],
         preciosExtras: { extension30: 30, extension60: 50 },
-        extrasCatalogo: [
-          { id: 'pinata', slug: 'pinata', nombre: 'Piñata Neverland', precio: 15, active: true, suspended: false },
-          { id: 'snack', slug: 'snack-bar', nombre: 'Snack Bar', precio: 25, active: true, suspended: false },
-          { id: 'decoracion', slug: 'decoracion-tematica', nombre: 'Decoración Temática', precio: 35, active: true, suspended: false },
-          { id: 'suspendido', slug: 'extra-suspendido', nombre: 'Extra Suspendido', precio: 10, active: true, suspended: true }
+          extrasCatalogo: [
+            { id: 'pinata', slug: 'pinata', nombre: 'Piñata Neverland', precio: 15, active: true },
+            { id: 'snack', slug: 'snack-bar', nombre: 'Snack Bar', precio: 25, active: true },
+            { id: 'decoracion', slug: 'decoracion-tematica', nombre: 'Decoración Temática', precio: 35, active: true },
+            { id: 'inactivo', slug: 'extra-inactivo', nombre: 'Extra Inactivo', precio: 10, active: false }
         ]
       });
     });
@@ -273,7 +273,8 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
         expect(res.statusCode).toBe(201);
         expect(res.body.detalles.extras.pinata).toBe(true);
         expect(res.body.detalles.extras.precioPinataApplied).toBe(15);
-        expect(res.body.detalles.extras.precioCatalogoApplied).toBe(25);
+        // precioCatalogoApplied now includes Piñata (15 + 25 = 40)
+        expect(res.body.detalles.extras.precioCatalogoApplied).toBe(40);
         // 12*15 + 15 (pinata) + 25 (snack) = 220
         expect(res.body.precioTotal).toBe(220);
       });
@@ -293,14 +294,14 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
         expect(res.body.precioTotal).toBe(195);
       });
 
-      it('Debería rechazar items suspendidos o desconocidos con 400', async () => {
+      it('Debería rechazar items inactivos o desconocidos con 400', async () => {
         const res = await request(app).post('/api/v1/events').send({
           tipo: 'reserva', fecha: futureTuesday,
           turno: 'T1',
           cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789', privacyPolicyConsent: true },
           detalles: {
             niños: { cantidad: 12, menuId: 'menu-1' },
-            extras: { catalogoItemIds: ['extra-suspendido'] }
+            extras: { catalogoItemIds: ['extra-inactivo'] }
           }
         });
         expect(res.statusCode).toBe(400);
@@ -370,7 +371,7 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
           workshops: [],
           preciosExtras: { extension30: 30, extension60: 50 },
           extrasCatalogo: [
-            { id: 'snack', slug: 'snack-bar', nombre: 'Snack Bar', precio: 30, active: true, suspended: false }
+            { id: 'snack', slug: 'snack-bar', nombre: 'Snack Bar', precio: 30, active: true }
           ]
         });
 

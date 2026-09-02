@@ -69,67 +69,16 @@ const Step7Extras = ({ formData, setFormData, prices, extrasCatalogo = [] }) => 
 					)}
 				</div>
 
-				{/* Pinata */}
-				<div
-					onClick={() => {
-						const nextPinata = !formData.extras.pinata;
-						const currentIds = formData.extras.catalogoItemIds || [];
-						const nextIds = nextPinata
-							? Array.from(new Set([...currentIds, 'pinata']))
-							: currentIds.filter((id) => id !== 'pinata');
-						setFormData({
-							...formData,
-							extras: {
-								...formData.extras,
-								pinata: nextPinata,
-								catalogoItemIds: nextIds,
-							},
-						});
-					}}
-					className={`p-4 rounded-3xl border-2 transition-all cursor-pointer flex items-center justify-between ${
-						formData.extras.pinata
-							? 'border-sun-yellow bg-yellow-50 shadow-md'
-							: 'border-white bg-white shadow-sm'
-					}`}
-				>
-					<div className="flex items-center gap-3">
-						<div
-							className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl bg-white shadow-sm`}
-						>
-							🪅
-						</div>
-						<div className="text-left">
-							<p className="font-bold text-gray-800 text-lg">
-								Piñata Neverland
-							</p>
-							<p className="text-sm text-gray-500">
-								Incluye caramelos y sorpresas
-							</p>
-						</div>
-					</div>
-					<div
-						className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-							formData.extras.pinata
-								? 'bg-sun-yellow border-sun-yellow text-white'
-								: 'border-gray-200'
-						}`}
-					>
-						{formData.extras.pinata && <CheckCircle size={16} />}
-					</div>
-				</div>
-
-				{/* Otros extras del catálogo */}
+				{/* Extras del catálogo genérico (Piñata es un item más, sin toggle especial) */}
 				{(() => {
-					const otherItems = filterActiveCatalog(extrasCatalogo).filter(
-						(item) => item.slug !== 'pinata',
-					);
-					if (otherItems.length === 0) return null;
+					const items = filterActiveCatalog(extrasCatalogo);
+					if (items.length === 0) return null;
 
-					const toggleItem = (id) => {
+					const toggleItem = (itemSlug) => {
 						const currentIds = formData.extras.catalogoItemIds || [];
-						const nextIds = currentIds.includes(id)
-							? currentIds.filter((itemId) => itemId !== id)
-							: [...currentIds, id];
+						const nextIds = currentIds.includes(itemSlug)
+							? currentIds.filter((id) => id !== itemSlug)
+							: [...currentIds, itemSlug];
 						setFormData({
 							...formData,
 							extras: { ...formData.extras, catalogoItemIds: nextIds },
@@ -143,21 +92,21 @@ const Step7Extras = ({ formData, setFormData, prices, extrasCatalogo = [] }) => 
 									🎁
 								</div>
 								<div>
-									<p className="font-bold text-gray-800">Otros extras</p>
+									<p className="font-bold text-gray-800">Extras disponibles</p>
 									<p className="text-xs text-gray-500">
 										Añade más detalles a tu fiesta
 									</p>
 								</div>
 							</div>
 							<div className="space-y-2">
-								{otherItems.map((item) => {
+								{items.map((item) => {
 									const isSelected = (formData.extras.catalogoItemIds || []).includes(
-										item.id,
+										item.slug,
 									);
 									return (
 										<div
-											key={item.id}
-											onClick={() => toggleItem(item.id)}
+											key={item.slug}
+											onClick={() => toggleItem(item.slug)}
 											className={`p-3 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between ${
 												isSelected
 													? 'border-pink-300 bg-pink-50'
@@ -165,7 +114,7 @@ const Step7Extras = ({ formData, setFormData, prices, extrasCatalogo = [] }) => 
 											}`}
 										>
 											<div className="flex items-center gap-3 min-w-0">
-												<div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-xl shrink-0">
+												<div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-xl shrink-0 overflow-hidden">
 													{item.imageUrl ? (
 														<img
 															src={item.imageUrl}
@@ -196,7 +145,7 @@ const Step7Extras = ({ formData, setFormData, prices, extrasCatalogo = [] }) => 
 														isSelected
 															? 'bg-pink-500 border-pink-500 text-white'
 															: 'border-gray-300'
-														}`}
+													}`}
 												>
 													{isSelected && <CheckCircle size={14} />}
 												</div>

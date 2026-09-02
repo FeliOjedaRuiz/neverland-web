@@ -51,7 +51,6 @@ const configSchema = new mongoose.Schema({
     tallerPlus: { type: Number, default: 30 },
     personaje: { type: Number, default: 40 },
     precioPack3Personajes: { type: Number, default: 100 },
-    pinata: { type: Number, default: 15 },
     extension30: { type: Number, default: 30 },
     extension60: { type: Number, default: 50 }
   },
@@ -63,7 +62,6 @@ const configSchema = new mongoose.Schema({
       descripcion: String,
       precio: { type: Number, min: 0, default: 0 },
       imageUrl: String,
-      suspended: { type: Boolean, default: false },
       active: { type: Boolean, default: true }
     }
   ]

@@ -225,14 +225,13 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
 
   describe('Catálogo de extras', () => {
     const catalogItems = [
-      { id: 'pinata', slug: 'pinata', nombre: 'Piñata Neverland', precio: 15, active: true, suspended: false },
-      { id: 'snack', slug: 'snack-bar', nombre: 'Snack Bar', precio: 25, active: true, suspended: false },
-      { id: 'decoracion', slug: 'decoracion-tematica', nombre: 'Decoración', precio: 35, active: true, suspended: false },
-      { id: 'oculto', slug: 'extra-oculto', nombre: 'Extra Oculto', precio: 10, active: true, suspended: true },
-      { id: 'inactivo', slug: 'extra-inactivo', nombre: 'Extra Inactivo', precio: 5, active: false, suspended: false }
+      { id: 'pinata', slug: 'pinata', nombre: 'Piñata Neverland', precio: 15, active: true },
+      { id: 'snack', slug: 'snack-bar', nombre: 'Snack Bar', precio: 25, active: true },
+      { id: 'decoracion', slug: 'decoracion-tematica', nombre: 'Decoración', precio: 35, active: true },
+      { id: 'inactivo', slug: 'extra-inactivo', nombre: 'Extra Inactivo', precio: 10, active: false }
     ];
 
-    it('filterActiveCatalog debería excluir suspendidos e inactivos', () => {
+    it('filterActiveCatalog debería excluir solo items inactivos', () => {
       const active = filterActiveCatalog(catalogItems);
       expect(active).toHaveLength(3);
       expect(active.map((i) => i.slug)).toEqual(['pinata', 'snack-bar', 'decoracion-tematica']);
@@ -243,8 +242,8 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
       expect(total).toBe(60);
     });
 
-    it('sumCatalogPrices debería devolver 0 si todos los items están suspendidos', () => {
-      const total = sumCatalogPrices(['extra-oculto'], catalogItems);
+    it('sumCatalogPrices debería devolver 0 si el item está inactivo', () => {
+      const total = sumCatalogPrices(['extra-inactivo'], catalogItems);
       expect(total).toBe(0);
     });
 

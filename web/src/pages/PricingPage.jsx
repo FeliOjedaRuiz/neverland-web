@@ -19,7 +19,6 @@ const DEFAULT_CONFIG = {
 		tallerPlus: 30,
 		personaje: 40,
 		precioPack3Personajes: 100,
-		pinata: 15,
 		extension30: 30,
 		extension60: 50,
 	},
@@ -252,9 +251,7 @@ const PricingPage = () => {
 	const menusNiñosActivos = (config.menusNiños || []).filter((m) => !m.suspended && m.active !== false);
 	const adultsActivos = (config.preciosAdultos || []).filter((m) => !m.suspended && m.active !== false);
 	const extras = config.preciosExtras || DEFAULT_CONFIG.preciosExtras;
-	const extrasCatalogoActivos = filterActiveCatalog(config.extrasCatalogo || []).filter(
-		(item) => item.slug !== 'pinata',
-	);
+	const extrasCatalogoActivos = filterActiveCatalog(config.extrasCatalogo || []);
 
 	return (
 		<div className="min-h-dvh bg-cream-bg pb-20">
@@ -465,13 +462,6 @@ const PricingPage = () => {
 									subtitle="Amplía tu fiesta una hora más"
 									price={extras.extension60}
 									accentClass="border-purple-100 hover:border-purple-200 transition-colors"
-								/>
-								<ExtraCard
-									icon="🪅"
-									title="Piñata Neverland"
-									subtitle="Incluye caramelos y sorpresas"
-									price={extras.pinata}
-									accentClass="border-yellow-100 hover:border-sun-yellow transition-colors"
 								/>
 							</div>
 						</motion.section>

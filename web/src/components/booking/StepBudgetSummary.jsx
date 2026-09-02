@@ -136,8 +136,8 @@ const StepBudgetSummary = ({
 						</div>
 					)}
 
-					{/* Piñata */}
-					{formData.extras.pinata && (
+					{/* Legacy Piñata fallback for old reservations */}
+					{formData.extras.pinata && (formData.extras.catalogoItemIds?.length || 0) === 0 && (
 						<div className="flex justify-between text-sun-yellow">
 							<span>Piñata</span>
 							<span className="font-bold">
@@ -159,7 +159,7 @@ const StepBudgetSummary = ({
 						</div>
 					)}
 
-					{/* Catálogo de extras adicionales */}
+					{/* Catálogo de extras adicionales (incluye Piñata — no es caso especial) */}
 					{formData.extras.catalogoItemIds?.length > 0 && (
 						<div className="pt-2 border-t border-pink-50 mt-2">
 							<p className="text-[10px] text-pink-400 font-black uppercase tracking-widest mb-2">
@@ -178,21 +178,16 @@ const StepBudgetSummary = ({
 									);
 								})}
 							</div>
-							{formData.extras.pinata && (
-								<div className="flex justify-between text-pink-700 text-xs font-bold mt-2 pt-2 border-t border-pink-100">
-									<span>Subtotal extras</span>
-									<span>
-										{(
-											sumCatalogPrices(
-												formData.extras.catalogoItemIds.filter((id) => id !== 'pinata'),
-												filterActiveCatalog(extrasCatalogo),
-											) +
-											(prices.preciosExtras?.pinata || 0)
-										).toFixed(2)}
-										€
-									</span>
-								</div>
-							)}
+							<div className="flex justify-between text-pink-700 text-xs font-bold mt-2 pt-2 border-t border-pink-100">
+								<span>Subtotal extras</span>
+								<span>
+									{sumCatalogPrices(
+										formData.extras.catalogoItemIds,
+										filterActiveCatalog(extrasCatalogo),
+									).toFixed(2)}
+									€
+								</span>
+							</div>
 						</div>
 					)}
 

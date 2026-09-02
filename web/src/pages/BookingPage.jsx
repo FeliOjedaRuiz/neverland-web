@@ -55,7 +55,6 @@ const DEFAULT_CONFIG = {
 		tallerPlus: 30,
 		personaje: 40,
 		precioPack3Personajes: 100,
-		pinata: 15,
 		extension30: 30,
 		extension60: 50,
 	},

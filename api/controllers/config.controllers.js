@@ -29,7 +29,7 @@ module.exports.get = (req, res, next) => {
           'Mario', 'Luigi', 'Bella', 'Bestia', 'Cenicienta', 'Príncipe', 'Aladín', 'Jasmín',
           'Blancanieves', 'Elsa', 'Anna', 'Olaf', 'K-Pop', 'Vaina'
         ],
-        preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, pinata: 15, extension30: 30, extension60: 50 }
+        preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, extension30: 30, extension60: 50 }
       };
 
       if (!config) {
@@ -68,7 +68,6 @@ const PINATA_CATALOG_ITEM = {
   descripcion: 'Piñata temática Neverland',
   precio: 15,
   imageUrl: '',
-  suspended: false,
   active: true
 };
 

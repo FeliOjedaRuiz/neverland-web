@@ -79,11 +79,11 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
         { name: 'Pintura', priceBase: 20, pricePlus: 25 }
       ],
       characters: [{ name: 'Minnie', precio: 40 }],
-      preciosExtras: { personaje: 40, pinata: 15, extension30: 30, extension60: 50 },
+      preciosExtras: { personaje: 40, extension30: 30, extension60: 50 },
       extrasCatalogo: [
-        { id: 'pinata', slug: 'pinata', nombre: 'Piñata Neverland', precio: 15, active: true, suspended: false },
-        { id: 'snack', slug: 'snack-bar', nombre: 'Snack Bar', precio: 25, active: true, suspended: false },
-        { id: 'decoracion', slug: 'decoracion-tematica', nombre: 'Decoración Temática', precio: 35, active: true, suspended: false }
+        { id: 'pinata', slug: 'pinata', nombre: 'Piñata Neverland', precio: 15, active: true },
+        { id: 'snack', slug: 'snack-bar', nombre: 'Snack Bar', precio: 25, active: true },
+        { id: 'decoracion', slug: 'decoracion-tematica', nombre: 'Decoración Temática', precio: 35, active: true }
       ]
     });
   });
@@ -329,7 +329,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
         preciosAdultos: [],
         workshops: [],
         characters: [],
-        preciosExtras: { personaje: 40, pinata: 15, precioPack3Personajes: 120 }
+        preciosExtras: { personaje: 40, precioPack3Personajes: 120 }
       });
 
       const payload = {

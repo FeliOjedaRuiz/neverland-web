@@ -63,7 +63,7 @@ const calculateEventPrice = async (eventData, config) => {
     menusNiños: [],
     plusFinDeSemana: 1.5,
     preciosAdultos: [],
-    preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, pinata: 15, extension30: 30, extension60: 50 },
+    preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, extension30: 30, extension60: 50 },
     workshops: []
   };
 
@@ -119,12 +119,13 @@ const calculateEventPrice = async (eventData, config) => {
 
   // 3. Extras
   if (detalles?.extras) {
-    // 3a. Generic catalog extras
-    if (Array.isArray(detalles.extras.catalogoItemIds)) {
+    // 3a. Generic catalog extras (Piñata is just another item now)
+    if (Array.isArray(detalles.extras.catalogoItemIds) && detalles.extras.catalogoItemIds.length > 0) {
       const catalogItems = safeConfig.extrasCatalogo || [];
       const catalogoItemIds = detalles.extras.catalogoItemIds;
       const seen = new Set();
       let catalogTotal = 0;
+      let includesPinata = false;
 
       for (const itemId of catalogoItemIds) {
         if (seen.has(itemId)) {
@@ -133,31 +134,25 @@ const calculateEventPrice = async (eventData, config) => {
         seen.add(itemId);
 
         const item = catalogItems.find(i => i.slug === itemId);
-        if (!item || !item.active || item.suspended) {
-          throw createError(400, `Extra del catálogo no válido, inactivo o suspendido: ${itemId}`);
+        if (!item || !item.active) {
+          throw createError(400, `Extra del catálogo no válido o inactivo: ${itemId}`);
         }
 
+        catalogTotal += item.precio || 0;
         if (item.slug === 'pinata') {
-          detalles.extras.pinata = true;
-          detalles.extras.precioPinataApplied = item.precio;
-        } else {
-          catalogTotal += item.precio || 0;
+          includesPinata = true;
         }
       }
 
       detalles.extras.precioCatalogoApplied = catalogTotal;
       total += catalogTotal;
 
-      // Sync Piñata dual-write: catalog selection is authoritative only when
-      // the catalog is non-empty. Empty arrays are the Mongoose default and may
-      // represent legacy reservations where `pinata: true` must be preserved.
-      if (catalogoItemIds.length > 0) {
-        const includesPinata = catalogoItemIds.includes('pinata');
-        detalles.extras.pinata = includesPinata;
-        if (!includesPinata) {
-          detalles.extras.precioPinataApplied = undefined;
-        }
-      }
+      // Backcompat dual-write: keep legacy pinata fields in sync so old UI
+      // readers continue to work. Only authoritative when catalog selection
+      // is non-empty; empty arrays preserve legacy reservations untouched.
+      const pinataCatalogItem = catalogItems.find(i => i.slug === 'pinata');
+      detalles.extras.pinata = includesPinata;
+      detalles.extras.precioPinataApplied = includesPinata ? pinataCatalogItem.precio : undefined;
     }
 
     if (detalles.extras.taller && detalles.extras.taller !== 'ninguno') {
@@ -190,10 +185,15 @@ const calculateEventPrice = async (eventData, config) => {
       total += charTotal;
     }
 
-    if (detalles.extras.pinata) {
+    // Legacy fallback: for old reservations with empty catalogoItemIds
+    // but pinata: true, look up the price from the catalog item and charge.
+    // Skip when catalog loop already processed the selection to avoid double-count.
+    const catalogHandledSelection = Array.isArray(detalles.extras.catalogoItemIds) && detalles.extras.catalogoItemIds.length > 0;
+    if (detalles.extras.pinata && !catalogHandledSelection) {
       let pinataPrice = detalles.extras.precioPinataApplied;
       if (pinataPrice === undefined || pinataPrice === null) {
-        pinataPrice = safeConfig.preciosExtras?.pinata || 15;
+        const pinataCatalogItem = (safeConfig.extrasCatalogo || []).find(i => i.slug === 'pinata');
+        pinataPrice = pinataCatalogItem ? pinataCatalogItem.precio : 15;
         detalles.extras.precioPinataApplied = pinataPrice;
       }
       total += pinataPrice;

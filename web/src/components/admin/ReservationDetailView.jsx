@@ -1018,56 +1018,46 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 									</div>
 								</div>
 
-								{/* Piñata */}
-								<div
-									className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${reservation.detalles?.extras?.pinata ? 'bg-energy-orange/5 border-energy-orange/20 shadow-sm' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
-								>
-									<div
-										className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.pinata ? 'bg-energy-orange/10 text-energy-orange' : 'bg-gray-100 text-gray-400'}`}
-									>
-										<Package size={20} />
-									</div>
-									<div className="min-w-0 flex-1">
-										<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
-											Piñata
-										</p>
-										<div className="flex items-center gap-2 flex-wrap">
-											<p className="font-display font-black text-lg text-text-black">
-												{reservation.detalles?.extras?.pinata
-													? 'Incluida'
-													: 'No incluida'}
-											</p>
-											{reservation.detalles?.extras?.pinata &&
-												!(reservation.detalles?.extras?.catalogoItemIds || []).includes('pinata') && (
-													<span className="px-2 py-0.5 bg-energy-orange/10 text-energy-orange rounded-full text-[8px] font-black uppercase">
-														(legacy)
-													</span>
-												)}
-										</div>
-									</div>
-								</div>
-
-								{/* Catálogo de extras */}
+								{/* Catálogo de extras (incluye Piñata — sin caso especial) */}
 								{(() => {
 									const catalogoItemIds = reservation.detalles?.extras?.catalogoItemIds || [];
-									if (catalogoItemIds.length === 0) return null;
+									// Backcompat: for old reservations with empty catalogoItemIds but pinata: true,
+									// synthesize the Piñata display using the catalog item.
+									let displayIds = catalogoItemIds;
+									const hasLegacyPinata =
+										reservation.detalles?.extras?.pinata &&
+										!catalogoItemIds.includes('pinata');
+									if (hasLegacyPinata) {
+										displayIds = [...catalogoItemIds, 'pinata'];
+									}
+									if (displayIds.length === 0) return null;
 									return (
 										<>
-											{catalogoItemIds.map((id) => {
+											{displayIds.map((id) => {
 												const item = getCatalogItemById(id, config?.extrasCatalogo || []);
 												const name = item?.nombre || id;
 												const price = item ? Number(item.precio) || 0 : 0;
+												const isLegacy = hasLegacyPinata && id === 'pinata';
 												return (
 													<div
 														key={id}
 														className="p-4 rounded-2xl border flex items-center gap-3 transition-all bg-pink-50/50 border-pink-100/50"
 													>
-														<div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-pink-100 text-pink-500">
-															<Gift size={20} />
+														<div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-pink-100 text-pink-500 overflow-hidden">
+															{item?.imageUrl ? (
+																<img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+															) : (
+																<Gift size={20} />
+															)}
 														</div>
 														<div className="min-w-0 flex-1">
-															<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
+															<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight flex items-center gap-2">
 																{name}
+																{isLegacy && (
+																	<span className="px-1.5 py-0.5 bg-energy-orange/10 text-energy-orange rounded-full text-[8px] font-black uppercase">
+																		(legacy)
+																	</span>
+																)}
 															</p>
 															<p className="font-display font-black text-lg text-text-black">
 																{price > 0 ? `${price}€` : 'Incluido'}
@@ -1078,11 +1068,11 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 											})}
 											<div className="flex justify-between items-center p-3 bg-pink-100/50 rounded-2xl border border-pink-100">
 												<span className="text-[10px] font-black text-pink-600 uppercase tracking-widest">
-													Subtotal catálogo
+													Subtotal extras
 												</span>
 												<span className="font-display font-black text-pink-600">
 													{sumCatalogPrices(
-														catalogoItemIds.filter((id) => id !== 'pinata'),
+														displayIds,
 														config?.extrasCatalogo || []
 													).toFixed(2)}
 													€
@@ -1269,23 +1259,27 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 								})()}
 
 								{/* Piñata */}
-								{reservation.detalles?.extras?.pinata && (() => {
-									let pPinata = reservation.detalles.extras.precioPinataApplied;
-									if (pPinata == null || pPinata === 0) {
-										pPinata = config?.preciosExtras?.pinata || 0;
-									}
-									if (pPinata > 0) {
-										return (
-											<div className="flex justify-between items-center text-sm">
-												<span className="text-gray-600 font-medium">Piñata</span>
-												<span className="font-black text-text-black">
-													{pPinata.toFixed(2)}€
-												</span>
-											</div>
-										);
-									}
-									return null;
-								})()}
+								{/* Legacy Piñata line in summary for old reservations only */}
+								{reservation.detalles?.extras?.pinata &&
+									!(reservation.detalles?.extras?.catalogoItemIds || []).includes('pinata') &&
+									(() => {
+										let pPinata = reservation.detalles.extras.precioPinataApplied;
+										if (pPinata == null || pPinata === 0) {
+											const pinataCatalogItem = (config?.extrasCatalogo || []).find(i => i.slug === 'pinata');
+											pPinata = pinataCatalogItem ? Number(pinataCatalogItem.precio) || 0 : 0;
+										}
+										if (pPinata > 0) {
+											return (
+												<div className="flex justify-between items-center text-sm">
+													<span className="text-gray-600 font-medium">Piñata (legacy)</span>
+													<span className="font-black text-text-black">
+														{pPinata.toFixed(2)}€
+													</span>
+												</div>
+											);
+										}
+										return null;
+									})()}
 
 								{/* Extensión */}
 								{reservation.horario?.extensionMinutos > 0 &&
@@ -2626,87 +2620,47 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 			<div className="space-y-3 pt-2">
 				<h5 className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em] flex items-center gap-2 pl-1">
 					<Gift size={14} />
-					Otros extras del catálogo
+					Extras del catálogo (incluye Piñata)
 				</h5>
 				<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-					{filterActiveCatalog(config?.extrasCatalogo || [])
-						.filter((item) => item.slug !== 'pinata')
-						.map((item) => {
-							const isSelected = (formData.catalogoItemIds || []).includes(item.slug);
-							return (
-								<div
-									key={item.slug}
-									onClick={() => {
-										const current = formData.catalogoItemIds || [];
-										if (isSelected) {
-											setFormData({ ...formData, catalogoItemIds: current.filter((id) => id !== item.slug) });
-										} else {
-											setFormData({ ...formData, catalogoItemIds: [...current, item.slug] });
-										}
-									}}
-									className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
-										isSelected ? 'border-pink-500' : 'border-transparent hover:border-pink-200'
-									}`}
-								>
-										<div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100 bg-gray-50">
-											{item.imageUrl ? (
-												<img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
-											) : (
-												<div className="w-full h-full flex items-center justify-center text-gray-300">
-													<Gift size={16} />
-												</div>
-											)}
+					{filterActiveCatalog(config?.extrasCatalogo || []).map((item) => {
+						const isSelected = (formData.catalogoItemIds || []).includes(item.slug);
+						return (
+							<div
+								key={item.slug}
+								onClick={() => {
+									const current = formData.catalogoItemIds || [];
+									if (isSelected) {
+										setFormData({ ...formData, catalogoItemIds: current.filter((id) => id !== item.slug) });
+									} else {
+										setFormData({ ...formData, catalogoItemIds: [...current, item.slug] });
+									}
+								}}
+								className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
+									isSelected ? 'border-pink-500' : 'border-transparent hover:border-pink-200'
+								}`}
+							>
+								<div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100 bg-gray-50">
+									{item.imageUrl ? (
+										<img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+									) : (
+										<div className="w-full h-full flex items-center justify-center text-gray-300">
+											<Gift size={16} />
 										</div>
-										<div className="min-w-0 flex-1">
-											<p className="text-xs font-black text-text-black truncate">{item.nombre || item.slug}</p>
-											<p className="text-[10px] font-bold text-gray-400">{Number(item.precio || 0)}€</p>
-										</div>
-										{isSelected && (
-											<div className="ml-auto w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
-												<Check size={12} className="text-white" />
-											</div>
-										)}
+									)}
+								</div>
+								<div className="min-w-0 flex-1">
+									<p className="text-xs font-black text-text-black truncate">{item.nombre || item.slug}</p>
+									<p className="text-[10px] font-bold text-gray-400">{Number(item.precio || 0)}€</p>
+								</div>
+								{isSelected && (
+									<div className="ml-auto w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
+										<Check size={12} className="text-white" />
 									</div>
-							);
-						})}
-				</div>
-			</div>
-
-			{/* Piñata */}
-			<div className="pt-2">
-				<div
-					onClick={() => {
-						const nextPinata = !formData.pinata;
-						const current = formData.catalogoItemIds || [];
-						const nextCatalog = nextPinata
-							? [...new Set([...current, 'pinata'])]
-							: current.filter((id) => id !== 'pinata');
-						setFormData({ ...formData, pinata: nextPinata, catalogoItemIds: nextCatalog });
-					}}
-					className={`p-6 rounded-[32px] border-2 transition-all cursor-pointer flex items-center justify-between group overflow-hidden relative ${
-						formData.pinata
-							? 'bg-energy-orange/5 border-energy-orange shadow-md'
-							: 'bg-gray-50 border-gray-100 grayscale hover:grayscale-0 hover:bg-white hover:border-energy-orange/30'
-					}`}
-				>
-					<div className="flex items-center gap-5 relative z-10">
-						<div
-							className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${formData.pinata ? 'bg-energy-orange text-white shadow-lg' : 'bg-gray-200 text-gray-400 group-hover:bg-energy-orange/10 group-hover:text-energy-orange'}`}
-						>
-							<Package size={28} />
-						</div>
-						<div>
-							<p className={`font-display font-black text-xl ${formData.pinata ? 'text-text-black' : 'text-gray-400'}`}>Piñata de Neverland</p>
-							<p className="text-xs font-bold text-gray-400">
-								{formData.pinata ? 'Servicio especial incluido' : 'Toca para añadir al banquete'}
-							</p>
-						</div>
-					</div>
-					<div
-						className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all relative z-10 ${formData.pinata ? 'border-energy-orange bg-energy-orange text-white' : 'border-gray-200 bg-white text-transparent'}`}
-					>
-						<Check size={20} strokeWidth={3} />
-					</div>
+								)}
+							</div>
+						);
+					})}
 				</div>
 			</div>
 

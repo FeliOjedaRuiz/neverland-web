@@ -356,7 +356,6 @@ const ConfigurationPanel = () => {
 		tallerPlus: 'Actividad Premium (>15)',
 		personaje: 'Personaje Animado',
 		precioPack3Personajes: 'Pack 3 personajes',
-		pinata: 'Piñata Neverland',
 		extension30: 'Extra 30 Min',
 		extension60: 'Extra 60 Min',
 	};
@@ -1443,7 +1442,6 @@ const ConfigurationPanel = () => {
 												descripcion: '',
 												precio: 0,
 												imageUrl: '',
-												suspended: false,
 												active: true,
 												isNew: true,
 											},
@@ -1465,7 +1463,7 @@ const ConfigurationPanel = () => {
 												key={item.id || idx}
 												onClick={() => setEditingExtraCatalogoIdx(idx)}
 												className={`group flex items-center gap-4 p-3 bg-gray-50/50 hover:bg-white border border-transparent hover:border-pink-200/30 rounded-3xl transition-all hover:shadow-xl hover:shadow-pink-500/5 text-left ${
-													item.suspended || !item.active ? 'opacity-50' : ''
+													!item.active ? 'opacity-50' : ''
 												}`}
 											>
 												<div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-200 shrink-0 shadow-inner">
@@ -1482,11 +1480,8 @@ const ConfigurationPanel = () => {
 														<h4 className="font-display font-black text-sm text-text-black truncate group-hover:text-pink-600 transition-colors">
 															{item.nombre || 'Sin nombre'}
 														</h4>
-														{item.suspended && (
+														{!item.active && (
 															<span className="px-1.5 py-0.5 bg-gray-200 text-gray-500 rounded-md text-[8px] font-black uppercase">Oculto</span>
-														)}
-														{!item.active && !item.suspended && (
-															<span className="px-1.5 py-0.5 bg-red-100 text-red-500 rounded-md text-[8px] font-black uppercase">Inactivo</span>
 														)}
 													</div>
 													<p className="text-[10px] font-medium text-gray-400 truncate">
@@ -1654,23 +1649,6 @@ const ConfigurationPanel = () => {
 															</div>
 
 															<div>
-																<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Slug</label>
-																<input
-																	type="text"
-																	value={item.slug || ''}
-																	disabled={isEditing}
-																	onChange={(e) => updateListItem('extrasCatalogo', idx, 'slug', e.target.value)}
-																	className={`w-full bg-gray-50 p-3 rounded-2xl text-xs font-bold text-text-black border border-transparent focus:bg-white focus:border-pink-200 outline-none transition-all ${
-																		isEditing ? 'text-gray-400 cursor-not-allowed' : ''
-																	}`}
-																	placeholder="slug-del-extra"
-																/>
-																{isEditing && (
-																	<p className="text-[7px] font-bold text-gray-400 mt-1">El slug no se puede editar una vez creado.</p>
-																)}
-															</div>
-
-															<div>
 																<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Descripción</label>
 																<textarea
 																	rows={3}
@@ -1681,27 +1659,15 @@ const ConfigurationPanel = () => {
 																/>
 															</div>
 
-															<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-																<div className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
-																	<div className="flex items-center justify-between mb-1">
-																		<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Activo</label>
-																		<ToggleSwitch
-																			active={!!item.active}
-																			onChange={() => updateListItem('extrasCatalogo', idx, 'active', !item.active)}
-																		/>
-																	</div>
-																	<p className="text-[7px] font-bold text-gray-400 leading-tight">Visible en la web y reservas.</p>
+															<div className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
+																<div className="flex items-center justify-between mb-1">
+																	<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Activo</label>
+																	<ToggleSwitch
+																		active={!!item.active}
+																		onChange={() => updateListItem('extrasCatalogo', idx, 'active', !item.active)}
+																	/>
 																</div>
-																<div className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
-																	<div className="flex items-center justify-between mb-1">
-																		<label className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Suspendido</label>
-																		<ToggleSwitch
-																			active={!item.suspended}
-																			onChange={() => updateListItem('extrasCatalogo', idx, 'suspended', !item.suspended)}
-																		/>
-																	</div>
-																	<p className="text-[7px] font-bold text-gray-400 leading-tight">Oculto temporalmente sin borrar.</p>
-																</div>
+																<p className="text-[7px] font-bold text-gray-400 leading-tight">Visible en la web y reservas.</p>
 															</div>
 
 															<div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-auto">
