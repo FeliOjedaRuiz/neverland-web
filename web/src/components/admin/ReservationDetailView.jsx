@@ -2710,11 +2710,13 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 									<p className={`text-sm font-black truncate ${isSelected ? 'text-text-black' : 'text-gray-400'}`}>{item.nombre || item.slug}</p>
 									<p className={`text-xs font-bold ${isSelected ? 'text-gray-400' : 'text-gray-300'}`}>{Number(item.precio || 0)}€</p>
 								</div>
-								<div className={`ml-auto w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-									isSelected ? 'bg-pink-500 border-pink-500' : 'border-gray-200 bg-white'
-								}`}>
-									{isSelected && <Check size={12} className="text-white" />}
-								</div>
+								{isSelected ? (
+									<span className="text-[10px] font-black text-pink-600 bg-pink-100 px-2 py-1 rounded-lg shrink-0">
+										+{Number(item.precio || 0)}€
+									</span>
+								) : (
+									<div className="w-5 h-5 rounded-full border-2 border-gray-200 bg-white shrink-0" />
+								)}
 							</div>
 						);
 					})}
