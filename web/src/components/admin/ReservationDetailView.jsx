@@ -2401,7 +2401,7 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 					{/* Selected Card / Trigger */}
 					<div
 						onClick={() => setIsTallerOpen(!isTallerOpen)}
-						className={`p-4 rounded-[32px] border-2 transition-all cursor-pointer flex items-center justify-between group ${
+						className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between group ${
 							isTallerOpen ? 'border-blue-500 bg-white shadow-lg' : 'border-gray-100 bg-gray-50 hover:bg-white hover:border-blue-200'
 						}`}
 					>
@@ -2500,9 +2500,9 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 					</h5>
 					
 					{/* Selected Card / Trigger */}
-					<div 
+					<div
 						onClick={() => setIsPersonajeOpen(!isPersonajeOpen)}
-						className={`p-4 rounded-[32px] border-2 transition-all cursor-pointer flex items-center justify-between group ${
+						className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between group ${
 							isPersonajeOpen ? 'border-purple-500 bg-white shadow-lg' : 'border-gray-100 bg-gray-50 hover:bg-white hover:border-purple-200'
 						}`}
 					>
@@ -2707,14 +2707,14 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 									)}
 								</div>
 								<div className="min-w-0 flex-1">
-									<p className="text-sm font-black text-text-black truncate">{item.nombre || item.slug}</p>
-									<p className="text-xs font-bold text-gray-400">{Number(item.precio || 0)}€</p>
+									<p className={`text-sm font-black truncate ${isSelected ? 'text-text-black' : 'text-gray-400'}`}>{item.nombre || item.slug}</p>
+									<p className={`text-xs font-bold ${isSelected ? 'text-gray-400' : 'text-gray-300'}`}>{Number(item.precio || 0)}€</p>
 								</div>
-								{isSelected && (
-									<div className="ml-auto w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
-										<Check size={12} className="text-white" />
-									</div>
-								)}
+								<div className={`ml-auto w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+									isSelected ? 'bg-pink-500 border-pink-500' : 'border-gray-200 bg-white'
+								}`}>
+									{isSelected && <Check size={12} className="text-white" />}
+								</div>
 							</div>
 						);
 					})}
