@@ -1265,28 +1265,51 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 									);
 								})()}
 
-								{/* Piñata */}
-								{/* Legacy Piñata line in summary for old reservations only */}
-								{reservation.detalles?.extras?.pinata &&
-									!(reservation.detalles?.extras?.catalogoItemIds || []).includes('pinata') &&
-									(() => {
+{/* Extras del catálogo (incluye Piñata legacy si aplica) */}
+								{(() => {
+									const catalogoItemIds = reservation.detalles?.extras?.catalogoItemIds || [];
+									const hasLegacyPinata =
+										reservation.detalles?.extras?.pinata &&
+										!catalogoItemIds.includes('pinata');
+
+									let total = 0;
+									const nombres = [];
+
+									if (hasLegacyPinata) {
 										let pPinata = reservation.detalles.extras.precioPinataApplied;
 										if (pPinata == null || pPinata === 0) {
 											const pinataCatalogItem = (config?.extrasCatalogo || []).find(i => i.slug === 'pinata');
 											pPinata = pinataCatalogItem ? Number(pinataCatalogItem.precio) || 0 : 0;
 										}
 										if (pPinata > 0) {
-											return (
-												<div className="flex justify-between items-center text-sm">
-													<span className="text-gray-600 font-medium">Piñata (legacy)</span>
-													<span className="font-black text-text-black">
-														{pPinata.toFixed(2)}€
-													</span>
-												</div>
-											);
+											total += pPinata;
+											nombres.push('Piñata');
 										}
-										return null;
-									})()}
+									}
+
+									for (const id of catalogoItemIds) {
+										const item = (config?.extrasCatalogo || []).find(
+											i => i.slug === id || i.id === id,
+										);
+										if (item && item.active) {
+											total += Number(item.precio) || 0;
+											nombres.push(item.nombre || id);
+										}
+									}
+
+									if (total <= 0 || nombres.length === 0) return null;
+
+									return (
+										<div className="flex justify-between items-center text-sm">
+											<span className="text-gray-600 font-medium">
+												Extras ({nombres.join(', ')})
+											</span>
+											<span className="font-black text-text-black">
+												{total.toFixed(2)}€
+											</span>
+										</div>
+									);
+								})()}
 
 								{/* Extensión */}
 								{reservation.horario?.extensionMinutos > 0 &&
