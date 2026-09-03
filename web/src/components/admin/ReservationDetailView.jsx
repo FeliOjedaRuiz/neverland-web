@@ -2436,45 +2436,58 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 
 					{/* Collapsible Picker */}
 					{isTallerOpen && (
-						<div className="p-5 bg-gray-50 rounded-[32px] border-2 border-dashed border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in slide-in-from-top-4 duration-300">
+						<div className="p-3 bg-gray-50 rounded-[32px] border border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in slide-in-from-top-4 duration-300">
 							{/* Opción Ninguno */}
 							<div
 								onClick={() => {
 									setFormData({ ...formData, taller: 'ninguno' });
 									setIsTallerOpen(false);
 								}}
-								className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
-									formData.taller === 'ninguno' ? 'border-blue-500' : 'border-transparent hover:border-blue-200'
+								className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer bg-white ${
+									formData.taller === 'ninguno' ? 'border-blue-500' : 'border-gray-100 hover:border-blue-200'
 								}`}
 							>
-								<div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-300">
+								<div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-300 shrink-0">
 									<X size={18} />
 								</div>
-								<span className="text-xs font-black text-text-black">Ninguna</span>
+								<span className="text-sm font-black text-text-black">Ninguna</span>
 							</div>
-							{config?.workshops?.map((ws) => (
-								<div
-									key={ws.id || ws._id}
-									onClick={() => {
-										setFormData({ ...formData, taller: ws.name });
-										setIsTallerOpen(false);
-									}}
-									className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
-										formData.taller === ws.name ? 'border-blue-500' : 'border-transparent hover:border-blue-200'
-									}`}
-								>
-									<div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100">
-										{ws.imageUrl || ws.image ? (
-											<img src={ws.imageUrl || ws.image} className="w-full h-full object-cover" alt="" />
-										) : (
-											<div className="w-full h-full flex items-center justify-center text-gray-100">
-												<Sparkles size={16} />
-											</div>
+							{config?.workshops?.map((ws) => {
+								const wsPrice = (ninosCantidad || 0) > 15
+									? (ws.precioPlus || ws.pricePlus || 0)
+									: (ws.precioBase || ws.priceBase || 0);
+								return (
+									<div
+										key={ws.id || ws._id}
+										onClick={() => {
+											setFormData({ ...formData, taller: ws.name });
+											setIsTallerOpen(false);
+										}}
+										className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer bg-white ${
+											formData.taller === ws.name ? 'border-blue-500' : 'border-gray-100 hover:border-blue-200'
+										}`}
+									>
+										<div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100">
+											{ws.imageUrl || ws.image ? (
+												<img src={ws.imageUrl || ws.image} className="w-full h-full object-cover" alt="" />
+											) : (
+												<div className="w-full h-full flex items-center justify-center text-gray-100">
+													<Sparkles size={16} />
+												</div>
+											)}
+										</div>
+										<div className="min-w-0 flex-1">
+											<p className="text-sm font-black text-text-black truncate">{ws.name}</p>
+											<p className="text-[10px] font-bold text-gray-400">{wsPrice}€{(ninosCantidad || 0) > 15 ? ' (plus)' : ''}</p>
+										</div>
+										{wsPrice > 0 && (
+											<span className="text-[10px] font-black text-blue-600 bg-blue-100 px-2 py-1 rounded-lg shrink-0">
+												+{wsPrice}€
+											</span>
 										)}
 									</div>
-									<span className="text-xs font-black text-text-black truncate">{ws.name}</span>
-								</div>
-							))}
+								);
+							})}
 						</div>
 					)}
 				</div>
@@ -2610,8 +2623,8 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 											}
 											// Keep picker open on selection
 										}}
-										className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
-											isSelected ? 'border-purple-500' : 'border-transparent hover:border-purple-200'
+										className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer bg-white ${
+											isSelected ? 'border-purple-500' : 'border-gray-100 hover:border-purple-200'
 										}`}
 									>
 										<div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100">
@@ -2623,7 +2636,10 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 												</div>
 											)}
 										</div>
-										<span className="text-xs font-black text-text-black truncate">{name}</span>
+										<div className="min-w-0 flex-1">
+											<p className="text-sm font-black text-text-black truncate">{name}</p>
+											<p className="text-xs font-bold text-gray-400">{unitPrice}€{formData.personajes?.length === 3 ? ' (Pack 3)' : ''}</p>
+										</div>
 										{isSelected && (
 											<div className="ml-auto w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
 												<Check size={12} className="text-white" />
@@ -2677,8 +2693,8 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 										setFormData({ ...formData, catalogoItemIds: [...current, item.slug] });
 									}
 								}}
-								className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
-									isSelected ? 'border-pink-500' : 'border-transparent hover:border-pink-200'
+								className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer bg-white ${
+									isSelected ? 'border-pink-500' : 'border-gray-100 hover:border-pink-200'
 								}`}
 							>
 								<div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100 bg-gray-50">
@@ -2691,8 +2707,8 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 									)}
 								</div>
 								<div className="min-w-0 flex-1">
-									<p className="text-xs font-black text-text-black truncate">{item.nombre || item.slug}</p>
-									<p className="text-[10px] font-bold text-gray-400">{Number(item.precio || 0)}€</p>
+									<p className="text-sm font-black text-text-black truncate">{item.nombre || item.slug}</p>
+									<p className="text-xs font-bold text-gray-400">{Number(item.precio || 0)}€</p>
 								</div>
 								{isSelected && (
 									<div className="ml-auto w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
