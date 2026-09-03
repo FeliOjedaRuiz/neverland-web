@@ -1438,6 +1438,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 								{activeModal === 'extras' && (
 									<ExtrasEdit
 										current={reservation.detalles.extras}
+										ninosCantidad={reservation.detalles?.niños?.cantidad}
 										config={config}
 										onCancel={closeModals}
 										onSave={async (newExtras) => {
@@ -2344,7 +2345,7 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 };
 
 // Sub-component for Extras Edit
-const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
+const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 	// Initialize with personajes array (handle legacy personaje string conversion)
 	const initialFormData = { ...current };
 	if (!initialFormData.personajes && initialFormData.personaje) {
@@ -2382,7 +2383,7 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 
 	const selectedWs = config?.workshops?.find(ws => ws.name === formData.taller);
 	const editorTallerPrice = selectedWs
-		? (niñosExt.cantidad > 15
+		? ((ninosCantidad || 0) > 15
 			? (selectedWs.precioPlus || selectedWs.pricePlus || 0)
 			: (selectedWs.precioBase || selectedWs.priceBase || 0))
 		: 0;
