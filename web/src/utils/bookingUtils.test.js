@@ -79,6 +79,42 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
       expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(185);
     });
 
+    it('debería aplicar fallback a priceBase si pricePlus está configurado en 0 euros para >= 15 niños', () => {
+      const pricesWithZeroPlus = {
+        ...mockPrices,
+        workshops: [
+          { name: 'Magia', priceBase: 30, pricePlus: 0 }
+        ]
+      };
+      const formData = {
+        fecha: '2026-05-13',
+        niños: { cantidad: 16, menuId: 'm1' },
+        adultos: { comida: [] },
+        extras: { taller: 'Magia' }
+      };
+
+      // 16 * 10 = 160€ + 30€ (fallback a priceBase en vez de 0€) = 190€
+      expect(calculateBookingTotal(formData, pricesWithZeroPlus, mockMenus)).toBe(190);
+    });
+
+    it('debería aplicar fallback a priceBase si pricePlus no está definido para >= 15 niños', () => {
+      const pricesWithoutPlus = {
+        ...mockPrices,
+        workshops: [
+          { name: 'Pintura', priceBase: 22 }
+        ]
+      };
+      const formData = {
+        fecha: '2026-05-13',
+        niños: { cantidad: 18, menuId: 'm1' },
+        adultos: { comida: [] },
+        extras: { taller: 'Pintura' }
+      };
+
+      // 18 * 10 = 180€ + 22€ (fallback a priceBase) = 202€
+      expect(calculateBookingTotal(formData, pricesWithoutPlus, mockMenus)).toBe(202);
+    });
+
     it('debería sumar correctamente la comida de adultos', () => {
       const formData = {
         fecha: '2026-05-13',

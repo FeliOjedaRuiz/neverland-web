@@ -167,7 +167,9 @@ const calculateEventPrice = async (eventData, config) => {
         );
         const isLargeGroup = (detalles.niños?.cantidad || 0) > 15;
         if (workshop) {
-          tallerPrice = isLargeGroup ? workshop.pricePlus : workshop.priceBase;
+          tallerPrice = isLargeGroup
+            ? (workshop.pricePlus > 0 ? workshop.pricePlus : workshop.priceBase)
+            : workshop.priceBase;
         } else {
           tallerPrice = isLargeGroup ? 30 : 25;
         }

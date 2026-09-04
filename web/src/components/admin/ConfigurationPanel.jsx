@@ -20,6 +20,7 @@ import {
 	EyeOff,
 	Calendar,
 	Gift,
+	AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useOutletContext } from 'react-router-dom';
@@ -122,6 +123,7 @@ const ConfigurationPanel = () => {
 	const [editingKidsMenuIdx, setEditingKidsMenuIdx] = useState(null);
 	const [editingCharacterIdx, setEditingCharacterIdx] = useState(null);
 	const [editingExtraCatalogoIdx, setEditingExtraCatalogoIdx] = useState(null);
+	const [workshopPriceWarning, setWorkshopPriceWarning] = useState(null);
 
 	const toggleSection = (section, forceOpen = false) => {
 		setOpenSections((prev) => ({
@@ -220,6 +222,61 @@ const ConfigurationPanel = () => {
 			console.error('Error saving config:', err);
 			toast.error('Error al guardar');
 		}
+	};
+
+	const handleSaveWorkshop = (ws, idx) => {
+		const base = Number(ws.priceBase) || 0;
+		const plus = Number(ws.pricePlus) || 0;
+
+		const cleanList = [...(config.workshops || [])];
+		cleanList[idx] = {
+			...ws,
+			priceBase: base,
+			pricePlus: plus,
+		};
+		const normalizedConfig = { ...config, workshops: cleanList };
+
+		if (base === 0) {
+			setWorkshopPriceWarning({
+				title: 'Precio base en 0€',
+				message: '¿Estás seguro de que quieres dejar el precio base en 0€? Los clientes no pagarán nada por esta actividad en reservas de grupos estándar.',
+				onConfirm: () => {
+					setWorkshopPriceWarning(null);
+					setConfig(normalizedConfig);
+					handleSave(normalizedConfig);
+				},
+			});
+			return;
+		}
+
+		if (plus === 0) {
+			setWorkshopPriceWarning({
+				title: 'Precio de más de 15 niños en 0€',
+				message: `¿Estás seguro de que quieres dejar el precio de más de 15 niños en 0€? Si lo dejas en 0€, el sistema cobrará automáticamente el precio base (${base}€) por defecto para evitar pérdidas.`,
+				onConfirm: () => {
+					setWorkshopPriceWarning(null);
+					setConfig(normalizedConfig);
+					handleSave(normalizedConfig);
+				},
+			});
+			return;
+		}
+
+		if (plus < base) {
+			setWorkshopPriceWarning({
+				title: 'Precio +15 niños menor que el precio base',
+				message: `Advertencia: El precio para más de 15 niños (${plus}€) es menor que el precio base (${base}€). ¿Deseas continuar así?`,
+				onConfirm: () => {
+					setWorkshopPriceWarning(null);
+					setConfig(normalizedConfig);
+					handleSave(normalizedConfig);
+				},
+			});
+			return;
+		}
+
+		setConfig(normalizedConfig);
+		handleSave(normalizedConfig);
 	};
 
 	const addItem = (field, defaultObj, sectionName) => {
@@ -974,7 +1031,7 @@ const ConfigurationPanel = () => {
 													)}
 												</div>
 												<p className="text-[10px] font-medium text-gray-400 truncate">
-													{ws.priceBase}€ / {ws.pricePlus}€
+													{ws.priceBase}€ base / {ws.pricePlus}€ (+15 niños)
 												</p>
 											</div>
 											<div className="p-2 text-blue-500/0 group-hover:text-blue-500 transition-all transform group-hover:translate-x-1">
@@ -1131,19 +1188,19 @@ const ConfigurationPanel = () => {
 																					<input
 																						type="number"
 																						value={ws.priceBase}
-																						onChange={(e) => updateListItem('workshops', idx, 'priceBase', parseFloat(e.target.value))}
+																						onChange={(e) => updateListItem('workshops', idx, 'priceBase', e.target.value === '' ? '' : parseFloat(e.target.value))}
 																						className="w-full bg-transparent p-0 font-display font-black text-gray-700 outline-none text-sm"
 																					/>
 																					<span className="text-[9px] font-black text-gray-300">€</span>
 																				</div>
 																			</div>
 																			<div className="bg-blue-50/30 rounded-xl p-3 border border-blue-100/20">
-																				<label className="text-[8px] font-black text-blue-400 uppercase block mb-0.5">Precio Plus</label>
+																				<label className="text-[8px] font-black text-blue-500 uppercase block mb-0.5">Precio más de 15 niños</label>
 																				<div className="flex items-center gap-0.5">
 																					<input
 																						type="number"
 																						value={ws.pricePlus}
-																						onChange={(e) => updateListItem('workshops', idx, 'pricePlus', parseFloat(e.target.value))}
+																						onChange={(e) => updateListItem('workshops', idx, 'pricePlus', e.target.value === '' ? '' : parseFloat(e.target.value))}
 																						className="w-full bg-transparent p-0 font-display font-black text-blue-500 outline-none text-sm"
 																					/>
 																					<span className="text-[9px] font-black text-blue-300">€</span>
@@ -1180,7 +1237,7 @@ const ConfigurationPanel = () => {
 																	
 																	<div className="flex items-center gap-2">
 																		<button
-																			onClick={() => handleSave()}
+																			onClick={() => handleSaveWorkshop(ws, idx)}
 																			className={`flex items-center gap-2 px-5 py-2 rounded-xl transition-all font-display font-black text-[9px] uppercase tracking-wider shadow-sm ${
 																				isItemChanged('workshops', ws)
 																					? 'bg-blue-500 text-white shadow-blue-500/20 hover:scale-105 active:scale-95'
@@ -1765,6 +1822,58 @@ const ConfigurationPanel = () => {
 						</AccordionSection>
 					</div>
 				)}
+
+				{/* Modal de Advertencia de Precios en Actividades */}
+				<AnimatePresence>
+					{workshopPriceWarning && (
+						<div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+							<motion.div
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								exit={{ opacity: 0 }}
+								onClick={() => setWorkshopPriceWarning(null)}
+								className="absolute inset-0 bg-text-black/70 backdrop-blur-sm"
+							/>
+							<motion.div
+								initial={{ opacity: 0, scale: 0.95, y: 10 }}
+								animate={{ opacity: 1, scale: 1, y: 0 }}
+								exit={{ opacity: 0, scale: 0.95, y: 10 }}
+								className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 overflow-hidden border border-amber-100 flex flex-col gap-4"
+							>
+								<div className="flex items-start gap-3.5">
+									<div className="p-3 bg-amber-50 text-amber-500 rounded-2xl shrink-0">
+										<AlertTriangle size={24} />
+									</div>
+									<div className="space-y-1">
+										<h3 className="font-display font-black text-base text-text-black">
+											{workshopPriceWarning.title}
+										</h3>
+										<p className="text-xs text-gray-600 font-medium leading-relaxed">
+											{workshopPriceWarning.message}
+										</p>
+									</div>
+								</div>
+
+								<div className="flex items-center justify-end gap-2.5 pt-2 border-t border-gray-100 mt-1">
+									<button
+										type="button"
+										onClick={() => setWorkshopPriceWarning(null)}
+										className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
+									>
+										Revisar precios
+									</button>
+									<button
+										type="button"
+										onClick={workshopPriceWarning.onConfirm}
+										className="px-4 py-2 text-xs font-black text-white bg-amber-500 hover:bg-amber-600 rounded-xl shadow-md shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+									>
+										Continuar y guardar
+									</button>
+								</div>
+							</motion.div>
+						</div>
+					)}
+				</AnimatePresence>
 			</div>
 		</div>
 	);

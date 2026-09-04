@@ -107,7 +107,7 @@ const Step8Summary = ({
 									);
 									if (!workshop) return '0';
 									return formData.niños.cantidad >= 15
-										? workshop.pricePlus
+										? (workshop.pricePlus > 0 ? workshop.pricePlus : workshop.priceBase)
 										: workshop.priceBase;
 								})()}
 								€

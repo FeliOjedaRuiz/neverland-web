@@ -58,7 +58,10 @@ export const calculateBookingTotal = (formData, prices, childrenMenusWithPrices)
     const isPlus = (formData.niños?.cantidad || 0) >= 15;
 
     if (workshop) {
-      total += isPlus ? (workshop.pricePlus || 0) : (workshop.priceBase || 0);
+      const tallerPrice = isPlus
+        ? (workshop.pricePlus > 0 ? workshop.pricePlus : (workshop.priceBase || 0))
+        : (workshop.priceBase || 0);
+      total += tallerPrice;
     } else {
       total += isPlus
         ? (prices.preciosExtras?.tallerPlus || 30)

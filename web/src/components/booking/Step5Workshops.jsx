@@ -72,8 +72,10 @@ const Step5Workshops = ({ formData, setFormData, WORKSHOPS }) => {
 			<div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
 				{/* Actual Workshops */}
 				{[...WORKSHOPS].reverse().filter((ws) => !ws.suspended).map((workshop) => {
-					const isSelected = formData.extras.taller === workshop.name;
-					const price = formData.niños.cantidad >= 15 ? workshop.pricePlus : workshop.priceBase;
+					const price =
+						formData.niños.cantidad >= 15
+							? (workshop.pricePlus > 0 ? workshop.pricePlus : workshop.priceBase)
+							: workshop.priceBase;
 
 					return (
 						<motion.div
@@ -166,7 +168,11 @@ const Step5Workshops = ({ formData, setFormData, WORKSHOPS }) => {
 										</div>
 									)}
 									<div className="absolute bottom-3 right-3 bg-rec-blue text-white px-3.5 py-1.5 rounded-2xl font-black text-base shadow-lg z-10">
-										{formData.niños.cantidad >= 15 ? selectedWorkshopForModal.pricePlus : selectedWorkshopForModal.priceBase}€
+										{formData.niños.cantidad >= 15
+											? (selectedWorkshopForModal.pricePlus > 0
+													? selectedWorkshopForModal.pricePlus
+													: selectedWorkshopForModal.priceBase)
+											: selectedWorkshopForModal.priceBase}€
 									</div>
 								</div>
 
@@ -185,7 +191,8 @@ const Step5Workshops = ({ formData, setFormData, WORKSHOPS }) => {
 										{selectedWorkshopForModal.desc}
 									</p>
 
-									{formData.niños.cantidad >= 15 && (
+									{formData.niños.cantidad >= 15 &&
+										selectedWorkshopForModal.pricePlus > selectedWorkshopForModal.priceBase && (
 										<div className="bg-blue-50/50 p-2.5 sm:p-3 rounded-2xl border border-blue-100 mb-3 sm:mb-4 flex items-center gap-3">
 											<div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
 												<Plus size={12} className="text-rec-blue" />

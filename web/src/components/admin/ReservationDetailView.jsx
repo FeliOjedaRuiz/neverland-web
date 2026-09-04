@@ -1229,7 +1229,9 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 										const tallerInfo = config?.workshops?.find(w => w.nombre === reservation.detalles.extras.taller);
 										if (tallerInfo) {
 											const cant = reservation.detalles?.niños?.cantidad || 0;
-											pTaller = cant > 15 ? (tallerInfo.precioPlus || tallerInfo.pricePlus || 0) : (tallerInfo.precioBase || tallerInfo.priceBase || 0);
+											const base = tallerInfo.precioBase || tallerInfo.priceBase || 0;
+											const plus = tallerInfo.precioPlus || tallerInfo.pricePlus || 0;
+											pTaller = cant > 15 ? (plus > 0 ? plus : base) : base;
 										} else {
 											pTaller = 0;
 										}
@@ -2410,10 +2412,12 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 	const displayPrice = personajesChanged ? dynamicPrice : originalSnapshot;
 
 	const selectedWs = config?.workshops?.find(ws => ws.name === formData.taller);
+	const selectedWsBase = selectedWs ? (selectedWs.precioBase || selectedWs.priceBase || 0) : 0;
+	const selectedWsPlus = selectedWs ? (selectedWs.precioPlus || selectedWs.pricePlus || 0) : 0;
 	const editorTallerPrice = selectedWs
 		? ((ninosCantidad || 0) > 15
-			? (selectedWs.precioPlus || selectedWs.pricePlus || 0)
-			: (selectedWs.precioBase || selectedWs.priceBase || 0))
+			? (selectedWsPlus > 0 ? selectedWsPlus : selectedWsBase)
+			: selectedWsBase)
 		: 0;
 
 	return (
@@ -2481,9 +2485,11 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 								<span className="text-sm font-black text-text-black">Ninguna</span>
 							</div>
 							{config?.workshops?.map((ws) => {
+								const basePrice = ws.precioBase || ws.priceBase || 0;
+								const plusPrice = ws.precioPlus || ws.pricePlus || 0;
 								const wsPrice = (ninosCantidad || 0) > 15
-									? (ws.precioPlus || ws.pricePlus || 0)
-									: (ws.precioBase || ws.priceBase || 0);
+									? (plusPrice > 0 ? plusPrice : basePrice)
+									: basePrice;
 								return (
 									<div
 										key={ws.id || ws._id}
