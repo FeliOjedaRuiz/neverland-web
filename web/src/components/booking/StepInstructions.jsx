@@ -29,7 +29,7 @@ const steps = [
 	},
 ];
 
-const StepInstructions = () => {
+const StepInstructions = ({ onStart }) => {
 	return (
 		<div className="flex flex-col items-center gap-4 sm:gap-6 px-2 max-w-lg mx-auto">
 			{/* Header */}
@@ -77,11 +77,15 @@ const StepInstructions = () => {
 				))}
 			</div>
 
-			{/* CTA hint */}
-			<div className="mt-2 text-[11px] sm:text-xs text-gray-400 flex items-center justify-center gap-1.5 animate-pulse rounded-full bg-gray-50 px-4 py-2 border border-gray-100">
-				Pulsa <span className="font-bold text-energy-orange">Siguiente</span> abajo para empezar
-				<ChevronRight size={12} className="text-energy-orange" />
-			</div>
+			{/* CTA hint / button */}
+			<button
+				type="button"
+				onClick={onStart}
+				className="mt-2 text-[11px] sm:text-xs text-gray-500 hover:text-energy-orange flex items-center justify-center gap-1.5 animate-pulse rounded-full bg-gray-50 hover:bg-orange-50 px-4 py-2 border border-gray-100 hover:border-orange-200 shadow-sm transition-all cursor-pointer active:scale-95"
+			>
+				Pulsa <span className="font-bold text-energy-orange">aquí</span> para comenzar
+				<ChevronRight size={13} className="text-energy-orange" />
+			</button>
 		</div>
 	);
 };

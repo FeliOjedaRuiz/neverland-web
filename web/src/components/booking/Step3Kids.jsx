@@ -236,7 +236,7 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 							animate={{ scale: 1, opacity: 1, y: 0 }}
 							exit={{ scale: 0.9, opacity: 0, y: 20 }}
 							transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-							className="bg-white rounded-[32px] overflow-hidden w-full max-w-lg shadow-2xl relative max-h-[90dvh] flex flex-col"
+							className="bg-white rounded-[32px] overflow-hidden w-full max-w-sm sm:max-w-md shadow-2xl relative max-h-[90dvh] flex flex-col"
 							onClick={(e) => e.stopPropagation()}
 						>
 							{/* Botón Cerrar - Mejorado para contraste */}
@@ -248,22 +248,22 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 							</button>
 
 							<div className="overflow-y-auto no-scrollbar">
-								{/* Hero Image Section - Altura reducida para móvil */}
-								<div className="relative h-48 sm:h-72 w-full overflow-hidden bg-gray-100">
+								{/* Hero Image Section - Imagen completa sin recortar */}
+								<div className="relative w-full bg-orange-50/40 flex items-center justify-center overflow-hidden shrink-0 min-h-[200px] max-h-[50dvh]">
 									{selectedMenuForModal.imageUrl ? (
 										<img 
 											src={selectedMenuForModal.imageUrl} 
 											alt={selectedMenuForModal.nombre} 
-											className="w-full h-full object-cover"
+											className="w-full h-auto max-h-[50dvh] object-contain block mx-auto"
 										/>
 									) : (
-										<div className="w-full h-full flex flex-col items-center justify-center text-gray-300 gap-2">
+										<div className="w-full h-48 flex flex-col items-center justify-center text-gray-300 gap-2">
 											<ImageIcon size={48} strokeWidth={1} />
 											<span className="text-xs font-bold uppercase tracking-widest">Sin imagen</span>
 										</div>
 									)}
 									{/* Price Badge over image */}
-									<div className="absolute bottom-4 right-4 bg-energy-orange text-white px-4 py-2 rounded-2xl font-black text-lg shadow-lg shadow-energy-orange/20">
+									<div className="absolute bottom-3 right-3 bg-energy-orange text-white px-3.5 py-1.5 rounded-2xl font-black text-base shadow-lg shadow-energy-orange/20 z-10">
 										{selectedMenuForModal.precio}€
 									</div>
 								</div>

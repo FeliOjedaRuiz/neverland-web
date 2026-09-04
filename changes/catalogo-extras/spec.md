@@ -1,58 +1,155 @@
-# Especificación: Catálogo de Extras
+# Spec: Catálogo Genérico de Extras
 
-## Requisitos
+## REQ-01 — Config schema
 
-| ID | Prioridad | Requisito verificable |
-|---|---|---|
-| REQ-01.1 | MUST | `Config.extrasCatalogo` SHALL almacenar `id`, `slug`, `nombre`, `descripcion`, `precio`, `imageUrl`, `suspended` y `active`; `slug` SHALL ser único e inmutable. |
-| REQ-01.2 | MUST | El catálogo SHALL incluir por seed Piñata Neverland (`slug: pinata`, precio 15€) y SHALL aceptar catálogo vacío sin error. |
-| REQ-02.1 | MUST | El admin SHALL poder crear, editar, activar/desactivar, suspender/reactivar y eliminar items con validación de nombre, slug único y precio no negativo. |
-| REQ-03.1 | MUST | Un evento SHALL guardar `detalles.extras.catalogoItemIds[]` y `precioCatalogoApplied` como snapshot de los precios vigentes al crear o actualizar. |
-| REQ-03.2 | MUST | Al seleccionar `pinata`, el servidor SHALL conservar además `pinata: true` y `precioPinataApplied`; el cálculo SHALL evitar duplicarlo. |
-| REQ-04.1 | MUST | Step7Extras SHALL mostrar únicamente items activos y no suspendidos, permitir selección múltiple y mantener Piñata como toggle visual dedicado. |
-| REQ-04.2 | MUST | Los resúmenes de reserva y presupuesto SHALL mostrar nombres, cantidades seleccionadas y precios de catálogo, incluido total recalculado. |
-| REQ-05.1 | MUST | `calculateEventPrice` SHALL sumar cada precio de catálogo seleccionado y PATCH SHALL invalidar/recalcular snapshots cuando cambien extras o precios base. |
-| REQ-06.1 | MUST | Las vistas admin SHALL mostrar extras seleccionados, precio aplicado y badge `(legacy)` cuando falte `catalogoItemIds`; items eliminados SHALL conservar identificación disponible. |
-| REQ-07.1 | SHOULD | Email de confirmación y evento de Google Calendar SHALL incluir nombres y precios aplicados de los extras, sin alterar reservas legacy. |
-| REQ-08.1 | MUST | PricingPage SHALL mostrar los extras activos/no suspendidos y sus precios; no SHALL exponer items internos. |
-| REQ-09.1 | MUST | `analyze-stale-snapshots` SHALL detectar discrepancias de catálogo y `fix-stale-snapshots` SHALL corregirlas sin modificar reservas legacy no migradas. |
-| REQ-10.1 | MUST | La cobertura SHALL incluir API Jest y web Vitest para CRUD, selección, snapshots, PATCH, legacy, scripts e integraciones; ambas suites SHALL pasar. |
+`api/models/config.model.js`:
 
-## Escenarios
+```
+extrasCatalogo: [{
+  nombre:     { type: String, required: true },
+  descripcion: String,
+  precio:     { type: Number, required: true, min: 0 },
+  imageUrl:   String,
+  orden:      { type: Number, default: 0 },
+  active:     { type: Boolean, default: true }
+}]
+```
 
-### Cliente y precios
-1. **GIVEN** catálogo con dos items disponibles **WHEN** el cliente marca ambos en Step7 **THEN** aparecen en Step8 y presupuesto, y el total suma ambos precios.
-2. **GIVEN** un item suspendido **WHEN** se carga Step7 **THEN** no se muestra ni puede enviarse desde el cliente.
-3. **GIVEN** evento con un extra y PATCH que cambia otro precio **WHEN** se procesa **THEN** el snapshot y total se recalculan con la selección vigente.
-4. **GIVEN** reserva sin `catalogoItemIds` y `pinata: true` **WHEN** se abre admin **THEN** conserva precio Piñata y muestra `(legacy)`.
+- **Sin** `suspended` (eliminado en refactor UX — solo `active`).
+- **Sin** `slug` visible en admin (Piñata se identifica por nombre legacy en `preciosExtras.pinata`).
+- `preciosExtras.pinata` se mantiene en schema para backcompat pero **NO** se muestra en ConfigurationPanel.
 
-### Admin CRUD
-5. **GIVEN** admin autenticado **WHEN** crea un item válido **THEN** queda visible en catálogo y pricing público; slug duplicado rechaza la operación sin cambios.
-6. **GIVEN** item existente **WHEN** admin intenta renombrar su slug **THEN** se rechaza o conserva el slug original; editar precio/nombre sí actualiza el catálogo.
-7. **GIVEN** item usado por reservas **WHEN** admin lo elimina **THEN** reservas previas siguen mostrando su ID/nombre disponible y no falla el detalle.
+## REQ-02 — Event schema
 
-### Integraciones y scripts
-8. **GIVEN** reserva nueva con extras **WHEN** se envían email y Calendar **THEN** ambos contienen los extras y precios aplicados.
-9. **GIVEN** snapshots desactualizados **WHEN** se ejecutan analyze y fix **THEN** reportan y corrigen solo discrepancias elegibles, con salida verificable.
+`api/models/event.model.js` en `detalles.extras`:
 
-## Criterios de aceptación
+```
+catalogoItemIds:      { type: [String], default: [] }
+precioCatalogoApplied: Number
+```
 
-- **Modelo/CRUD:** schema, seed, validaciones, permisos y operaciones CRUD cubiertos por Jest.
-- **Booking/presupuesto:** Step7, Step8 y BudgetPage filtran correctamente, preservan Piñata dedicado y renderizan catálogo vacío sin errores.
-- **Backend:** creación y PATCH persisten IDs, snapshots, compatibilidad Piñata y sumas sin duplicación.
-- **Admin:** detalle y modal muestran extras, precios, eliminados y badge legacy.
-- **Publicación/integraciones:** PricingPage, email y Calendar muestran solo datos activos o snapshots aplicados.
-- **Legacy/scripts/tests:** reservas antiguas permanecen funcionales; scripts tienen modo análisis/corrección probado; `npm test` de API y web pasa.
+Campos legacy preservados:
+```
+pinata:              Boolean
+precioPinataApplied: Number
+```
 
-## Casos límite
+## REQ-03 — Piñata seed idempotente
 
-- Catálogo vacío, todos los items suspendidos o inactivos.
-- Slug duplicado, slug cambiado, nombre vacío, precio negativo o imagen inválida.
-- Item eliminado con reservas existentes o ID desconocido.
-- Selección repetida, selección vacía, item suspendido enviado manualmente y precio cambiado concurrentemente.
-- Reserva legacy con `pinata` falso/ausente, precio legacy ausente o datos de extras incompletos.
-- Reejecución segura de scripts y fallo parcial de email/Calendar sin alterar el evento.
+`api/controllers/config.controllers.js` en bootstrap:
 
-## Fuera de alcance
+```
+si extrasCatalogo está vacío:
+  push { nombre: 'Piñata', precio: 20, active: true, orden: 0 }
+```
 
-Migrar `extension30`, `extension60`, `tallerBase` u otros extras legacy; descuentos/promociones; extras condicionales; inventario/stock; cambios de dependencias externas; y edición retroactiva de precios ya aplicados a reservas cerradas.
+- Idempotente (no duplica en re-run).
+- `preciosExtras.pinata: 20` se restaura manualmente antes de deploy (script `restore-legacy-pinata-config.js`).
+
+## REQ-04 — Pricing
+
+`api/controllers/events.controllers.js` → `calculateEventPrice`:
+
+```
+total = paquete + taller + personajes + sumCatalogo + otros
+```
+
+- `sumCatalogo` se calcula con precios **actuales** del catálogo (no snapshot).
+- `precioCatalogoApplied` se escribe como snapshot al crear/actualizar.
+- **Dual-write**: si `'pinata'` ∈ `catalogoItemIds`, también escribir `pinata: true` + `precioPinataApplied = catalogoPiñata.precio`.
+
+## REQ-05 — PATCH invalidation
+
+En PATCH (events.controllers):
+- Si `catalogoItemIds` cambió → invalidar `precioCatalogoApplied` y recalcular.
+- Si precios base / menú / horario cambiaron → invalidar snapshot de catálogo (regla extendida).
+- Segunda pasada (event.set) sincroniza Piñata dual-write.
+
+## REQ-06 — Backcompat cliente
+
+`web/src/utils/bookingUtils.js`:
+
+```
+calculateBookingTotal(form, config):
+  ...
+  piñataPrice = form.precioPinataApplied
+             ?? catalog.find(c => c.nombre === 'Piñata')?.precio
+             ?? 15
+```
+
+`Step7Extras.jsx`:
+- **NO** toggle especial de Piñata.
+- Solo renderiza `filterActiveCatalog(extrasCatalogo)` como checkboxes.
+- Precio en `text-pink-600`, checkmark en círculo rosa cuando seleccionado.
+
+## REQ-07 — Admin CRUD
+
+`web/src/components/admin/ConfigurationPanel.jsx`:
+
+- Accordion **"Extras Adicionales"** con grid de cards (nombre, precio, badge active).
+- Botón "+" abre modal con campos: nombre, descripción, precio (€), imageUrl (URL).
+- Guardar/editar/eliminar vía endpoint existente de config.
+- Slug NO se muestra en UI; Piñata se identifica por nombre legacy al filtrar.
+- Sección **"Precios & Otros Extras"** filtra el campo `pinata` (no se muestra).
+
+## REQ-08 — Admin reservation view
+
+`web/src/components/admin/ReservationDetailView.jsx`:
+
+**Read-only cards** (con badge rosa `+X€` en cada item):
+- Card Actividad
+- Card Personajes (hasta 3)
+- Card Catálogo (todos los `catalogoItemIds`)
+
+**Ingreso Previsto**:
+- Una sola línea **"Subtotal actividades y extras"** que suma taller + personajes + catálogo.
+
+**Editor** (`ExtrasEdit`):
+- Recibe prop `ninosCantidad` (fix de ReferenceError).
+- Checkboxes de catálogo siempre visibles; nombre en gris si no seleccionado, badge rosa si seleccionado.
+- Pickers de actividad y personajes con precio por item visible.
+- `rounded-2xl` (no `rounded-[32px]`) en cards seleccionadas.
+
+**Save payload**:
+- **Preserva** `precioPinataApplied` y `pinata` legacy al guardar (fix bug que los borraba).
+
+`web/src/components/admin/ReservationDetailModal.jsx`:
+- Badge **"Extras: N items"** junto al precio total.
+
+## REQ-09 — Cliente booking
+
+`web/src/components/booking/Step7Extras.jsx`:
+- Lista de catálogo activo como checkboxes.
+- Cada item: imagen (o inicial), nombre, descripción truncada, badge `+X€` rosa.
+- Checkmark en círculo rosa cuando seleccionado, borde gris cuando no.
+- Sin toggle separado de Piñata.
+
+`Step8Summary.jsx` + `StepBudgetSummary.jsx`:
+- Línea **"Subtotal actividades y extras"** (taller + personajes + catálogo), **NO** solo catálogo.
+
+## REQ-10 — Pricing page
+
+`web/src/pages/PricingPage.jsx`:
+- Nueva sección **"Extras Adicionales"** que renderiza `filterActiveCatalog(items)`.
+- Sección "Extras" ya no muestra Piñata hardcoded.
+
+## REQ-11 — Email + Calendar
+
+`api/config/mailer.config.js`:
+- Bloque HTML **"Extras adicionales"** después de las líneas existentes, itera `catalogoItemIds` con nombre + precio snapshot.
+
+`api/services/google.service.js`:
+- Calendar description incluye catálogo seleccionado con precios snapshot.
+
+## Scripts auxiliares
+
+- `api/scripts/cleanup-legacy-pinata-config.js`: quitar `preciosExtras.pinata` de BD.
+- `api/scripts/restore-legacy-pinata-config.js`: restaurar `preciosExtras.pinata: 20` en BD.
+- `api/scripts/analyze-stale-snapshots.js`: detectar discrepancias catálogo vs snapshot.
+- `api/scripts/fix-stale-snapshots.js`: reparar `precioCatalogoApplied` stale.
+- `api/scripts/find-legacy-pinata-reservations.js`: encontrar reservas con Piñata legacy.
+
+## Backcompat verificado
+
+6 reservas legacy probadas en admin con `pinata: true` + `precioPinataApplied: 20`:
+`7EXGX7`, `1MF328`, `37ABWV`, `E82EHM`, `KWK6MQ`, `TO24JE` (creada 2026-08-25, antes de la feature).

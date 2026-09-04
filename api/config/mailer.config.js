@@ -213,7 +213,7 @@ ${publicUrl}
               <span class="summary-label">Extra:</span>
               <span class="summary-value">Visita de ${detalles.extras.personajes.join(', ')}</span>
             </div>` : ''}
-            ${detalles.extras.pinata ? `
+            ${detalles.extras.pinata && (!detalles.extras.catalogoItemIds || detalles.extras.catalogoItemIds.length === 0) ? `
             <div class="summary-row">
               <span class="summary-label">Extra:</span>
               <span class="summary-value">Piñata</span>

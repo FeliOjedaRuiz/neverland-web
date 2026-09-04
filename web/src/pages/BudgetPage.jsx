@@ -553,7 +553,7 @@ const BudgetPage = () => {
 									transition={{ duration: 0.3 }}
 									className="flex flex-col min-h-full"
 								>
-									{step === 1 && <StepInstructions />}
+									{step === 1 && <StepInstructions onStart={nextStep} />}
 									{step === 2 && (
 										<Step3Kids
 											formData={formData}
@@ -642,6 +642,7 @@ const BudgetPage = () => {
 								isValid={validateStep()}
 								totalSteps={TOTAL_STEPS}
 								submitLabel="Solicitar reserva"
+								nextLabel={step === 1 ? 'Comenzar' : 'Siguiente'}
 								hideNext={step === 7}
 								validationMsg={getValidationMsg()}
 							/>

@@ -117,21 +117,32 @@ module.exports.createCalendarEvent = async (booking) => {
       if (precioAdultos > 0) precioLines.push(`  Comida Adultos = ${precioAdultos.toFixed(2)}€`);
       if (detalles?.extras?.precioTallerApplied > 0) precioLines.push(`  Actividad (${detalles.extras.taller}) = ${detalles.extras.precioTallerApplied.toFixed(2)}€`);
       if (detalles?.extras?.precioPersonajeApplied > 0) precioLines.push(`  Personajes (${(detalles.extras.personajes || []).join(', ')}) = ${detalles.extras.precioPersonajeApplied.toFixed(2)}€`);
-      if (detalles?.extras?.precioPinataApplied > 0) precioLines.push(`  Piñata = ${detalles.extras.precioPinataApplied.toFixed(2)}€`);
 
-      // Generic catalog extras (snapshot total for historical accuracy)
+      // Generic catalog extras vs legacy
       const catalogoItemIds = detalles?.extras?.catalogoItemIds || [];
-      if (catalogoItemIds.length > 0) {
-        const catalogItems = (await Config.findOne().lean())?.extrasCatalogo || [];
+      const hasCatalog = catalogoItemIds.length > 0;
+      let catalogItems = [];
+      if (hasCatalog) {
+        catalogItems = (await Config.findOne().lean())?.extrasCatalogo || [];
+      }
+
+      // Legacy Piñata: only if not handled by catalog
+      if (!hasCatalog && detalles?.extras?.precioPinataApplied > 0) {
+        precioLines.push(`  Piñata = ${detalles.extras.precioPinataApplied.toFixed(2)}€`);
+      }
+
+      // Catalog items (individual breakdown)
+      let extrasNombres = [];
+      if (hasCatalog) {
         catalogoItemIds.forEach(itemId => {
           const item = catalogItems.find(i => i.slug === itemId || String(i.id) === String(itemId));
           const nombre = item?.nombre || itemId;
           const precio = item?.precio ?? 0;
+          extrasNombres.push(nombre);
           precioLines.push(`  ${nombre} = ${Number(precio).toFixed(2)}€`);
         });
-        if (detalles?.extras?.precioCatalogoApplied > 0) {
-          precioLines.push(`  Total catálogo = ${detalles.extras.precioCatalogoApplied.toFixed(2)}€`);
-        }
+      } else if (detalles?.extras?.pinata) {
+        extrasNombres.push('Piñata');
       }
 
       if (booking.horario?.costoExtension > 0) precioLines.push(`  Extensión (+${booking.horario.extensionMinutos}min) = ${booking.horario.costoExtension.toFixed(2)}€`);
@@ -156,7 +167,7 @@ module.exports.createCalendarEvent = async (booking) => {
 **✨ ACTIVIDADES Y EXTRAS**:
 - **Taller**: ${detalles?.extras?.taller && detalles.extras.taller !== 'ninguno' ? detalles.extras.taller : 'No'}
 - **Personajes**: ${(detalles?.extras?.personajes?.length > 0) ? detalles.extras.personajes.join(', ') : 'No'}
-- **Piñata**: ${detalles?.extras?.pinata ? 'Sí' : 'No'}
+- **Extras**: ${extrasNombres.length > 0 ? extrasNombres.join(', ') : 'Ninguno'}
 - **Extensión**: ${booking.horario?.extensionMinutos || 0} min
 
 **📝 OBSERVACIONES**:

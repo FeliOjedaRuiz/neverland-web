@@ -1369,27 +1369,48 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 
 				{/* Modal Overlay System */}
 				{activeModal && (
-					<div className="fixed inset-0 z-110 bg-cream-bg flex flex-col animate-in slide-in-from-bottom duration-300 overflow-hidden">
-						<div className="w-full h-full flex flex-col">
-							<div className="px-6 py-5 border-b border-orange-100/50 flex justify-between items-center bg-calendar-bg sticky top-0 z-20">
-								<h3 className="text-lg font-display font-black text-text-black uppercase tracking-tight">
-									{activeModal === 'client' && 'Editar Información Cliente'}
-									{activeModal === 'datetime' && 'Editar Fecha y Horario'}
-									{activeModal === 'menus' && 'Editar Menús y Asistencia'}
-									{activeModal === 'extras' && 'Editar Extras y Actividades'}
-									{activeModal === 'observations' && 'Editar Observaciones'}
-								</h3>
-								<button
-									onClick={closeModals}
-									className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 rounded-full text-gray-400 transition-all active:scale-95"
+					<div
+						className={
+							isAdmin
+								? "fixed inset-0 md:left-64 md:inset-y-0 md:right-0 z-40 bg-cream-bg flex flex-col animate-in fade-in duration-200 overflow-hidden"
+								: "fixed inset-0 z-50 bg-cream-bg md:bg-black/30 md:backdrop-blur-xs flex flex-col md:items-center md:justify-center md:p-6 animate-in fade-in duration-200 overflow-hidden"
+						}
+					>
+						<div
+							className={
+								isAdmin
+									? "w-full h-full flex flex-col overflow-hidden"
+									: "w-full h-full md:h-auto md:max-h-[88dvh] md:max-w-xl md:rounded-[32px] md:shadow-2xl md:border md:border-orange-100/50 bg-cream-bg flex flex-col overflow-hidden"
+							}
+						>
+							<div className="w-full bg-calendar-bg border-b border-orange-100/50 sticky top-0 z-20 shrink-0">
+								<div
+									className={`px-6 py-5 flex justify-between items-center ${
+										isAdmin ? 'max-w-3xl mx-auto' : 'w-full'
+									}`}
 								>
-									<X size={20} />
-								</button>
+									<h3 className="text-lg font-display font-black text-text-black uppercase tracking-tight">
+										{activeModal === 'client' && 'Editar Información Cliente'}
+										{activeModal === 'datetime' && 'Editar Fecha y Horario'}
+										{activeModal === 'menus' && 'Editar Menús y Asistencia'}
+										{activeModal === 'extras' && 'Editar Extras y Actividades'}
+										{activeModal === 'observations' && 'Editar Observaciones'}
+									</h3>
+									<button
+										onClick={closeModals}
+										className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 rounded-full text-gray-400 transition-all active:scale-95"
+									>
+										<X size={20} />
+									</button>
+								</div>
 							</div>
 
-							<div
-								className={`flex-1 overflow-y-auto ${activeModal === 'datetime' ? 'p-2' : 'p-6 sm:p-8'}`}
-							>
+							<div className="flex-1 overflow-y-auto">
+								<div
+									className={`${
+										isAdmin ? 'max-w-3xl mx-auto' : 'w-full'
+									} ${activeModal === 'datetime' ? 'p-2 sm:p-4' : 'p-6 sm:p-8'}`}
+								>
 								{activeModal === 'client' && (
 									<ClientInfoEdit
 										current={reservation.cliente}
@@ -1546,6 +1567,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 								)}
 
 								{/* Other modals will go here */}
+								</div>
 							</div>
 						</div>
 					</div>
@@ -2361,6 +2383,12 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 	if (!Array.isArray(initialFormData.catalogoItemIds)) {
 		initialFormData.catalogoItemIds = [];
 	}
+	if (initialFormData.pinata && initialFormData.catalogoItemIds.length === 0) {
+		const pinataCatalogExists = (config?.extrasCatalogo || []).some(i => i.slug === 'pinata');
+		if (pinataCatalogExists) {
+			initialFormData.catalogoItemIds = ['pinata'];
+		}
+	}
 
 	const [formData, setFormData] = useState(initialFormData);
 	const [isTallerOpen, setIsTallerOpen] = useState(false);
@@ -2687,11 +2715,16 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 								key={item.slug}
 								onClick={() => {
 									const current = formData.catalogoItemIds || [];
-									if (isSelected) {
-										setFormData({ ...formData, catalogoItemIds: current.filter((id) => id !== item.slug) });
-									} else {
-										setFormData({ ...formData, catalogoItemIds: [...current, item.slug] });
-									}
+									const nextCatalog = isSelected
+										? current.filter((id) => id !== item.slug)
+										: [...current, item.slug];
+									const hasPinata = nextCatalog.includes('pinata');
+									setFormData({
+										...formData,
+										catalogoItemIds: nextCatalog,
+										pinata: hasPinata,
+										precioPinataApplied: hasPinata ? formData.precioPinataApplied : undefined,
+									});
 								}}
 								className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer bg-white ${
 									isSelected ? 'border-pink-500' : 'border-gray-100 hover:border-pink-200'
@@ -2708,15 +2741,19 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 								</div>
 								<div className="min-w-0 flex-1">
 									<p className={`text-sm font-black truncate ${isSelected ? 'text-text-black' : 'text-gray-400'}`}>{item.nombre || item.slug}</p>
-									<p className={`text-xs font-bold ${isSelected ? 'text-gray-400' : 'text-gray-300'}`}>{Number(item.precio || 0)}€</p>
+									{isSelected ? (
+										<span className="inline-block text-[10px] font-black text-pink-600 bg-pink-100 px-2 py-0.5 rounded-lg">
+											+{Number(item.precio || 0)}€
+										</span>
+									) : (
+										<p className="text-xs font-bold text-gray-300">{Number(item.precio || 0)}€</p>
+									)}
 								</div>
-								{isSelected ? (
-									<span className="text-[10px] font-black text-pink-600 bg-pink-100 px-2 py-1 rounded-lg shrink-0">
-										+{Number(item.precio || 0)}€
-									</span>
-								) : (
-									<div className="w-5 h-5 rounded-full border-2 border-gray-200 bg-white shrink-0" />
-								)}
+								<div className={`ml-auto w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+									isSelected ? 'bg-pink-500 border-pink-500' : 'border-gray-200 bg-white'
+								}`}>
+									{isSelected && <Check size={12} className="text-white" />}
+								</div>
 							</div>
 						);
 					})}
@@ -2732,6 +2769,11 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 						// invalidation). Borrarlos client-side destruye el precio
 						// histórico de reservas legacy.
 						const { precioTallerApplied, precioPersonajeApplied, ...cleanExtras } = formData;
+						const hasPinata = (cleanExtras.catalogoItemIds || []).includes('pinata');
+						cleanExtras.pinata = hasPinata;
+						if (!hasPinata) {
+							cleanExtras.precioPinataApplied = undefined;
+						}
 						onSave(cleanExtras);
 					}}
 					className="flex-1 py-4 bg-neverland-green text-white rounded-2xl font-black text-sm shadow-lg shadow-neverland-green/20 transition-all active:scale-95"

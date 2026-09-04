@@ -11,6 +11,7 @@ const BookingNavigation = ({
 	isValid,
 	totalSteps = 8,
 	submitLabel = 'Solicitar reserva',
+	nextLabel = 'Siguiente',
 	customAction,
 	hideNext = false,
 	validationMsg,
@@ -87,7 +88,7 @@ const BookingNavigation = ({
 									: 'bg-gray-200 text-gray-400 cursor-pointer'
 							}`}
 						>
-							Siguiente <ChevronRight size={16} />
+							{nextLabel} <ChevronRight size={16} />
 						</button>
 					)}
 				</div>

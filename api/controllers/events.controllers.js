@@ -120,7 +120,10 @@ const calculateEventPrice = async (eventData, config) => {
   // 3. Extras
   if (detalles?.extras) {
     // 3a. Generic catalog extras (Piñata is just another item now)
-    if (Array.isArray(detalles.extras.catalogoItemIds) && detalles.extras.catalogoItemIds.length > 0) {
+    if (Array.isArray(detalles.extras.catalogoItemIds)) {
+      if (detalles.extras.catalogoItemIds.length === 0) {
+        detalles.extras.precioCatalogoApplied = 0;
+      } else {
       const catalogItems = safeConfig.extrasCatalogo || [];
       const catalogoItemIds = detalles.extras.catalogoItemIds;
       const seen = new Set();
@@ -152,7 +155,8 @@ const calculateEventPrice = async (eventData, config) => {
       // is non-empty; empty arrays preserve legacy reservations untouched.
       const pinataCatalogItem = catalogItems.find(i => i.slug === 'pinata');
       detalles.extras.pinata = includesPinata;
-      detalles.extras.precioPinataApplied = includesPinata ? pinataCatalogItem.precio : undefined;
+      detalles.extras.precioPinataApplied = includesPinata ? pinataCatalogItem?.precio : undefined;
+      }
     }
 
     if (detalles.extras.taller && detalles.extras.taller !== 'ninguno') {

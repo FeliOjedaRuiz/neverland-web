@@ -2,90 +2,52 @@
 
 ## Intent
 
-El admin necesita agregar extras personalizados (nombre, descripción, precio, foto) sin tocar código. Hoy la Piñata está hardcodeada — mañana podría ser un snack bar, decoración temática, o cualquier otro extra. El catálogo genérico permite que el admin expanda la oferta de extras desde el panel de configuración.
+Reemplazar el extra hardcodeado "Piñata" por un **catálogo genérico de extras** que el admin pueda crear/editar/eliminar desde el panel de configuración sin tocar código. Los clientes los eligen durante el flujo de reserva o presupuesto. **Backcompat 100%** con reservas existentes que tengan `pinata: true` + `precioPinataApplied`.
 
-## Scope
+## Why now
 
-### In Scope
-- Modelo `extrasCatalogo[]` embebido en Config (patrón existente: `menusNiños[]`, `characters[]`)
-- CRUD de catálogo desde ConfigurationPanel (admin)
-- Item schema: `{ id, slug, nombre, descripcion, precio, imageUrl, suspended, active }`
-- Seed inicial: Piñata Neverland (slug `pinata`, precio 15€)
-- Selección múltiple en Step7Extras (checkboxes)
-- Backcompat: `pinata: Boolean` + `precioPinataApplied` preservados en Event cuando slug `pinata` está seleccionado
-- Campos nuevos en Event: `detalles.extras.catalogoItemIds[]` + `detalles.extras.precioCatalogoApplied`
-- Piñata mantiene toggle visual dedicado en Step7 (no checkbox genérico)
-- Reservas legacy muestran badge "(legacy)" en admin
+- El admin necesita poder ofrecer packs variables (Piñata XL, decoración extra, animación adicional, etc.) sin pedir deploys.
+- Reservas legacy (6 verificadas: 7EXGX7, 1MF328, 37ABWV, E82EHM, KWK6MQ, TO24JE) ya usan `pinata: true` + `precioPinataApplied`. Cualquier cambio de schema DEBE preservarlas.
+- El frontend ya tiene una sección "Extras" con Piñata fija. Migrarla a una sección genérica simplifica la UI a largo plazo.
 
-### Out of Scope
-- Migración de otros extras legacy (`extension30`, `extension60`, `tallerBase`, etc.) al catálogo
-- Descuentos o promociones sobre extras
-- Extras condicionales (ej: "solo disponible si contrata personaje")
-- Inventario o límite de stock por extra
+## What changes
 
-## Capabilities
+- `Config` gana `extrasCatalogo[]` con `{ nombre, descripcion, precio, imageUrl, orden, active }` (sin `suspended`, sin `slug` visible en admin — Piñata se identifica por nombre legacy).
+- `Event.detalles.extras` gana `catalogoItemIds: [String]` + `precioCatalogoApplied: Number`.
+- Piñata pasa a ser el primer item del catálogo (seed idempotente en bootstrap de config), precio **20€**.
+- El servidor hace **dual-write**: si `'pinata'` está en `catalogoItemIds`, también setea `pinata: true` y `precioPinataApplied`.
+- Cliente usa fallback: `precioPinataApplied` → `catalogo[pinata].precio` → `15` (último recurso histórico).
+- Admin UI: nuevo accordion "Extras Adicionales" en ConfigurationPanel con CRUD.
+- Admin UI: ReservationDetailView muestra Actividad (+X€), Personajes (+X€), Catálogo (+X€), subtotal "Subtotal actividades y extras".
+- Cliente: Step7Extras muestra solo catálogo activo, sin toggle especial de Piñata.
+- Email + Google Calendar description incluyen catálogo seleccionado.
 
-### New Capabilities
-- `extras-catalog`: CRUD genérico de extras desde admin, selección en booking, pricing dinámico
+## What does NOT change (non-goals)
 
-### Modified Capabilities
-- `event-pricing`: `calculateEventPrice` suma precio de catálogo seleccionado
-- `booking-flow`: Step7Extras renderiza catálogo dinámico + Piñata como caso especial
-- `reservation-detail`: Admin ve catálogo seleccionado + badge legacy en reservas antiguas
-- `config-panel`: Admin gestiona catálogo de extras
+- Carrito de extras (futuro).
+- Multi-cantidad por extra (futuro).
+- Categorías/tags de extras (futuro).
+- Personajes, actividades y pack 3 personajes no se tocan.
 
-## Approach
+## Stack & constraints
 
-Array embebido `extrasCatalogo[]` en Config document, siguiendo el patrón de `characters[]` y `workshops[]`. Cada item tiene `slug` único e inmutable. El server calcula `precioCatalogoApplied` como snapshot al crear/actualizar evento. Backcompat: si `pinata` está en `catalogoItemIds`, server también setea `pinata: true` + `precioPinataApplied`.
+- MERN JavaScript puro (NO TypeScript).
+- Mobile-first Safari-safe: `dvh` (no `h-screen`), `text-base` en inputs, `safeParseDate` para fechas.
+- UI en Español. Conventional commits. Sin `Co-Authored-By`.
+- Branch dedicada: `feat/catalogo-extras` (NO main directo). Vercel preview por PR.
+- Front: Vite + React 19 + Tailwind 4. Back: Express 4 + Mongoose 7.
+- Front auto-deploy a Vercel. Back auto-deploy a Render (`neverland-api.onrender.com`).
+- `web/vercel.json` rewrites `/api/v1/*` al back de Render.
 
-18 archivos afectados (mismos donde aparece "Piñata" hoy) — cada uno se extiende para manejar `catalogoItemIds` además de los campos legacy.
+## Risk
 
-## Affected Areas
+- **Medium**: schema change en `Event` + `Config` requiere backcompat path testeado. Las 6 reservas legacy son la red de seguridad.
+- **Low**: pricing change — la fórmula se amplía pero no reemplaza.
+- **Low**: UI admin — el accordion es nuevo, no reemplaza nada existente (solo oculta Piñata legacy).
 
-| Area | Impact | Description |
-|------|--------|-------------|
-| `api/models/config.model.js` | Modified | Agregar `extrasCatalogo[]` schema |
-| `api/models/event.model.js` | Modified | Agregar `catalogoItemIds[]` + `precioCatalogoApplied` |
-| `api/controllers/events.controllers.js` | Modified | `calculateEventPrice` suma catálogo; PATCH invalidation |
-| `web/src/components/admin/ConfigurationPanel.jsx` | Modified | CRUD catálogo de extras |
-| `web/src/components/booking/Step7Extras.jsx` | Modified | Checkboxes catálogo + Piñata toggle especial |
-| `web/src/components/booking/Step8Summary.jsx` | Modified | Muestra extras del catálogo |
-| `web/src/components/booking/StepBudgetSummary.jsx` | Modified | Precio catálogo en resumen |
-| `web/src/components/admin/ReservationDetailView.jsx` | Modified | Catálogo seleccionado + badge legacy |
-| `web/src/components/admin/ReservationDetailModal.jsx` | Modified | Catálogo en modal |
-| `web/src/pages/PricingPage.jsx` | Modified | Muestra extras del catálogo |
-| `web/src/utils/bookingUtils.js` | Modified | Helpers catálogo |
-| `web/src/pages/BookingPage.jsx` | Modified | Estado catálogo |
-| `web/src/pages/BudgetPage.jsx` | Modified | Estado catálogo |
-| `api/services/google.service.js` | Modified | Calendar event incluye catálogo |
-| `api/config/mailer.config.js` | Modified | Email incluye catálogo |
-| `api/scripts/fix-stale-snapshots.js` | Modified | Maneja catálogo en snapshots |
-| `api/scripts/analyze-stale-snapshots.js` | Modified | Analiza catálogo |
-| Tests (2 files) | Modified | Cobertura catálogo |
+## Verification
 
-## Risks
-
-| Risk | Likelihood | Mitigation |
-|------|------------|------------|
-| 18 archivos = PR grande (>400 líneas) | High | Chained PRs: PR1 backend (models+controllers), PR2 frontend (components+pages), PR3 tests |
-| Backcompat rota en reservas legacy | Low | Test explícito: reserva sin `catalogoItemIds` sigue mostrando Piñata si `pinata: true` |
-| Slug collision o rename | Low | Slug inmutable post-creación; validación unique en save |
-
-## Rollback Plan
-
-1. Revert rama `feat/catalogo-extras`
-2. Los campos nuevos en Event (`catalogoItemIds`, `precioCatalogoApplied`) son ignorados por código viejo — no rompe reservas existentes
-3. `extrasCatalogo[]` en Config es ignorado si no existe — fallback a campos legacy
-
-## Dependencies
-
-- Ninguna dependencia externa
-
-## Success Criteria
-
-- [ ] Admin puede crear/editar/eliminar extras desde ConfigurationPanel
-- [ ] Cliente selecciona 1+ extras en Step7Extras
-- [ ] Precio de catálogo se suma correctamente en `calculateEventPrice`
-- [ ] Piñata legacy (`pinata: true`) funciona igual que antes
-- [ ] Reservas sin `catalogoItemIds` se muestran con badge "(legacy)"
-- [ ] Tests pasan: Vitest (web) + Jest (api)
+- 79/79 backend tests passing (`api/tests/events.test.js`).
+- 64/64 frontend tests passing (`web/src/utils/bookingUtils.test.js` + `Step8Summary.test.jsx`).
+- Manual smoke: crear catálogo → reservar → ver en admin → editar → snapshot recalcula.
+- Reservas legacy: `TO24JE`, `7EXGX7`, etc. se siguen leyendo correctamente.
