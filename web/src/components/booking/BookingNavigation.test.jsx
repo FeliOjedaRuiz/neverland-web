@@ -84,4 +84,22 @@ describe('BookingNavigation Component', () => {
         fireEvent.click(submitBtn);
         expect(onSubmit).toHaveBeenCalledTimes(1);
     });
+
+    it('debería mostrar texto personalizado en el botón siguiente si se pasa nextLabel', () => {
+        const onNext = vi.fn();
+        render(
+            <BookingNavigation 
+                step={1} 
+                totalSteps={8} 
+                isValid={true} 
+                onNext={onNext} 
+                nextLabel="Comenzar"
+            />
+        );
+        
+        const nextBtn = screen.getByText(/Comenzar/i);
+        expect(nextBtn).toBeDefined();
+        fireEvent.click(nextBtn);
+        expect(onNext).toHaveBeenCalledTimes(1);
+    });
 });

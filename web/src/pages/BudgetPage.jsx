@@ -48,12 +48,12 @@ const DEFAULT_CONFIG = {
 	preciosAdultos: [],
 	workshops: [],
 	characters: [],
+	extrasCatalogo: [],
 	preciosExtras: {
 		tallerBase: 25,
 		tallerPlus: 30,
 		personaje: 40,
 		precioPack3Personajes: 100,
-		pinata: 15,
 		extension30: 30,
 		extension60: 50,
 	},
@@ -99,6 +99,7 @@ const BudgetPage = () => {
 			alergenos: '',
 			extension: 0,
 			extensionType: 'default',
+			catalogoItemIds: [],
 		},
 	});
 
@@ -145,6 +146,8 @@ const BudgetPage = () => {
 						data.preciosAdultos = normalizeList(data.preciosAdultos);
 					if (data.characters)
 						data.characters = normalizeList(data.characters);
+					if (data.extrasCatalogo)
+						data.extrasCatalogo = normalizeList(data.extrasCatalogo);
 
 					setPrices((prev) => ({ ...prev, ...data }));
 				}
@@ -550,7 +553,7 @@ const BudgetPage = () => {
 									transition={{ duration: 0.3 }}
 									className="flex flex-col min-h-full"
 								>
-									{step === 1 && <StepInstructions />}
+									{step === 1 && <StepInstructions onStart={nextStep} />}
 									{step === 2 && (
 										<Step3Kids
 											formData={formData}
@@ -582,23 +585,25 @@ const BudgetPage = () => {
 											prices={prices}
 										/>
 									)}
-									{step === 6 && (
-										<Step7Extras
-											formData={formData}
-											setFormData={setFormData}
-											prices={prices}
-										/>
-									)}
-									{step === 7 && (
-										<StepBudgetSummary
-											formData={formData}
-											prices={prices}
-											calculateTotal={calculateTotal}
-											childrenMenusWithPrices={childrenMenusWithPrices}
-											workshops={prices.workshops}
-											onNext={nextStep}
-										/>
-									)}
+								{step === 6 && (
+									<Step7Extras
+										formData={formData}
+										setFormData={setFormData}
+										prices={prices}
+										extrasCatalogo={prices.extrasCatalogo}
+									/>
+								)}
+								{step === 7 && (
+									<StepBudgetSummary
+										formData={formData}
+										prices={prices}
+										calculateTotal={calculateTotal}
+										childrenMenusWithPrices={childrenMenusWithPrices}
+										workshops={prices.workshops}
+										extrasCatalogo={prices.extrasCatalogo}
+										onNext={nextStep}
+									/>
+								)}
 									{step === 8 && (
 										<Step1Date
 											formData={formData}
@@ -637,6 +642,7 @@ const BudgetPage = () => {
 								isValid={validateStep()}
 								totalSteps={TOTAL_STEPS}
 								submitLabel="Solicitar reserva"
+								nextLabel={step === 1 ? 'Comenzar' : 'Siguiente'}
 								hideNext={step === 7}
 								validationMsg={getValidationMsg()}
 							/>

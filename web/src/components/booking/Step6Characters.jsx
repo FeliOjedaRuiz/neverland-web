@@ -234,7 +234,7 @@ const Step6Characters = ({
 							initial={{ scale: 0.9, opacity: 0, y: 20 }}
 							animate={{ scale: 1, opacity: 1, y: 0 }}
 							exit={{ scale: 0.9, opacity: 0, y: 20 }}
-							className="bg-white rounded-[32px] overflow-hidden w-full max-w-lg shadow-2xl relative max-h-[90dvh] flex flex-col"
+							className="bg-white rounded-[32px] overflow-hidden w-full max-w-sm sm:max-w-md shadow-2xl relative max-h-[90dvh] flex flex-col"
 							onClick={(e) => e.stopPropagation()}
 						>
 							<button 
@@ -245,19 +245,19 @@ const Step6Characters = ({
 							</button>
 
 							<div className="overflow-y-auto no-scrollbar">
-								<div className="aspect-[16/10] sm:aspect-video max-h-[35dvh] w-full bg-gray-100 relative overflow-hidden shrink-0">
+								<div className="w-full bg-purple-50/50 relative flex items-center justify-center overflow-hidden shrink-0 min-h-[200px] max-h-[50dvh]">
 									{selectedCharForModal.imageUrl ? (
 										<img 
 											src={selectedCharForModal.imageUrl} 
 											alt={selectedCharForModal.nombre || selectedCharForModal.name} 
-											className="w-full h-full object-cover"
+											className="w-full h-auto max-h-[50dvh] object-contain block mx-auto"
 										/>
 									) : (
-										<div className="w-full h-full flex items-center justify-center text-gray-200">
+										<div className="w-full h-48 flex items-center justify-center text-gray-300">
 											<ImageIcon size={48} strokeWidth={1} />
 										</div>
 									)}
-									<div className={`absolute bottom-4 right-4 px-4 py-2 rounded-2xl font-black text-lg sm:text-xl shadow-lg flex items-center gap-1 ${isPackActive ? 'bg-gray-400 text-white line-through decoration-2' : 'bg-purple-600 text-white'}`}>
+									<div className={`absolute bottom-3 right-3 px-3.5 py-1.5 rounded-2xl font-black text-base shadow-lg flex items-center gap-1 z-10 ${isPackActive ? 'bg-gray-400 text-white line-through decoration-2' : 'bg-purple-600 text-white'}`}>
 										{prices?.preciosExtras?.personaje || 40}€
 									</div>
 								</div>

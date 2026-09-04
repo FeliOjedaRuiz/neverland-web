@@ -15,6 +15,11 @@ describe('Step8Summary Component', () => {
 			extension60: 50,
 		},
 		workshops: [{ name: 'Cocina', priceBase: 20, pricePlus: 25 }],
+		extrasCatalogo: [
+			{ id: 'pinata', slug: 'pinata', nombre: 'Piñata Neverland', precio: 15, active: true, suspended: false },
+			{ id: 'snack', slug: 'snack-bar', nombre: 'Snack Bar', precio: 25, active: true, suspended: false },
+			{ id: 'decoracion', slug: 'decoracion-tematica', nombre: 'Decoración Temática', precio: 35, active: true, suspended: false }
+		]
 	};
 
 	const mockMenus = [{ id: 'm1', name: 'Menú 1', price: 10 }];
@@ -49,6 +54,7 @@ describe('Step8Summary Component', () => {
 		getExtendedTime: () => '17:00 - 19:00',
 		childrenMenusWithPrices: mockMenus,
 		workshops: mockPrices.workshops,
+		extrasCatalogo: mockPrices.extrasCatalogo,
 	};
 
 	it('debería renderizar sin errores con datos completos', () => {
@@ -143,5 +149,67 @@ describe('Step8Summary Component', () => {
 		render(<Step8Summary {...defaultProps} formData={formDataWithAdultFood} />);
 
 		expect(screen.getByText(/Raciones adultos/i)).toBeDefined();
+	});
+
+	it('debería renderizar items del catálogo con nombres y precios', () => {
+		const formDataWithCatalog = {
+			...baseFormData,
+			extras: {
+				...baseFormData.extras,
+				catalogoItemIds: ['snack-bar', 'decoracion-tematica'],
+			},
+		};
+
+		const { container } = render(<Step8Summary {...defaultProps} formData={formDataWithCatalog} />);
+
+		expect(container.textContent).toContain('Snack Bar');
+		expect(container.textContent).toContain('Decoración Temática');
+		expect(container.textContent).toContain('25.00€');
+		expect(container.textContent).toContain('35.00€');
+	});
+
+	it('debería renderizar Piñata en su sección dedicada y en catálogo', () => {
+		const formDataWithPinataCatalog = {
+			...baseFormData,
+			extras: {
+				...baseFormData.extras,
+				pinata: true,
+				catalogoItemIds: ['pinata', 'snack-bar'],
+			},
+		};
+
+		const { container } = render(<Step8Summary {...defaultProps} formData={formDataWithPinataCatalog} />);
+
+		expect(container.textContent).toContain('Piñata');
+		expect(container.textContent).toContain('Snack Bar');
+	});
+
+	it('no debería fallar con catalogoItemIds vacío', () => {
+		const formDataEmptyCatalog = {
+			...baseFormData,
+			extras: {
+				...baseFormData.extras,
+				catalogoItemIds: [],
+			},
+		};
+
+		const { container } = render(<Step8Summary {...defaultProps} formData={formDataEmptyCatalog} />);
+
+		expect(container.textContent).toContain('Resumen Final');
+		expect(container.textContent).not.toContain('Extras Adicionales');
+	});
+
+	it('debería mostrar fallback por ID si el item fue eliminado del catálogo', () => {
+		const formDataUnknownCatalog = {
+			...baseFormData,
+			extras: {
+				...baseFormData.extras,
+				catalogoItemIds: ['item-eliminado'],
+			},
+		};
+
+		const { container } = render(<Step8Summary {...defaultProps} formData={formDataUnknownCatalog} />);
+
+		expect(container.textContent).toContain('item-eliminado');
 	});
 });

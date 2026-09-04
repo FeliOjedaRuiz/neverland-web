@@ -9,6 +9,7 @@ import {
 	Sparkles,
 	Smile,
 	Package,
+	Gift,
 	ChevronRight,
 	MessageSquare,
 } from 'lucide-react';
@@ -235,17 +236,25 @@ const ReservationDetailModal = ({ reservation, onClose }) => {
 										: reservation.detalles.extras.personajes.join(', ')}
 								</span>
 							</div>
-							<div
-								className={`p-4 rounded-2xl border flex flex-col items-center gap-1 transition-all ${reservation.detalles?.extras?.pinata ? 'bg-energy-orange/5 border-energy-orange/20 text-energy-orange' : 'bg-gray-50 border-gray-100 text-gray-300'}`}
-							>
-								<Package size={20} />
-								<span className="text-[10px] font-black uppercase">Piñata</span>
-								<span className="text-xs font-bold text-center">
-									{reservation.detalles?.extras?.pinata ? 'Sí' : 'No'}
-								</span>
-							</div>
-						</div>
-					</section>
+						{(() => {
+							const catalogoIds = reservation.detalles?.extras?.catalogoItemIds || [];
+							const pinataInCatalog = catalogoIds.includes('pinata');
+							const legacyPinata =
+								reservation.detalles?.extras?.pinata && !pinataInCatalog;
+							const totalExtras = catalogoIds.length + (legacyPinata ? 1 : 0);
+							if (totalExtras === 0) return null;
+							return (
+								<div className="p-4 rounded-2xl border flex flex-col items-center gap-1 transition-all bg-pink-50 border-pink-100 text-pink-600">
+									<Gift size={20} />
+									<span className="text-[10px] font-black uppercase">Extras</span>
+									<span className="text-xs font-bold text-center">
+										{totalExtras} items
+									</span>
+								</div>
+							);
+						})()}
+					</div>
+				</section>
 				</div>
 
 				{/* Footer / Total Price */}

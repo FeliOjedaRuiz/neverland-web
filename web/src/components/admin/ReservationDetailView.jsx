@@ -10,6 +10,7 @@ import {
 	Sparkles,
 	Smile,
 	Package,
+	Gift,
 	ChevronLeft,
 	Check,
 	ChevronDown,
@@ -41,6 +42,11 @@ import {
 	checkAvailability,
 } from '../../services/api';
 import { formatSafeDate, formatLongSafeDate } from '../../utils/safeDate';
+import {
+	filterActiveCatalog,
+	getCatalogItemById,
+	sumCatalogPrices,
+} from '../../utils/bookingUtils';
 
 
 const ReservationDetailView = ({ reservation: propReservation }) => {
@@ -131,6 +137,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 		if (data.preciosAdultos) data.preciosAdultos = normalizeList(data.preciosAdultos);
 		if (data.workshops) data.workshops = normalizeList(data.workshops);
 		if (data.characters) data.characters = normalizeList(data.characters);
+		if (data.extrasCatalogo) data.extrasCatalogo = normalizeList(data.extrasCatalogo);
 
 		return data;
 	};
@@ -944,11 +951,23 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 											Actividad
 										</p>
 										<p className="font-display font-black text-lg text-text-black truncate">
-											{reservation.detalles?.extras?.taller === 'ninguno'
+											{!reservation.detalles?.extras?.taller ||
+											reservation.detalles?.extras?.taller === 'ninguno'
 												? 'Sin actividad'
 												: reservation.detalles?.extras?.taller}
 										</p>
 									</div>
+									{reservation.detalles?.extras?.taller !== 'ninguno' && (() => {
+										const pTaller = reservation.detalles?.extras?.precioTallerApplied;
+										if (!pTaller || pTaller <= 0) return null;
+										return (
+											<div className="flex flex-col items-end gap-1 shrink-0">
+												<span className="text-[10px] font-black text-blue-600 bg-blue-100 px-2 py-1 rounded-lg">
+													+{pTaller}€
+												</span>
+											</div>
+										);
+									})()}
 								</div>
 
 								{/* Personajes */}
@@ -1011,26 +1030,64 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 									</div>
 								</div>
 
-								{/* Piñata */}
-								<div
-									className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${reservation.detalles?.extras?.pinata ? 'bg-energy-orange/5 border-energy-orange/20 shadow-sm' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
-								>
-									<div
-										className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.pinata ? 'bg-energy-orange/10 text-energy-orange' : 'bg-gray-100 text-gray-400'}`}
-									>
-										<Package size={20} />
-									</div>
-									<div className="min-w-0 flex-1">
-										<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
-											Piñata
-										</p>
-										<p className="font-display font-black text-lg text-text-black">
-											{reservation.detalles?.extras?.pinata
-												? 'Incluida'
-												: 'No incluida'}
-										</p>
-									</div>
-								</div>
+								{/* Catálogo de extras (incluye Piñata — sin caso especial) */}
+								{(() => {
+									const catalogoItemIds = reservation.detalles?.extras?.catalogoItemIds || [];
+									// Backcompat: for old reservations with empty catalogoItemIds but pinata: true,
+									// synthesize the Piñata display using the catalog item.
+									let displayIds = catalogoItemIds;
+									const hasLegacyPinata =
+										reservation.detalles?.extras?.pinata &&
+										!catalogoItemIds.includes('pinata');
+									if (hasLegacyPinata) {
+										displayIds = [...catalogoItemIds, 'pinata'];
+									}
+									if (displayIds.length === 0) return null;
+									return (
+										<>
+											{displayIds.map((id) => {
+												const item = getCatalogItemById(id, config?.extrasCatalogo || []);
+												const name = item?.nombre || id;
+												const price = item ? Number(item.precio) || 0 : 0;
+												const isLegacy = hasLegacyPinata && id === 'pinata';
+												return (
+													<div
+														key={id}
+														className="p-4 rounded-2xl border flex items-center gap-3 transition-all bg-pink-50/50 border-pink-100/50"
+													>
+														<div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-pink-100 text-pink-500 overflow-hidden">
+															{item?.imageUrl ? (
+																<img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+															) : (
+																<Gift size={20} />
+															)}
+														</div>
+														<div className="min-w-0 flex-1">
+															<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
+																{name}
+															</p>
+															<p className="font-display font-black text-lg text-text-black">
+																{price > 0 ? `${price}€` : 'Incluido'}
+															</p>
+														</div>
+													</div>
+												);
+											})}
+											<div className="flex justify-between items-center p-3 bg-pink-100/50 rounded-2xl border border-pink-100">
+												<span className="text-[10px] font-black text-pink-600 uppercase tracking-widest">
+													Subtotal actividades y extras
+												</span>
+												<span className="font-display font-black text-pink-600">
+													{(
+														(reservation.detalles?.extras?.precioTallerApplied || 0) +
+														(reservation.detalles?.extras?.precioPersonajeApplied || 0) +
+														sumCatalogPrices(displayIds, config?.extrasCatalogo || [])
+													).toFixed(2)}€
+												</span>
+											</div>
+										</>
+									);
+								})()}
 							</div>
 						</div>
 					</section>
@@ -1208,23 +1265,50 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 									);
 								})()}
 
-								{/* Piñata */}
-								{reservation.detalles?.extras?.pinata && (() => {
-									let pPinata = reservation.detalles.extras.precioPinataApplied;
-									if (pPinata == null || pPinata === 0) {
-										pPinata = config?.preciosExtras?.pinata || 0;
+{/* Extras del catálogo (incluye Piñata legacy si aplica) */}
+								{(() => {
+									const catalogoItemIds = reservation.detalles?.extras?.catalogoItemIds || [];
+									const hasLegacyPinata =
+										reservation.detalles?.extras?.pinata &&
+										!catalogoItemIds.includes('pinata');
+
+									let total = 0;
+									const nombres = [];
+
+									if (hasLegacyPinata) {
+										let pPinata = reservation.detalles.extras.precioPinataApplied;
+										if (pPinata == null || pPinata === 0) {
+											const pinataCatalogItem = (config?.extrasCatalogo || []).find(i => i.slug === 'pinata');
+											pPinata = pinataCatalogItem ? Number(pinataCatalogItem.precio) || 0 : 0;
+										}
+										if (pPinata > 0) {
+											total += pPinata;
+											nombres.push('Piñata');
+										}
 									}
-									if (pPinata > 0) {
-										return (
-											<div className="flex justify-between items-center text-sm">
-												<span className="text-gray-600 font-medium">Piñata</span>
-												<span className="font-black text-text-black">
-													{pPinata.toFixed(2)}€
-												</span>
-											</div>
+
+									for (const id of catalogoItemIds) {
+										const item = (config?.extrasCatalogo || []).find(
+											i => i.slug === id || i.id === id,
 										);
+										if (item && item.active) {
+											total += Number(item.precio) || 0;
+											nombres.push(item.nombre || id);
+										}
 									}
-									return null;
+
+									if (total <= 0 || nombres.length === 0) return null;
+
+									return (
+										<div className="flex justify-between items-center text-sm">
+											<span className="text-gray-600 font-medium">
+												Extras ({nombres.join(', ')})
+											</span>
+											<span className="font-black text-text-black">
+												{total.toFixed(2)}€
+											</span>
+										</div>
+									);
 								})()}
 
 								{/* Extensión */}
@@ -1285,27 +1369,48 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 
 				{/* Modal Overlay System */}
 				{activeModal && (
-					<div className="fixed inset-0 z-110 bg-cream-bg flex flex-col animate-in slide-in-from-bottom duration-300 overflow-hidden">
-						<div className="w-full h-full flex flex-col">
-							<div className="px-6 py-5 border-b border-orange-100/50 flex justify-between items-center bg-calendar-bg sticky top-0 z-20">
-								<h3 className="text-lg font-display font-black text-text-black uppercase tracking-tight">
-									{activeModal === 'client' && 'Editar Información Cliente'}
-									{activeModal === 'datetime' && 'Editar Fecha y Horario'}
-									{activeModal === 'menus' && 'Editar Menús y Asistencia'}
-									{activeModal === 'extras' && 'Editar Extras y Actividades'}
-									{activeModal === 'observations' && 'Editar Observaciones'}
-								</h3>
-								<button
-									onClick={closeModals}
-									className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 rounded-full text-gray-400 transition-all active:scale-95"
+					<div
+						className={
+							isAdmin
+								? "fixed inset-0 md:left-64 md:inset-y-0 md:right-0 z-40 bg-cream-bg flex flex-col animate-in fade-in duration-200 overflow-hidden"
+								: "fixed inset-0 z-50 bg-cream-bg md:bg-black/30 md:backdrop-blur-xs flex flex-col md:items-center md:justify-center md:p-6 animate-in fade-in duration-200 overflow-hidden"
+						}
+					>
+						<div
+							className={
+								isAdmin
+									? "w-full h-full flex flex-col overflow-hidden"
+									: "w-full h-full md:h-auto md:max-h-[88dvh] md:max-w-xl md:rounded-[32px] md:shadow-2xl md:border md:border-orange-100/50 bg-cream-bg flex flex-col overflow-hidden"
+							}
+						>
+							<div className="w-full bg-calendar-bg border-b border-orange-100/50 sticky top-0 z-20 shrink-0">
+								<div
+									className={`px-6 py-5 flex justify-between items-center ${
+										isAdmin ? 'max-w-3xl mx-auto' : 'w-full'
+									}`}
 								>
-									<X size={20} />
-								</button>
+									<h3 className="text-lg font-display font-black text-text-black uppercase tracking-tight">
+										{activeModal === 'client' && 'Editar Información Cliente'}
+										{activeModal === 'datetime' && 'Editar Fecha y Horario'}
+										{activeModal === 'menus' && 'Editar Menús y Asistencia'}
+										{activeModal === 'extras' && 'Editar Extras y Actividades'}
+										{activeModal === 'observations' && 'Editar Observaciones'}
+									</h3>
+									<button
+										onClick={closeModals}
+										className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 rounded-full text-gray-400 transition-all active:scale-95"
+									>
+										<X size={20} />
+									</button>
+								</div>
 							</div>
 
-							<div
-								className={`flex-1 overflow-y-auto ${activeModal === 'datetime' ? 'p-2' : 'p-6 sm:p-8'}`}
-							>
+							<div className="flex-1 overflow-y-auto">
+								<div
+									className={`${
+										isAdmin ? 'max-w-3xl mx-auto' : 'w-full'
+									} ${activeModal === 'datetime' ? 'p-2 sm:p-4' : 'p-6 sm:p-8'}`}
+								>
 								{activeModal === 'client' && (
 									<ClientInfoEdit
 										current={reservation.cliente}
@@ -1354,6 +1459,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 								{activeModal === 'extras' && (
 									<ExtrasEdit
 										current={reservation.detalles.extras}
+										ninosCantidad={reservation.detalles?.niños?.cantidad}
 										config={config}
 										onCancel={closeModals}
 										onSave={async (newExtras) => {
@@ -1461,6 +1567,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 								)}
 
 								{/* Other modals will go here */}
+								</div>
 							</div>
 						</div>
 					</div>
@@ -2260,7 +2367,7 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 };
 
 // Sub-component for Extras Edit
-const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
+const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 	// Initialize with personajes array (handle legacy personaje string conversion)
 	const initialFormData = { ...current };
 	if (!initialFormData.personajes && initialFormData.personaje) {
@@ -2272,6 +2379,15 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 		}
 	} else if (!initialFormData.personajes) {
 		initialFormData.personajes = [];
+	}
+	if (!Array.isArray(initialFormData.catalogoItemIds)) {
+		initialFormData.catalogoItemIds = [];
+	}
+	if (initialFormData.pinata && initialFormData.catalogoItemIds.length === 0) {
+		const pinataCatalogExists = (config?.extrasCatalogo || []).some(i => i.slug === 'pinata');
+		if (pinataCatalogExists) {
+			initialFormData.catalogoItemIds = ['pinata'];
+		}
 	}
 
 	const [formData, setFormData] = useState(initialFormData);
@@ -2294,6 +2410,11 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 	const displayPrice = personajesChanged ? dynamicPrice : originalSnapshot;
 
 	const selectedWs = config?.workshops?.find(ws => ws.name === formData.taller);
+	const editorTallerPrice = selectedWs
+		? ((ninosCantidad || 0) > 15
+			? (selectedWs.precioPlus || selectedWs.pricePlus || 0)
+			: (selectedWs.precioBase || selectedWs.priceBase || 0))
+		: 0;
 
 	return (
 		<div className="space-y-8 pb-4">
@@ -2306,13 +2427,13 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 					</h5>
 					
 					{/* Selected Card / Trigger */}
-					<div 
+					<div
 						onClick={() => setIsTallerOpen(!isTallerOpen)}
-						className={`p-4 rounded-[32px] border-2 transition-all cursor-pointer flex items-center justify-between group ${
+						className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between group ${
 							isTallerOpen ? 'border-blue-500 bg-white shadow-lg' : 'border-gray-100 bg-gray-50 hover:bg-white hover:border-blue-200'
 						}`}
 					>
-						<div className="flex items-center gap-4">
+						<div className="flex items-center gap-4 min-w-0 flex-1">
 							<div className="w-16 h-16 rounded-2xl overflow-hidden bg-white border border-gray-100 shrink-0">
 								{selectedWs?.imageUrl || selectedWs?.image ? (
 									<img src={selectedWs.imageUrl || selectedWs.image} className="w-full h-full object-cover" alt="" />
@@ -2322,14 +2443,19 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 									</div>
 								)}
 							</div>
-							<div>
-								<p className="font-display font-black text-lg text-text-black">
+							<div className="min-w-0 flex-1">
+								<p className="font-display font-black text-lg text-text-black truncate">
 									{formData.taller === 'ninguno' ? 'Sin actividad especial' : formData.taller}
 								</p>
 								<p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
 									{isTallerOpen ? 'Cerrar selector' : 'Pulsa para cambiar actividad'}
 								</p>
 							</div>
+							{formData.taller !== 'ninguno' && editorTallerPrice > 0 && (
+								<span className="text-[10px] font-black text-blue-600 bg-blue-100 px-2 py-1 rounded-lg shrink-0">
+									+{editorTallerPrice}€
+								</span>
+							)}
 						</div>
 						<div className={`p-2 rounded-full transition-transform duration-300 ${isTallerOpen ? 'rotate-180 bg-blue-500 text-white' : 'bg-white text-gray-300'}`}>
 							<ChevronDown size={20} />
@@ -2338,45 +2464,58 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 
 					{/* Collapsible Picker */}
 					{isTallerOpen && (
-						<div className="p-5 bg-gray-50 rounded-[32px] border-2 border-dashed border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in slide-in-from-top-4 duration-300">
+						<div className="p-3 bg-gray-50 rounded-[32px] border border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in slide-in-from-top-4 duration-300">
 							{/* Opción Ninguno */}
 							<div
 								onClick={() => {
 									setFormData({ ...formData, taller: 'ninguno' });
 									setIsTallerOpen(false);
 								}}
-								className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
-									formData.taller === 'ninguno' ? 'border-blue-500' : 'border-transparent hover:border-blue-200'
+								className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer bg-white ${
+									formData.taller === 'ninguno' ? 'border-blue-500' : 'border-gray-100 hover:border-blue-200'
 								}`}
 							>
-								<div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-300">
+								<div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-300 shrink-0">
 									<X size={18} />
 								</div>
-								<span className="text-xs font-black text-text-black">Ninguna</span>
+								<span className="text-sm font-black text-text-black">Ninguna</span>
 							</div>
-							{config?.workshops?.map((ws) => (
-								<div
-									key={ws.id || ws._id}
-									onClick={() => {
-										setFormData({ ...formData, taller: ws.name });
-										setIsTallerOpen(false);
-									}}
-									className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
-										formData.taller === ws.name ? 'border-blue-500' : 'border-transparent hover:border-blue-200'
-									}`}
-								>
-									<div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100">
-										{ws.imageUrl || ws.image ? (
-											<img src={ws.imageUrl || ws.image} className="w-full h-full object-cover" alt="" />
-										) : (
-											<div className="w-full h-full flex items-center justify-center text-gray-100">
-												<Sparkles size={16} />
-											</div>
+							{config?.workshops?.map((ws) => {
+								const wsPrice = (ninosCantidad || 0) > 15
+									? (ws.precioPlus || ws.pricePlus || 0)
+									: (ws.precioBase || ws.priceBase || 0);
+								return (
+									<div
+										key={ws.id || ws._id}
+										onClick={() => {
+											setFormData({ ...formData, taller: ws.name });
+											setIsTallerOpen(false);
+										}}
+										className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer bg-white ${
+											formData.taller === ws.name ? 'border-blue-500' : 'border-gray-100 hover:border-blue-200'
+										}`}
+									>
+										<div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100">
+											{ws.imageUrl || ws.image ? (
+												<img src={ws.imageUrl || ws.image} className="w-full h-full object-cover" alt="" />
+											) : (
+												<div className="w-full h-full flex items-center justify-center text-gray-100">
+													<Sparkles size={16} />
+												</div>
+											)}
+										</div>
+										<div className="min-w-0 flex-1">
+											<p className="text-sm font-black text-text-black truncate">{ws.name}</p>
+											<p className="text-[10px] font-bold text-gray-400">{wsPrice}€{(ninosCantidad || 0) > 15 ? ' (plus)' : ''}</p>
+										</div>
+										{wsPrice > 0 && (
+											<span className="text-[10px] font-black text-blue-600 bg-blue-100 px-2 py-1 rounded-lg shrink-0">
+												+{wsPrice}€
+											</span>
 										)}
 									</div>
-									<span className="text-xs font-black text-text-black truncate">{ws.name}</span>
-								</div>
-							))}
+								);
+							})}
 						</div>
 					)}
 				</div>
@@ -2389,9 +2528,9 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 					</h5>
 					
 					{/* Selected Card / Trigger */}
-					<div 
+					<div
 						onClick={() => setIsPersonajeOpen(!isPersonajeOpen)}
-						className={`p-4 rounded-[32px] border-2 transition-all cursor-pointer flex items-center justify-between group ${
+						className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between group ${
 							isPersonajeOpen ? 'border-purple-500 bg-white shadow-lg' : 'border-gray-100 bg-gray-50 hover:bg-white hover:border-purple-200'
 						}`}
 					>
@@ -2512,8 +2651,8 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 											}
 											// Keep picker open on selection
 										}}
-										className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
-											isSelected ? 'border-purple-500' : 'border-transparent hover:border-purple-200'
+										className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer bg-white ${
+											isSelected ? 'border-purple-500' : 'border-gray-100 hover:border-purple-200'
 										}`}
 									>
 										<div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100">
@@ -2525,7 +2664,10 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 												</div>
 											)}
 										</div>
-										<span className="text-xs font-black text-text-black truncate">{name}</span>
+										<div className="min-w-0 flex-1">
+											<p className="text-sm font-black text-text-black truncate">{name}</p>
+											<p className="text-xs font-bold text-gray-400">{unitPrice}€{formData.personajes?.length === 3 ? ' (Pack 3)' : ''}</p>
+										</div>
 										{isSelected && (
 											<div className="ml-auto w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
 												<Check size={12} className="text-white" />
@@ -2559,41 +2701,79 @@ const ExtrasEdit = ({ current, config, onCancel, onSave }) => {
 				</div>
 			</div>
 
-			{/* Piñata */}
-			<div className="pt-2">
-				<div
-					onClick={() => setFormData({ ...formData, pinata: !formData.pinata })}
-					className={`p-6 rounded-[32px] border-2 transition-all cursor-pointer flex items-center justify-between group overflow-hidden relative ${
-						formData.pinata
-							? 'bg-energy-orange/5 border-energy-orange shadow-md'
-							: 'bg-gray-50 border-gray-100 grayscale hover:grayscale-0 hover:bg-white hover:border-energy-orange/30'
-					}`}
-				>
-					<div className="flex items-center gap-5 relative z-10">
-						<div
-							className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${formData.pinata ? 'bg-energy-orange text-white shadow-lg' : 'bg-gray-200 text-gray-400 group-hover:bg-energy-orange/10 group-hover:text-energy-orange'}`}
-						>
-							<Package size={28} />
-						</div>
-						<div>
-							<p className={`font-display font-black text-xl ${formData.pinata ? 'text-text-black' : 'text-gray-400'}`}>Piñata de Neverland</p>
-							<p className="text-xs font-bold text-gray-400">
-								{formData.pinata ? 'Servicio especial incluido' : 'Toca para añadir al banquete'}
-							</p>
-						</div>
-					</div>
-					<div
-						className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all relative z-10 ${formData.pinata ? 'border-energy-orange bg-energy-orange text-white' : 'border-gray-200 bg-white text-transparent'}`}
-					>
-						<Check size={20} strokeWidth={3} />
-					</div>
+			{/* Catálogo de extras */}
+			<div className="space-y-3 pt-2">
+				<h5 className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em] flex items-center gap-2 pl-1">
+					<Gift size={14} />
+					Extras del catálogo
+				</h5>
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+					{filterActiveCatalog(config?.extrasCatalogo || []).map((item) => {
+						const isSelected = (formData.catalogoItemIds || []).includes(item.slug);
+						return (
+							<div
+								key={item.slug}
+								onClick={() => {
+									const current = formData.catalogoItemIds || [];
+									const nextCatalog = isSelected
+										? current.filter((id) => id !== item.slug)
+										: [...current, item.slug];
+									const hasPinata = nextCatalog.includes('pinata');
+									setFormData({
+										...formData,
+										catalogoItemIds: nextCatalog,
+										pinata: hasPinata,
+										precioPinataApplied: hasPinata ? formData.precioPinataApplied : undefined,
+									});
+								}}
+								className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer bg-white ${
+									isSelected ? 'border-pink-500' : 'border-gray-100 hover:border-pink-200'
+								}`}
+							>
+								<div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100 bg-gray-50">
+									{item.imageUrl ? (
+										<img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+									) : (
+										<div className="w-full h-full flex items-center justify-center text-gray-300">
+											<Gift size={16} />
+										</div>
+									)}
+								</div>
+								<div className="min-w-0 flex-1">
+									<p className={`text-sm font-black truncate ${isSelected ? 'text-text-black' : 'text-gray-400'}`}>{item.nombre || item.slug}</p>
+									{isSelected ? (
+										<span className="inline-block text-[10px] font-black text-pink-600 bg-pink-100 px-2 py-0.5 rounded-lg">
+											+{Number(item.precio || 0)}€
+										</span>
+									) : (
+										<p className="text-xs font-bold text-gray-300">{Number(item.precio || 0)}€</p>
+									)}
+								</div>
+								<div className={`ml-auto w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+									isSelected ? 'bg-pink-500 border-pink-500' : 'border-gray-200 bg-white'
+								}`}>
+									{isSelected && <Check size={12} className="text-white" />}
+								</div>
+							</div>
+						);
+					})}
 				</div>
 			</div>
 
 			<div className="flex gap-3 pt-6 border-t border-gray-100">
 				<button
 					onClick={() => {
-						const { precioTallerApplied, precioPersonajeApplied, precioPinataApplied, ...cleanExtras } = formData;
+						// NO borramos los snapshots históricos: precioTallerApplied,
+						// precioPersonajeApplied y precioPinataApplied. El servidor los
+						// recalcula solo si la selección correspondiente cambia (PATCH
+						// invalidation). Borrarlos client-side destruye el precio
+						// histórico de reservas legacy.
+						const { precioTallerApplied, precioPersonajeApplied, ...cleanExtras } = formData;
+						const hasPinata = (cleanExtras.catalogoItemIds || []).includes('pinata');
+						cleanExtras.pinata = hasPinata;
+						if (!hasPinata) {
+							cleanExtras.precioPinataApplied = undefined;
+						}
 						onSave(cleanExtras);
 					}}
 					className="flex-1 py-4 bg-neverland-green text-white rounded-2xl font-black text-sm shadow-lg shadow-neverland-green/20 transition-all active:scale-95"

@@ -29,7 +29,7 @@ module.exports.get = (req, res, next) => {
           'Mario', 'Luigi', 'Bella', 'Bestia', 'Cenicienta', 'Príncipe', 'Aladín', 'Jasmín',
           'Blancanieves', 'Elsa', 'Anna', 'Olaf', 'K-Pop', 'Vaina'
         ],
-        preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, pinata: 15, extension30: 30, extension60: 50 }
+        preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, extension30: 30, extension60: 50 }
       };
 
       if (!config) {
@@ -59,4 +59,34 @@ module.exports.uploadImage = (req, res, next) => {
     return next(createError(400, 'No file uploaded'));
   }
   res.json({ imageUrl: req.file.path });
+};
+
+const PINATA_CATALOG_ITEM = {
+  id: 'pinata',
+  slug: 'pinata',
+  nombre: 'Piñata Neverland',
+  descripcion: 'Piñata temática Neverland',
+  precio: 15,
+  imageUrl: '',
+  active: true
+};
+
+module.exports.bootstrap = async () => {
+  try {
+    let config = await Config.findOne();
+
+    if (!config) {
+      config = await Config.create({});
+    }
+
+    const hasPinata = config.extrasCatalogo && config.extrasCatalogo.some(item => item.slug === 'pinata');
+
+    if (!hasPinata) {
+      config.extrasCatalogo.push(PINATA_CATALOG_ITEM);
+      await config.save();
+      console.log('[Config bootstrap] Piñata catalog item seeded');
+    }
+  } catch (error) {
+    console.error('[Config bootstrap] Failed to seed Piñata catalog item:', error);
+  }
 };

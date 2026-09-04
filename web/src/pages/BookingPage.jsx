@@ -49,12 +49,12 @@ const DEFAULT_CONFIG = {
 	preciosAdultos: [],
 	workshops: [],
 	characters: [],
+	extrasCatalogo: [],
 	preciosExtras: {
 		tallerBase: 25,
 		tallerPlus: 30,
 		personaje: 40,
 		precioPack3Personajes: 100,
-		pinata: 15,
 		extension30: 30,
 		extension60: 50,
 	},
@@ -99,6 +99,7 @@ const BookingPage = () => {
 			alergenos: '',
 			extension: 0,
 			extensionType: 'default',
+			catalogoItemIds: [],
 		},
 	});
 
@@ -144,6 +145,8 @@ const BookingPage = () => {
 						data.preciosAdultos = normalizeList(data.preciosAdultos);
 					if (data.characters)
 						data.characters = normalizeList(data.characters);
+					if (data.extrasCatalogo)
+						data.extrasCatalogo = normalizeList(data.extrasCatalogo);
 
 					setPrices((prev) => ({ ...prev, ...data }));
 
@@ -477,24 +480,26 @@ const BookingPage = () => {
 											prices={prices}
 										/>
 									)}
-									{step === 6 && (
-										<Step7Extras
-											formData={formData}
-											setFormData={setFormData}
-											getExtendedTime={getExtendedTime}
-											prices={prices}
-										/>
-									)}
-									{step === 7 && (
-										<Step8Summary
-											formData={formData}
-											prices={prices}
-											calculateTotal={calculateTotal}
-											getExtendedTime={getExtendedTime}
-											childrenMenusWithPrices={childrenMenusWithPrices}
-											workshops={prices.workshops}
-										/>
-									)}
+								{step === 6 && (
+									<Step7Extras
+										formData={formData}
+										setFormData={setFormData}
+										getExtendedTime={getExtendedTime}
+										prices={prices}
+										extrasCatalogo={prices.extrasCatalogo}
+									/>
+								)}
+								{step === 7 && (
+									<Step8Summary
+										formData={formData}
+										prices={prices}
+										calculateTotal={calculateTotal}
+										getExtendedTime={getExtendedTime}
+										childrenMenusWithPrices={childrenMenusWithPrices}
+										workshops={prices.workshops}
+										extrasCatalogo={prices.extrasCatalogo}
+									/>
+								)}
 									{step === 8 && (
 										<Step2Responsible
 											formData={formData}

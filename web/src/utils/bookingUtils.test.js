@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { calculateBookingTotal, validateBookingStep } from './bookingUtils';
+import {
+  calculateBookingTotal,
+  validateBookingStep,
+  filterActiveCatalog,
+  getCatalogItemById,
+  sumCatalogPrices,
+} from './bookingUtils';
 
 describe('BookingUtils - Lógica de Negocio Frontend', () => {
 
@@ -214,6 +220,47 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
 
       // Teléfono internacional largo (15 dígitos locales)
       expect(validateBookingStep(8, { cliente: { ...validClient, telefono: '+1 123456789012345' } })).toBe(true);
+    });
+  });
+
+  describe('Catálogo de extras', () => {
+    const catalogItems = [
+      { id: 'pinata', slug: 'pinata', nombre: 'Piñata Neverland', precio: 15, active: true },
+      { id: 'snack', slug: 'snack-bar', nombre: 'Snack Bar', precio: 25, active: true },
+      { id: 'decoracion', slug: 'decoracion-tematica', nombre: 'Decoración', precio: 35, active: true },
+      { id: 'inactivo', slug: 'extra-inactivo', nombre: 'Extra Inactivo', precio: 10, active: false }
+    ];
+
+    it('filterActiveCatalog debería excluir solo items inactivos', () => {
+      const active = filterActiveCatalog(catalogItems);
+      expect(active).toHaveLength(3);
+      expect(active.map((i) => i.slug)).toEqual(['pinata', 'snack-bar', 'decoracion-tematica']);
+    });
+
+    it('sumCatalogPrices debería sumar precios de items seleccionados', () => {
+      const total = sumCatalogPrices(['snack-bar', 'decoracion-tematica'], catalogItems);
+      expect(total).toBe(60);
+    });
+
+    it('sumCatalogPrices debería devolver 0 si el item está inactivo', () => {
+      const total = sumCatalogPrices(['extra-inactivo'], catalogItems);
+      expect(total).toBe(0);
+    });
+
+    it('sumCatalogPrices debería devolver 0 para IDs desconocidos', () => {
+      const total = sumCatalogPrices(['no-existe'], catalogItems);
+      expect(total).toBe(0);
+    });
+
+    it('getCatalogItemById debería encontrar un item por id', () => {
+      const item = getCatalogItemById('snack-bar', catalogItems);
+      expect(item).toBeDefined();
+      expect(item.nombre).toBe('Snack Bar');
+    });
+
+    it('getCatalogItemById debería devolver null si no existe', () => {
+      const item = getCatalogItemById('no-existe', catalogItems);
+      expect(item).toBeNull();
     });
   });
 });

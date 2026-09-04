@@ -73,14 +73,48 @@ function detectStaleSnapshot(event, config) {
     }
   }
 
-  // --- Piñata: precioPinataApplied vs config ---
+  // --- Piñata: precioPinataApplied vs catalog (since legacy preciosExtras.pinata is gone) ---
   if (detalles?.extras?.pinata && detalles.extras.precioPinataApplied != null) {
-    const expected = safeConfig.preciosExtras?.pinata || 15;
+    const pinataCatalogItem = (safeConfig.extrasCatalogo || []).find(i => i.slug === 'pinata');
+    const expected = pinataCatalogItem ? pinataCatalogItem.precio : 15;
     if (detalles.extras.precioPinataApplied !== expected) {
       issues.push({
         field: 'detalles.extras.precioPinataApplied',
         current: detalles.extras.precioPinataApplied,
         expected,
+      });
+    }
+  }
+
+  // --- Catálogo de extras ---
+  const catalogoItemIds = detalles?.extras?.catalogoItemIds;
+  if (Array.isArray(catalogoItemIds) && catalogoItemIds.length > 0) {
+    const catalogItems = safeConfig.extrasCatalogo || [];
+    const catalogMap = new Map(catalogItems.map((i) => [i.slug, i]));
+    let expectedCatalogTotal = 0;
+
+    for (const itemId of catalogoItemIds) {
+      const item = catalogMap.get(itemId);
+      if (item && item.active) {
+        expectedCatalogTotal += item.precio || 0;
+      }
+    }
+
+    const currentCatalogTotal = detalles.extras.precioCatalogoApplied || 0;
+    if (currentCatalogTotal !== expectedCatalogTotal) {
+      issues.push({
+        field: 'detalles.extras.precioCatalogoApplied',
+        current: currentCatalogTotal,
+        expected: expectedCatalogTotal,
+      });
+    }
+
+    if (catalogoItemIds.includes('pinata') && !detalles.extras?.pinata) {
+      issues.push({
+        field: 'detalles.extras.pinata',
+        current: false,
+        expected: true,
+        reason: 'pinata está en catalogoItemIds pero el flag pinata es false',
       });
     }
   }

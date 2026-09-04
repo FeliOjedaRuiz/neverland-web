@@ -1,7 +1,8 @@
 import React from 'react';
 import { Clock, CheckCircle, MessageSquare } from 'lucide-react';
+import { filterActiveCatalog } from '../../utils/bookingUtils';
 
-const Step7Extras = ({ formData, setFormData, prices }) => {
+const Step7Extras = ({ formData, setFormData, prices, extrasCatalogo = [] }) => {
 	const getPriceForExtension = (mins) => {
 		if (mins === 0) return 0;
 		return mins === 30
@@ -68,48 +69,94 @@ const Step7Extras = ({ formData, setFormData, prices }) => {
 					)}
 				</div>
 
-				{/* Pinata */}
-				<div
-					onClick={() =>
+				{/* Extras del catálogo genérico (Piñata es un item más, sin toggle especial) */}
+				{(() => {
+					const items = filterActiveCatalog(extrasCatalogo);
+					if (items.length === 0) return null;
+
+					const toggleItem = (itemSlug) => {
+						const currentIds = formData.extras.catalogoItemIds || [];
+						const nextIds = currentIds.includes(itemSlug)
+							? currentIds.filter((id) => id !== itemSlug)
+							: [...currentIds, itemSlug];
 						setFormData({
 							...formData,
-							extras: {
-								...formData.extras,
-								pinata: !formData.extras.pinata,
-							},
-						})
-					}
-					className={`p-4 rounded-3xl border-2 transition-all cursor-pointer flex items-center justify-between ${
-						formData.extras.pinata
-							? 'border-sun-yellow bg-yellow-50 shadow-md'
-							: 'border-white bg-white shadow-sm'
-					}`}
-				>
-					<div className="flex items-center gap-3">
-						<div
-							className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl bg-white shadow-sm`}
-						>
-							🪅
+							extras: { ...formData.extras, catalogoItemIds: nextIds },
+						});
+					};
+
+					return (
+						<div className="p-4 rounded-3xl border-2 border-white bg-white shadow-sm">
+							<div className="flex items-center gap-3 mb-3">
+								<div className="w-10 h-10 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center">
+									🎁
+								</div>
+								<div>
+									<p className="font-bold text-gray-800">Extras disponibles</p>
+									<p className="text-xs text-gray-500">
+										Añade más detalles a tu fiesta
+									</p>
+								</div>
+							</div>
+							<div className="space-y-2">
+								{items.map((item) => {
+									const isSelected = (formData.extras.catalogoItemIds || []).includes(
+										item.slug,
+									);
+									return (
+										<div
+											key={item.slug}
+											onClick={() => toggleItem(item.slug)}
+											className={`p-3 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between ${
+												isSelected
+													? 'border-pink-300 bg-pink-50'
+													: 'border-gray-100 bg-gray-50 hover:border-pink-200'
+											}`}
+										>
+											<div className="flex items-center gap-3 min-w-0">
+												<div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-xl shrink-0 overflow-hidden">
+													{item.imageUrl ? (
+														<img
+															src={item.imageUrl}
+															alt={item.nombre}
+															className="w-full h-full object-cover rounded-full"
+														/>
+													) : (
+														<span>{item.nombre?.charAt(0) || '✨'}</span>
+													)}
+												</div>
+												<div className="text-left min-w-0">
+													<p className="font-bold text-gray-800 text-sm truncate">
+														{item.nombre}
+													</p>
+													{item.descripcion && (
+														<p className="text-xs text-gray-500 truncate">
+															{item.descripcion}
+														</p>
+													)}
+												</div>
+											</div>
+											<div className="flex items-center gap-2 shrink-0">
+												<span className="text-sm font-black text-pink-600">
+													+{Number(item.precio || 0).toFixed(0)}€
+												</span>
+												<div
+													className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+														isSelected
+															? 'bg-pink-500 border-pink-500 text-white'
+															: 'border-gray-300'
+													}`}
+												>
+													{isSelected && <CheckCircle size={14} />}
+												</div>
+											</div>
+										</div>
+									);
+								})}
+							</div>
 						</div>
-						<div className="text-left">
-							<p className="font-bold text-gray-800 text-lg">
-								Piñata Neverland
-							</p>
-							<p className="text-sm text-gray-500">
-								Incluye caramelos y sorpresas
-							</p>
-						</div>
-					</div>
-					<div
-						className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-							formData.extras.pinata
-								? 'bg-sun-yellow border-sun-yellow text-white'
-								: 'border-gray-200'
-						}`}
-					>
-						{formData.extras.pinata && <CheckCircle size={16} />}
-					</div>
-				</div>
+					);
+				})()}
 
 				{/* Observaciones */}
 				<div className="p-4 rounded-3xl border-2 border-white bg-white shadow-sm mt-3">

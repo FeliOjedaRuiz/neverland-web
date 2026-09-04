@@ -10,12 +10,27 @@ jest.mock('../services/google.service', () => ({
   listEvents: jest.fn().mockResolvedValue([])
 }));
 
+// Helper para generar fechas futuras garantizadas (evita que tests fallen
+// por la ventana de 72h de modificación de reservas).
+const getFutureDate = (targetDayOfWeek, daysAhead = 30) => {
+  const d = new Date();
+  d.setDate(d.getDate() + daysAhead);
+  while (d.getDay() !== targetDayOfWeek) d.setDate(d.getDate() + 1);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T00:00:00.000Z`;
+};
+
+const futureFriday = getFutureDate(5);   // Viernes
+const futureTuesday = getFutureDate(2);  // Martes
+
 describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
 
   // Datos base reutilizables: simula lo que BudgetPage envía al servidor
   const budgetFlowPayload = {
     tipo: 'reserva',
-    fecha: '2026-07-10T00:00:00.000Z', // Viernes
+    fecha: futureFriday, // Viernes
     turno: 'T2',
     cliente: {
       nombreNiño: 'Martina',
@@ -64,7 +79,12 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
         { name: 'Pintura', priceBase: 20, pricePlus: 25 }
       ],
       characters: [{ name: 'Minnie', precio: 40 }],
-      preciosExtras: { personaje: 40, pinata: 15, extension30: 30, extension60: 50 }
+      preciosExtras: { personaje: 40, extension30: 30, extension60: 50 },
+      extrasCatalogo: [
+        { id: 'pinata', slug: 'pinata', nombre: 'Piñata Neverland', precio: 15, active: true },
+        { id: 'snack', slug: 'snack-bar', nombre: 'Snack Bar', precio: 25, active: true },
+        { id: 'decoracion', slug: 'decoracion-tematica', nombre: 'Decoración Temática', precio: 35, active: true }
+      ]
     });
   });
 
@@ -114,7 +134,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
     it('Debería aplicar taller "plus" cuando hay más de 15 niños', async () => {
       const payload = {
         ...budgetFlowPayload,
-        fecha: '2026-07-07T00:00:00.000Z', // Martes (sin plus fin de semana)
+        fecha: futureTuesday, // Martes (sin plus fin de semana)
         detalles: {
           ...budgetFlowPayload.detalles,
           niños: { cantidad: 20, menuId: 'menu-1' },
@@ -165,7 +185,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
     it('Debería calcular correctamente el coste de extensión de 30 minutos', async () => {
       const payload = {
         ...budgetFlowPayload,
-        fecha: '2026-07-07T00:00:00.000Z', // Martes
+        fecha: futureTuesday, // Martes
         detalles: {
           ...budgetFlowPayload.detalles,
           extras: { ...budgetFlowPayload.detalles.extras, taller: 'ninguno', pinata: false }
@@ -194,8 +214,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
   // =====================================================
   describe('Cálculo de precios multi-personaje', () => {
     // Usar fecha fija Tuesday para evitar problemas de timezone en tests
-    // 2026-07-07 es martes (getDay=2)
-    const martesDate = '2026-07-07T00:00:00.000Z';
+    const martesDate = futureTuesday;
 
     it('Debería calcular precio base sin personajes (0€ extra)', async () => {
       const payload = {
@@ -310,7 +329,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
         preciosAdultos: [],
         workshops: [],
         characters: [],
-        preciosExtras: { personaje: 40, pinata: 15, precioPack3Personajes: 120 }
+        preciosExtras: { personaje: 40, precioPack3Personajes: 120 }
       });
 
       const payload = {
@@ -524,6 +543,117 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
       // Sin taller, precioTotal baja en 25€ (priceBase de Magia)
       expect(patchRes.body.precioTotal).toBe(precioConMagia - 25);
       expect(patchRes.body.detalles.extras.precioTallerApplied).toBeUndefined();
+    });
+  });
+
+  // =====================================================
+  // Catálogo de extras
+  // =====================================================
+  describe('Flujo completo con catálogo de extras', () => {
+    it('Debería persistir catalogoItemIds y snapshotear precioCatalogoApplied', async () => {
+      const payload = {
+        ...budgetFlowPayload,
+        detalles: {
+          ...budgetFlowPayload.detalles,
+          extras: {
+            ...budgetFlowPayload.detalles.extras,
+            catalogoItemIds: ['snack-bar', 'decoracion-tematica']
+          }
+        }
+      };
+
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payload);
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.catalogoItemIds).toEqual(['snack-bar', 'decoracion-tematica']);
+      expect(res.body.detalles.extras.precioCatalogoApplied).toBe(60);
+    });
+
+    it('Debería sincronizar Piñata cuando está en catalogoItemIds', async () => {
+      const payload = {
+        ...budgetFlowPayload,
+        detalles: {
+          ...budgetFlowPayload.detalles,
+          extras: {
+            ...budgetFlowPayload.detalles.extras,
+            pinata: false,
+            catalogoItemIds: ['pinata', 'snack-bar']
+          }
+        }
+      };
+
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payload);
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.pinata).toBe(true);
+      expect(res.body.detalles.extras.precioPinataApplied).toBe(15);
+      // 15 niños * 15 = 225 + plus viernes 22.5 + taller base 25 + piñata 15 + snack 25 = 312.5
+      expect(res.body.precioTotal).toBe(312.5);
+    });
+
+    it('Debería recalcular snapshot al cambiar catalogoItemIds por PATCH', async () => {
+      const createRes = await request(app)
+        .post('/api/v1/events')
+        .send({
+          ...budgetFlowPayload,
+          detalles: {
+            ...budgetFlowPayload.detalles,
+            extras: {
+              ...budgetFlowPayload.detalles.extras,
+              catalogoItemIds: ['snack-bar']
+            }
+          }
+        });
+
+      expect(createRes.statusCode).toBe(201);
+      expect(createRes.body.detalles.extras.precioCatalogoApplied).toBe(25);
+      const eventId = createRes.body.id;
+
+      const patchRes = await request(app)
+        .patch(`/api/v1/events/${eventId}`)
+        .send({
+          detalles: {
+            extras: {
+              catalogoItemIds: ['snack-bar', 'decoracion-tematica'],
+              pinata: true,
+              personajes: [],
+              taller: 'Magia',
+              observaciones: '',
+              alergenos: ''
+            }
+          }
+        });
+
+      expect(patchRes.statusCode).toBe(200);
+      expect(patchRes.body.detalles.extras.precioCatalogoApplied).toBe(60);
+      expect(patchRes.body.detalles.extras.catalogoItemIds).toEqual(['snack-bar', 'decoracion-tematica']);
+    });
+
+    it('Debería mantener reservas legacy sin catalogoItemIds funcionando', async () => {
+      const payload = {
+        ...budgetFlowPayload,
+        detalles: {
+          ...budgetFlowPayload.detalles,
+          extras: {
+            ...budgetFlowPayload.detalles.extras,
+            pinata: true
+          }
+        }
+      };
+
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payload);
+
+      expect(res.statusCode).toBe(201);
+      // Mongoose inicializa el array con default []; lo importante es que no contenga Piñata duplicado
+      expect(res.body.detalles.extras.catalogoItemIds).toEqual([]);
+      expect(res.body.detalles.extras.pinata).toBe(true);
+      expect(res.body.detalles.extras.precioPinataApplied).toBe(15);
     });
   });
 });

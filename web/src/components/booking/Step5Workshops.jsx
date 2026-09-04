@@ -142,7 +142,7 @@ const Step5Workshops = ({ formData, setFormData, WORKSHOPS }) => {
 							initial={{ scale: 0.9, opacity: 0, y: 20 }}
 							animate={{ scale: 1, opacity: 1, y: 0 }}
 							exit={{ scale: 0.9, opacity: 0, y: 20 }}
-							className="bg-white rounded-[32px] overflow-hidden w-full max-w-lg shadow-2xl relative max-h-[90dvh] flex flex-col"
+							className="bg-white rounded-[32px] overflow-hidden w-full max-w-sm sm:max-w-md shadow-2xl relative max-h-[90dvh] flex flex-col"
 							onClick={(e) => e.stopPropagation()}
 						>
 							<button 
@@ -153,19 +153,19 @@ const Step5Workshops = ({ formData, setFormData, WORKSHOPS }) => {
 							</button>
 
 							<div className="overflow-y-auto no-scrollbar">
-								<div className="aspect-[16/10] sm:aspect-video max-h-[35dvh] w-full bg-gray-100 relative overflow-hidden shrink-0">
+								<div className="w-full bg-gray-100 relative flex items-center justify-center overflow-hidden shrink-0 min-h-[200px] max-h-[50dvh]">
 									{selectedWorkshopForModal.imageUrl ? (
 										<img 
 											src={selectedWorkshopForModal.imageUrl} 
 											alt={selectedWorkshopForModal.name} 
-											className="w-full h-full object-cover"
+											className="w-full h-auto max-h-[50dvh] object-contain block mx-auto"
 										/>
 									) : (
-										<div className="w-full h-full flex items-center justify-center text-gray-200">
+										<div className="w-full h-48 flex items-center justify-center text-gray-300">
 											<ImageIcon size={48} strokeWidth={1} />
 										</div>
 									)}
-									<div className="absolute bottom-4 right-4 bg-rec-blue text-white px-4 py-2 rounded-2xl font-black text-lg shadow-lg">
+									<div className="absolute bottom-3 right-3 bg-rec-blue text-white px-3.5 py-1.5 rounded-2xl font-black text-base shadow-lg z-10">
 										{formData.niños.cantidad >= 15 ? selectedWorkshopForModal.pricePlus : selectedWorkshopForModal.priceBase}€
 									</div>
 								</div>

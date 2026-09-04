@@ -1,6 +1,24 @@
 import { safeParseDate } from './safeDate';
 
 /**
+ * Helpers para el catálogo genérico de extras.
+ */
+export const filterActiveCatalog = (items) =>
+  (items || []).filter((i) => i.active);
+
+export const getCatalogItemById = (id, catalogItems) =>
+  (catalogItems || []).find(
+    (item) => String(item.slug) === String(id) || String(item.id) === String(id)
+  ) || null;
+
+export const sumCatalogPrices = (selectedIds, catalogItems) =>
+  (selectedIds || []).reduce((total, id) => {
+    const item = getCatalogItemById(id, catalogItems);
+    if (!item || item.active === false) return total;
+    return total + (Number(item.precio) || 0);
+  }, 0);
+
+/**
  * Lógica de cálculo de precios y validación de pasos para el proceso de reserva.
  * Soporta tanto el flujo de BookingPage (pasos 1-8) como BudgetPage (pasos 1-9).
  */
@@ -55,7 +73,10 @@ export const calculateBookingTotal = (formData, prices, childrenMenusWithPrices)
     const precioPack3 = prices.preciosExtras?.precioPack3Personajes || 100;
     total += personajes.length === 3 ? precioPack3 : precioUnitario * personajes.length;
   }
-  if (formData.extras?.pinata) {
+  // Legacy Piñata: only charged for reservations created before the catalog
+  // feature existed (empty catalogoItemIds + pinata: true from old flow).
+  const hasNewCatalogSelection = (formData.extras?.catalogoItemIds || []).length > 0;
+  if (formData.extras?.pinata && !hasNewCatalogSelection) {
     total += prices.preciosExtras?.pinata || 15;
   }
   if (formData.extras?.extension === 30) {
@@ -64,6 +85,10 @@ export const calculateBookingTotal = (formData, prices, childrenMenusWithPrices)
   if (formData.extras?.extension === 60) {
     total += prices.preciosExtras?.extension60 || 50;
   }
+
+  // 5. Extras del catálogo genérico (incluye Piñata — no es caso especial)
+  const activeCatalog = filterActiveCatalog(prices.extrasCatalogo);
+  total += sumCatalogPrices(formData.extras?.catalogoItemIds || [], activeCatalog);
 
   return total;
 };

@@ -57,8 +57,9 @@ module.exports.sendBookingConfirmationEmail = async (event) => {
 
   // Intentamos obtener el nombre del menú desde el snapshot o la configuración
   let menuName = detalles.niños.menuNombre || detalles.niños.menuId;
+  let config = null;
   try {
-    const config = await Config.findOne();
+    config = await Config.findOne();
     if (config && config.menusNiños) {
       const menu = config.menusNiños.find(m => String(m.id) === String(detalles.niños.menuId) || String(m._id) === String(detalles.niños.menuId));
       if (menu) menuName = menu.nombre;
@@ -212,10 +213,23 @@ ${publicUrl}
               <span class="summary-label">Extra:</span>
               <span class="summary-value">Visita de ${detalles.extras.personajes.join(', ')}</span>
             </div>` : ''}
-            ${detalles.extras.pinata ? `
+            ${detalles.extras.pinata && (!detalles.extras.catalogoItemIds || detalles.extras.catalogoItemIds.length === 0) ? `
             <div class="summary-row">
               <span class="summary-label">Extra:</span>
               <span class="summary-value">Piñata</span>
+            </div>` : ''}
+            ${(detalles.extras.catalogoItemIds || []).length > 0 ? `
+            <div class="summary-row" style="flex-direction: column; display: block; margin-bottom: 15px;">
+              <div class="summary-label" style="margin-bottom: 5px;">Extras adicionales:</div>
+              <div style="background: white; padding: 10px; border-radius: 12px; font-size: 13px; border: 1px solid #F3F4F6;">
+                ${(detalles.extras.catalogoItemIds || []).map(itemId => {
+                  const item = config?.extrasCatalogo?.find(i => i.slug === itemId || String(i.id) === String(itemId));
+                  const nombre = item?.nombre || itemId;
+                  const precio = item?.precio ?? 0;
+                  return `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>${nombre}</span><span style="font-weight: bold;">${precio}€</span></div>`;
+                }).join('')}
+                ${detalles.extras.precioCatalogoApplied > 0 ? `<div style="display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid #E5E7EB; font-weight: bold;"><span>Total extras</span><span>${detalles.extras.precioCatalogoApplied}€</span></div>` : ''}
+              </div>
             </div>` : ''}
             ${horario.extensionMinutos > 0 ? `
             <div class="summary-row">

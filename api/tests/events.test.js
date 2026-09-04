@@ -11,13 +11,29 @@ jest.mock('../services/google.service', () => ({
   listEvents: jest.fn().mockResolvedValue([])
 }));
 
+// Helper para generar fechas futuras garantizadas (evita que tests fallen
+// por la ventana de 72h de modificación de reservas).
+const getFutureDate = (targetDayOfWeek, daysAhead = 30) => {
+  const d = new Date();
+  d.setDate(d.getDate() + daysAhead);
+  while (d.getDay() !== targetDayOfWeek) d.setDate(d.getDate() + 1);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T00:00:00.000Z`;
+};
+
+const futureDate = getFutureDate(new Date().getDay());      // cualquier día futuro
+const futureTuesday = getFutureDate(2);                     // Martes
+const futureSaturday = getFutureDate(6);                    // Sábado
+
 describe('Eventos API - Testing de Lógica de Reservas', () => {
 
   // Test 1: Crear una reserva válida
   it('Debería poder crear una nueva reserva correctamente', async () => {
     const newEvent = {
       tipo: 'reserva',
-      fecha: '2026-05-15T00:00:00.000Z',
+      fecha: futureDate,
       turno: 'T1',
       cliente: {
         nombreNiño: 'Pedrito',
@@ -42,7 +58,7 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
 
   // Test 2: Prevenir overbooking (Doble reserva en el mismo turno)
   it('Debería devolver error si intentamos hacer doble reserva en el mismo turno', async () => {
-    const fixedDate = '2026-06-20T00:00:00.000Z';
+    const fixedDate = getFutureDate(new Date().getDay(), 60);
 
     // Primero, "inyectamos" un evento directamente a la base de datos simulada
     await Event.create({
@@ -78,7 +94,7 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
   describe('Validaciones y Seguridad', () => {
     it('Debería rechazar reserva sin nombre de niño', async () => {
       const res = await request(app).post('/api/v1/events').send({
-        tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
+        tipo: 'reserva', fecha: futureDate, turno: 'T1',
         cliente: { email: 'juan@example.com', telefono: '123456789', privacyPolicyConsent: true }, // Faltan nombres
         detalles: { niños: { cantidad: 15, menuId: 'menu-1' } }
       });
@@ -88,7 +104,7 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
 
     it('Debería rechazar un correo electrónico inválido', async () => {
       const res = await request(app).post('/api/v1/events').send({
-        tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
+        tipo: 'reserva', fecha: futureDate, turno: 'T1',
         cliente: { nombreNiño: 'Pedrito', nombrePadre: 'Juan Pérez', email: 'correo-falso', telefono: '123456789', privacyPolicyConsent: true },
         detalles: { niños: { cantidad: 15, menuId: 'menu-1' } }
       });
@@ -98,7 +114,7 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
 
     it('Debería rechazar una edad irreal (mayor a 99 años)', async () => {
       const res = await request(app).post('/api/v1/events').send({
-        tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
+        tipo: 'reserva', fecha: futureDate, turno: 'T1',
         cliente: { nombreNiño: 'Pedrito', edadNiño: 105, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789', privacyPolicyConsent: true },
         detalles: { niños: { cantidad: 15, menuId: 'menu-1' } }
       });
@@ -108,7 +124,7 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
 
     it('Debería rechazar reserva con más de 50 niños', async () => {
       const res = await request(app).post('/api/v1/events').send({
-        tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
+        tipo: 'reserva', fecha: futureDate, turno: 'T1',
         cliente: { nombreNiño: 'Pedrito', edadNiño: 5, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789', privacyPolicyConsent: true },
         detalles: { niños: { cantidad: 51, menuId: 'menu-1' } }
       });
@@ -118,7 +134,7 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
 
     it('Debería rechazar reserva con más de 40 adultos', async () => {
       const res = await request(app).post('/api/v1/events').send({
-        tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
+        tipo: 'reserva', fecha: futureDate, turno: 'T1',
         cliente: { nombreNiño: 'Pedrito', edadNiño: 5, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789', privacyPolicyConsent: true },
         detalles: {
           niños: { cantidad: 15, menuId: 'menu-1' },
@@ -131,7 +147,7 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
 
     it('Debería rechazar raciones de comida de adultos mayores a 20 unidades', async () => {
       const res = await request(app).post('/api/v1/events').send({
-        tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
+        tipo: 'reserva', fecha: futureDate, turno: 'T1',
         cliente: { nombreNiño: 'Pedrito', edadNiño: 5, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789', privacyPolicyConsent: true },
         detalles: {
           niños: { cantidad: 15, menuId: 'menu-1' },
@@ -148,7 +164,7 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
     it('Debería rechazar nombres de más de 100 caracteres', async () => {
       const longName = 'A'.repeat(101);
       const res = await request(app).post('/api/v1/events').send({
-        tipo: 'reserva', fecha: '2026-05-15T00:00:00.000Z', turno: 'T1',
+        tipo: 'reserva', fecha: futureDate, turno: 'T1',
         cliente: { nombreNiño: longName, nombrePadre: 'Juan Pérez', email: 'juan@example.com', telefono: '123456789', privacyPolicyConsent: true },
         detalles: { niños: { cantidad: 15, menuId: 'menu-1' } }
       });
@@ -165,14 +181,20 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
         plusFinDeSemana: 2,
         preciosAdultos: [],
         workshops: [{ name: 'Magia', priceBase: 25, pricePlus: 30 }],
-        preciosExtras: { extension30: 30, extension60: 50 }
+        preciosExtras: { extension30: 30, extension60: 50 },
+          extrasCatalogo: [
+            { id: 'pinata', slug: 'pinata', nombre: 'Piñata Neverland', precio: 15, active: true },
+            { id: 'snack', slug: 'snack-bar', nombre: 'Snack Bar', precio: 25, active: true },
+            { id: 'decoracion', slug: 'decoracion-tematica', nombre: 'Decoración Temática', precio: 35, active: true },
+            { id: 'inactivo', slug: 'extra-inactivo', nombre: 'Extra Inactivo', precio: 10, active: false }
+        ]
       });
     });
 
     it('Debería calcular correctamente el precio base (niños * menú)', async () => {
       // Un martes (día de semana), 12 niños a 15€ = 180€
       const res = await request(app).post('/api/v1/events').send({
-        tipo: 'reserva', fecha: '2025-05-20T00:00:00.000Z', // 20 May 2025 es Martes
+        tipo: 'reserva', fecha: futureTuesday, // Martes
         turno: 'T1',
         cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789', privacyPolicyConsent: true },
         detalles: { niños: { cantidad: 12, menuId: 'menu-1' } }
@@ -184,7 +206,7 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
     it('Debería aplicar el plus de fin de semana correctamente', async () => {
       // Un sábado (fin de semana), 12 niños a 15€ = 180€ + (12 niños * 2€ plus) = 204€
       const res = await request(app).post('/api/v1/events').send({
-        tipo: 'reserva', fecha: '2025-05-24T00:00:00.000Z', // 24 May 2025 es Sábado
+        tipo: 'reserva', fecha: futureSaturday, // Sábado
         turno: 'T1',
         cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789', privacyPolicyConsent: true },
         detalles: { niños: { cantidad: 12, menuId: 'menu-1' } }
@@ -195,7 +217,7 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
     it('Debería facturar correctamente tiempo extra y talleres interactivos interactivos', async () => {
       // Martes, 20 niños a 15€ = 300€ + (Taller Plus por ser > 15 niños: 30€) + (Extensión 30 min: 30€) = 360€
       const res = await request(app).post('/api/v1/events').send({
-        tipo: 'reserva', fecha: '2025-05-20T00:00:00.000Z',
+        tipo: 'reserva', fecha: futureTuesday,
         turno: 'T1',
         cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789', privacyPolicyConsent: true },
         detalles: {
@@ -210,7 +232,7 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
     it('Debería aplicar tallerBase (no plus) si hay exactamente 15 niños', async () => {
       // Martes, 15 niños a 15€ = 225€ + (Taller Base por ser <= 15 niños: 25€) = 250€
       const res = await request(app).post('/api/v1/events').send({
-        tipo: 'reserva', fecha: '2025-05-20T00:00:00.000Z',
+        tipo: 'reserva', fecha: futureTuesday,
         turno: 'T1',
         cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789', privacyPolicyConsent: true },
         detalles: {
@@ -219,6 +241,156 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
         }
       });
       expect(res.body.precioTotal).toBe(250);
+    });
+
+    describe('Catálogo de extras', () => {
+      it('Debería sumar precios de items del catálogo y snapshotear precioCatalogoApplied', async () => {
+        const res = await request(app).post('/api/v1/events').send({
+          tipo: 'reserva', fecha: futureTuesday,
+          turno: 'T1',
+          cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789', privacyPolicyConsent: true },
+          detalles: {
+            niños: { cantidad: 12, menuId: 'menu-1' },
+            extras: { catalogoItemIds: ['snack-bar', 'decoracion-tematica'] }
+          }
+        });
+        expect(res.statusCode).toBe(201);
+        // 12*15 = 180 + 25 + 35 = 240
+        expect(res.body.precioTotal).toBe(240);
+        expect(res.body.detalles.extras.precioCatalogoApplied).toBe(60);
+      });
+
+      it('Debería hacer dual-write de Piñata cuando está en catalogoItemIds', async () => {
+        const res = await request(app).post('/api/v1/events').send({
+          tipo: 'reserva', fecha: futureTuesday,
+          turno: 'T1',
+          cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789', privacyPolicyConsent: true },
+          detalles: {
+            niños: { cantidad: 12, menuId: 'menu-1' },
+            extras: { catalogoItemIds: ['pinata', 'snack-bar'] }
+          }
+        });
+        expect(res.statusCode).toBe(201);
+        expect(res.body.detalles.extras.pinata).toBe(true);
+        expect(res.body.detalles.extras.precioPinataApplied).toBe(15);
+        // precioCatalogoApplied now includes Piñata (15 + 25 = 40)
+        expect(res.body.detalles.extras.precioCatalogoApplied).toBe(40);
+        // 12*15 + 15 (pinata) + 25 (snack) = 220
+        expect(res.body.precioTotal).toBe(220);
+      });
+
+      it('No debería duplicar el precio de Piñata', async () => {
+        const res = await request(app).post('/api/v1/events').send({
+          tipo: 'reserva', fecha: futureTuesday,
+          turno: 'T1',
+          cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789', privacyPolicyConsent: true },
+          detalles: {
+            niños: { cantidad: 12, menuId: 'menu-1' },
+            extras: { pinata: true, catalogoItemIds: ['pinata'] }
+          }
+        });
+        expect(res.statusCode).toBe(201);
+        // 12*15 + 15 (pinata una sola vez) = 195
+        expect(res.body.precioTotal).toBe(195);
+      });
+
+      it('Debería rechazar items inactivos o desconocidos con 400', async () => {
+        const res = await request(app).post('/api/v1/events').send({
+          tipo: 'reserva', fecha: futureTuesday,
+          turno: 'T1',
+          cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789', privacyPolicyConsent: true },
+          detalles: {
+            niños: { cantidad: 12, menuId: 'menu-1' },
+            extras: { catalogoItemIds: ['extra-inactivo'] }
+          }
+        });
+        expect(res.statusCode).toBe(400);
+      });
+
+      it('Debería rechazar IDs duplicados en catalogoItemIds', async () => {
+        const res = await request(app).post('/api/v1/events').send({
+          tipo: 'reserva', fecha: futureTuesday,
+          turno: 'T1',
+          cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789', privacyPolicyConsent: true },
+          detalles: {
+            niños: { cantidad: 12, menuId: 'menu-1' },
+            extras: { catalogoItemIds: ['snack-bar', 'snack-bar'] }
+          }
+        });
+        expect(res.statusCode).toBe(400);
+      });
+
+      it('Debería recalcular precioCatalogoApplied al cambiar catalogoItemIds por PATCH', async () => {
+        const createRes = await request(app).post('/api/v1/events').send({
+          tipo: 'reserva', fecha: futureTuesday,
+          turno: 'T1',
+          cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789', privacyPolicyConsent: true },
+          detalles: {
+            niños: { cantidad: 12, menuId: 'menu-1' },
+            extras: { catalogoItemIds: ['snack-bar'] }
+          }
+        });
+        expect(createRes.statusCode).toBe(201);
+        expect(createRes.body.detalles.extras.precioCatalogoApplied).toBe(25);
+        const eventId = createRes.body.id;
+
+        const patchRes = await request(app).patch(`/api/v1/events/${eventId}`).send({
+          detalles: {
+            extras: {
+              catalogoItemIds: ['snack-bar', 'decoracion-tematica'],
+              pinata: false,
+              personajes: [],
+              taller: 'ninguno',
+              observaciones: '',
+              alergenos: ''
+            }
+          }
+        });
+        expect(patchRes.statusCode).toBe(200);
+        expect(patchRes.body.detalles.extras.precioCatalogoApplied).toBe(60);
+      });
+
+      it('Debería recalcular precioCatalogoApplied cuando cambia el precio base del menú', async () => {
+        const createRes = await request(app).post('/api/v1/events').send({
+          tipo: 'reserva', fecha: futureTuesday,
+          turno: 'T1',
+          cliente: { nombreNiño: 'Leo', nombrePadre: 'Ana', email: 'ana@example.com', telefono: '123456789', privacyPolicyConsent: true },
+          detalles: {
+            niños: { cantidad: 12, menuId: 'menu-1' },
+            extras: { catalogoItemIds: ['snack-bar'] }
+          }
+        });
+        expect(createRes.statusCode).toBe(201);
+        const eventId = createRes.body.id;
+
+        await Config.deleteMany({});
+        await Config.create({
+          menusNiños: [{ id: 'menu-1', precio: 20 }],
+          plusFinDeSemana: 2,
+          preciosAdultos: [],
+          workshops: [],
+          preciosExtras: { extension30: 30, extension60: 50 },
+          extrasCatalogo: [
+            { id: 'snack', slug: 'snack-bar', nombre: 'Snack Bar', precio: 30, active: true }
+          ]
+        });
+
+        const patchRes = await request(app).patch(`/api/v1/events/${eventId}`).send({
+          detalles: {
+            niños: { menuId: 'menu-1' },
+            extras: {
+              catalogoItemIds: ['snack-bar'],
+              pinata: false,
+              personajes: [],
+              taller: 'ninguno',
+              observaciones: '',
+              alergenos: ''
+            }
+          }
+        });
+        expect(patchRes.statusCode).toBe(200);
+        expect(patchRes.body.detalles.extras.precioCatalogoApplied).toBe(30);
+      });
     });
   });
 
@@ -238,10 +410,11 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
   describe('Consulta de Disponibilidad (Motor Principal)', () => {
     it('Debería reportar ocupado un turno proveniente de la base de datos local', async () => {
       // 1. Creamos un evento directamente en BD local
-      await Event.create({ tipo: 'reserva', fecha: '2025-10-10T00:00:00.000Z', turno: 'T3', estado: 'confirmado', cliente: { privacyPolicyConsent: true } });
+      const availDate = getFutureDate(new Date().getDay(), 45);
+      await Event.create({ tipo: 'reserva', fecha: availDate, turno: 'T3', estado: 'confirmado', cliente: { privacyPolicyConsent: true } });
 
       // 2. Solicitamos disponibilidad a esa fecha
-      const res = await request(app).get('/api/v1/events/availability?fecha=2025-10-10');
+      const res = await request(app).get(`/api/v1/events/availability?fecha=${availDate.split('T')[0]}`);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.occupiedShifts).toBeDefined();
@@ -250,6 +423,8 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
     });
 
     it('Debería reconocer eventos externos de Google Calendar mediante la palabra clave #T1', async () => {
+      const gDate = getFutureDate(new Date().getDay(), 50);
+      const gDateStr = gDate.split('T')[0];
       // Obligamos al mock a devolver de mentira un evento proveniente de Google Calendar
       googleService.listEvents.mockResolvedValueOnce([
         {
@@ -258,12 +433,12 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
           transparency: 'opaque',
           status: 'confirmed',
           extendedProperties: {}, // Simula ser creado desde google UI directamente (sin metadatos)
-          start: { dateTime: '2025-11-15T17:00:00+01:00' },
-          end: { dateTime: '2025-11-15T19:00:00+01:00' }
+          start: { dateTime: `${gDateStr}T17:00:00+01:00` },
+          end: { dateTime: `${gDateStr}T19:00:00+01:00` }
         }
       ]);
 
-      const res = await request(app).get('/api/v1/events/availability?fecha=2025-11-15');
+      const res = await request(app).get(`/api/v1/events/availability?fecha=${gDateStr}`);
 
       expect(res.statusCode).toBe(200);
       const shifts = res.body.occupiedShifts.map(s => s.shift);
@@ -271,6 +446,8 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
     });
 
     it('Debería bloquear turnos por solapamiento de horarios de Google Calendar genérico', async () => {
+      const gDate = getFutureDate(new Date().getDay(), 55);
+      const gDateStr = gDate.split('T')[0];
       // Evento genérico #Neverland que ocupa de 17:30 a 20:30 hora local España
       // Usamos +01:00 (CET, invierno España) para simular lo que realmente envía Google Calendar
       googleService.listEvents.mockResolvedValueOnce([
@@ -279,12 +456,12 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
           summary: 'Mantenimiento #Neverland',
           transparency: 'opaque',
           status: 'confirmed',
-          start: { dateTime: '2025-12-01T17:30:00+01:00' },
-          end: { dateTime: '2025-12-01T20:30:00+01:00' }
+          start: { dateTime: `${gDateStr}T17:30:00+01:00` },
+          end: { dateTime: `${gDateStr}T20:30:00+01:00` }
         }
       ]);
 
-      const res = await request(app).get('/api/v1/events/availability?fecha=2025-12-01');
+      const res = await request(app).get(`/api/v1/events/availability?fecha=${gDateStr}`);
 
       expect(res.statusCode).toBe(200);
       const shifts = res.body.occupiedShifts.map(s => s.shift);
