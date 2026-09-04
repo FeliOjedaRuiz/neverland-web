@@ -1,8 +1,11 @@
-import React from 'react';
-import { Clock, CheckCircle, MessageSquare } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clock, CheckCircle, MessageSquare, X, Image as ImageIcon, ZoomIn } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { filterActiveCatalog } from '../../utils/bookingUtils';
 
 const Step7Extras = ({ formData, setFormData, prices, extrasCatalogo = [] }) => {
+	const [selectedItemForModal, setSelectedItemForModal] = useState(null);
+
 	const getPriceForExtension = (mins) => {
 		if (mins === 0) return 0;
 		return mins === 30
@@ -114,17 +117,30 @@ const Step7Extras = ({ formData, setFormData, prices, extrasCatalogo = [] }) => 
 											}`}
 										>
 											<div className="flex items-center gap-3 min-w-0">
-												<div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-xl shrink-0 overflow-hidden">
+												<button
+													type="button"
+													onClick={(e) => {
+														e.stopPropagation();
+														setSelectedItemForModal(item);
+													}}
+													className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-xl shrink-0 overflow-hidden relative group hover:ring-2 hover:ring-pink-400 transition-all cursor-pointer"
+													title="Ver imagen"
+												>
 													{item.imageUrl ? (
-														<img
-															src={item.imageUrl}
-															alt={item.nombre}
-															className="w-full h-full object-cover rounded-full"
-														/>
+														<>
+															<img
+																src={item.imageUrl}
+																alt={item.nombre}
+																className="w-full h-full object-cover rounded-full"
+															/>
+															<div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+																<ZoomIn size={14} className="text-white drop-shadow" />
+															</div>
+														</>
 													) : (
 														<span>{item.nombre?.charAt(0) || '✨'}</span>
 													)}
-												</div>
+												</button>
 												<div className="text-left min-w-0">
 													<p className="font-bold text-gray-800 text-sm truncate">
 														{item.nombre}
@@ -193,6 +209,69 @@ const Step7Extras = ({ formData, setFormData, prices, extrasCatalogo = [] }) => 
 					</div>
 				</div>
 			</div>
+
+			{/* Modal Preview Imagen Extra */}
+			<AnimatePresence>
+				{selectedItemForModal && (
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						className="fixed top-16 md:top-20 inset-x-0 bottom-0 z-[1000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+						onClick={() => setSelectedItemForModal(null)}
+					>
+						<motion.div
+							initial={{ scale: 0.9, opacity: 0, y: 20 }}
+							animate={{ scale: 1, opacity: 1, y: 0 }}
+							exit={{ scale: 0.9, opacity: 0, y: 20 }}
+							className="bg-white rounded-[32px] overflow-hidden w-full max-w-sm sm:max-w-md shadow-2xl relative max-h-[90dvh] flex flex-col"
+							onClick={(e) => e.stopPropagation()}
+						>
+							<button 
+								onClick={() => setSelectedItemForModal(null)}
+								className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-white/90 text-gray-900 shadow-xl flex items-center justify-center active:scale-90 border border-gray-100"
+							>
+								<X size={20} strokeWidth={3} />
+							</button>
+
+							<div className="overflow-y-auto no-scrollbar">
+								<div className="w-full bg-pink-50/40 relative flex items-center justify-center overflow-hidden shrink-0 min-h-[200px] max-h-[50dvh]">
+									{selectedItemForModal.imageUrl ? (
+										<img 
+											src={selectedItemForModal.imageUrl} 
+											alt={selectedItemForModal.nombre} 
+											className="w-full h-auto max-h-[50dvh] object-contain block mx-auto"
+										/>
+									) : (
+										<div className="w-full h-52 flex flex-col items-center justify-center text-gray-400 gap-2 p-6 text-center">
+											<ImageIcon size={48} strokeWidth={1.5} className="text-gray-300" />
+											<span className="text-sm font-bold text-gray-500">Imagen no disponible</span>
+										</div>
+									)}
+									<div className="absolute bottom-3 right-3 bg-pink-500 text-white px-3.5 py-1.5 rounded-2xl font-black text-base shadow-lg z-10">
+										+{Number(selectedItemForModal.precio || 0).toFixed(0)}€
+									</div>
+								</div>
+
+								<div className="p-5">
+									<h3 className="text-lg sm:text-xl font-display font-black text-text-black mb-1">
+										{selectedItemForModal.nombre}
+									</h3>
+									{selectedItemForModal.descripcion ? (
+										<p className="text-xs sm:text-sm text-gray-600 leading-relaxed font-medium">
+											{selectedItemForModal.descripcion}
+										</p>
+									) : (
+										<p className="text-xs text-gray-400 italic">
+											Sin descripción adicional
+										</p>
+									)}
+								</div>
+							</div>
+						</motion.div>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</div>
 	);
 };
