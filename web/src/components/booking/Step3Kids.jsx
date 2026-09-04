@@ -236,7 +236,7 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 							animate={{ scale: 1, opacity: 1, y: 0 }}
 							exit={{ scale: 0.9, opacity: 0, y: 20 }}
 							transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-							className="bg-white rounded-[32px] overflow-hidden w-full max-w-lg shadow-2xl relative max-h-[90dvh] flex flex-col"
+							className="bg-white rounded-[32px] overflow-hidden w-full max-w-lg shadow-2xl relative h-full max-h-[640px] flex flex-col"
 							onClick={(e) => e.stopPropagation()}
 						>
 							{/* Botón Cerrar - Mejorado para contraste */}
@@ -247,91 +247,89 @@ const Step3Kids = ({ formData, setFormData, CHILDREN_MENUS }) => {
 								<X size={20} strokeWidth={3} />
 							</button>
 
-							<div className="overflow-y-auto no-scrollbar">
-								{/* Hero Image Section - Altura controlada para encuadre visible */}
-								<div className="relative h-44 sm:h-60 w-full overflow-hidden bg-gray-100 shrink-0">
-									{selectedMenuForModal.imageUrl ? (
-										<img 
-											src={selectedMenuForModal.imageUrl} 
-											alt={selectedMenuForModal.nombre} 
-											className="w-full h-full object-cover"
-										/>
+							{/* Hero Image Section - Crece en pantallas más altas aprovechando el espacio */}
+							<div className="relative flex-1 min-h-[160px] w-full overflow-hidden bg-gray-100">
+								{selectedMenuForModal.imageUrl ? (
+									<img 
+										src={selectedMenuForModal.imageUrl} 
+										alt={selectedMenuForModal.nombre} 
+										className="w-full h-full object-cover"
+									/>
+								) : (
+									<div className="w-full h-full flex flex-col items-center justify-center text-gray-300 gap-2">
+										<ImageIcon size={48} strokeWidth={1} />
+										<span className="text-xs font-bold uppercase tracking-widest">Sin imagen</span>
+									</div>
+								)}
+								{/* Price Badge over image */}
+								<div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 bg-energy-orange text-white px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-2xl font-black text-base sm:text-lg shadow-lg shadow-energy-orange/20 z-10">
+									{selectedMenuForModal.precio}€
+								</div>
+							</div>
+
+							{/* Content Section - Con scroll interno por si la pantalla es muy baja */}
+							<div className="p-4 sm:p-6 shrink-0 overflow-y-auto no-scrollbar">
+								<h3 className="text-lg sm:text-2xl font-display font-black text-text-black mb-0.5">
+									{selectedMenuForModal.nombre}
+								</h3>
+								<div className="flex items-center gap-2 mb-3">
+									<div className="h-1 w-5 rounded-full bg-energy-orange" />
+									<span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+										Detalles del Menú
+									</span>
+								</div>
+
+								{/* Main Dish */}
+								<div className="mb-3.5 p-3 sm:p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
+									<p className="text-[10px] font-black text-energy-orange uppercase tracking-wider mb-0.5">
+										Plato Principal
+									</p>
+									<p className="text-sm sm:text-base font-bold text-gray-800 leading-snug">
+										{selectedMenuForModal.principal}
+									</p>
+								</div>
+
+								{/* Menu Items Grid */}
+								<div className="space-y-2">
+									<p className="text-[10px] font-black text-gray-400 uppercase tracking-wider pl-1">
+										Incluye además:
+									</p>
+									<div className="flex flex-wrap gap-1.5 sm:gap-2">
+										{selectedMenuForModal.resto
+											?.split('\n')
+											.filter((i) => i.trim())
+											.map((item, i) => (
+												<div
+													key={i}
+													className="bg-gray-50 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-xs sm:text-[13px] font-bold text-gray-600 border border-gray-100 flex items-center gap-1.5"
+												>
+													<div className="w-1.5 h-1.5 rounded-full bg-neverland-green" />
+													{item.replace(/^-/, '').trim()}
+												</div>
+											))}
+									</div>
+								</div>
+								
+								{/* Selection Action */}
+								<button
+									onClick={() => {
+										setFormData({
+											...formData,
+											niños: { ...formData.niños, menuId: selectedMenuForModal.id || selectedMenuForModal._id },
+										});
+										closeModal();
+									}}
+									className="w-full mt-4 sm:mt-5 py-3 sm:py-3.5 bg-energy-orange hover:bg-energy-orange/90 text-white rounded-2xl font-black shadow-lg shadow-energy-orange/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base"
+								>
+									{String(formData.niños.menuId) === String(selectedMenuForModal.id || selectedMenuForModal._id) ? (
+										<>
+											<CheckCircle size={20} strokeWidth={3} />
+											SELECCIONADO
+										</>
 									) : (
-										<div className="w-full h-full flex flex-col items-center justify-center text-gray-300 gap-2">
-											<ImageIcon size={48} strokeWidth={1} />
-											<span className="text-xs font-bold uppercase tracking-widest">Sin imagen</span>
-										</div>
+										'SELECCIONAR ESTE MENÚ'
 									)}
-									{/* Price Badge over image */}
-									<div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 bg-energy-orange text-white px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-2xl font-black text-base sm:text-lg shadow-lg shadow-energy-orange/20 z-10">
-										{selectedMenuForModal.precio}€
-									</div>
-								</div>
-
-								{/* Content Section */}
-								<div className="p-4 sm:p-6">
-									<h3 className="text-lg sm:text-2xl font-display font-black text-text-black mb-0.5">
-										{selectedMenuForModal.nombre}
-									</h3>
-									<div className="flex items-center gap-2 mb-3">
-										<div className="h-1 w-5 rounded-full bg-energy-orange" />
-										<span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
-											Detalles del Menú
-										</span>
-									</div>
-
-									{/* Main Dish */}
-									<div className="mb-3.5 p-3 sm:p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
-										<p className="text-[10px] font-black text-energy-orange uppercase tracking-wider mb-0.5">
-											Plato Principal
-										</p>
-										<p className="text-sm sm:text-base font-bold text-gray-800 leading-snug">
-											{selectedMenuForModal.principal}
-										</p>
-									</div>
-
-									{/* Menu Items Grid */}
-									<div className="space-y-2">
-										<p className="text-[10px] font-black text-gray-400 uppercase tracking-wider pl-1">
-											Incluye además:
-										</p>
-										<div className="flex flex-wrap gap-1.5 sm:gap-2">
-											{selectedMenuForModal.resto
-												?.split('\n')
-												.filter((i) => i.trim())
-												.map((item, i) => (
-													<div
-														key={i}
-														className="bg-gray-50 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-xs sm:text-[13px] font-bold text-gray-600 border border-gray-100 flex items-center gap-1.5"
-													>
-														<div className="w-1.5 h-1.5 rounded-full bg-neverland-green" />
-														{item.replace(/^-/, '').trim()}
-													</div>
-												))}
-										</div>
-									</div>
-									
-									{/* Selection Action */}
-									<button
-										onClick={() => {
-											setFormData({
-												...formData,
-												niños: { ...formData.niños, menuId: selectedMenuForModal.id || selectedMenuForModal._id },
-											});
-											closeModal();
-										}}
-										className="w-full mt-4 sm:mt-5 py-3 sm:py-3.5 bg-energy-orange hover:bg-energy-orange/90 text-white rounded-2xl font-black shadow-lg shadow-energy-orange/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base"
-									>
-										{String(formData.niños.menuId) === String(selectedMenuForModal.id || selectedMenuForModal._id) ? (
-											<>
-												<CheckCircle size={20} strokeWidth={3} />
-												SELECCIONADO
-											</>
-										) : (
-											'SELECCIONAR ESTE MENÚ'
-										)}
-									</button>
-								</div>
+								</button>
 							</div>
 						</motion.div>
 					</motion.div>
