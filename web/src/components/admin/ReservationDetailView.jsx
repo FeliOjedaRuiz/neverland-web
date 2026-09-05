@@ -2746,14 +2746,23 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 									)}
 								</div>
 								<div className="min-w-0 flex-1">
-									<p className={`text-sm font-black truncate ${isSelected ? 'text-text-black' : 'text-gray-400'}`}>{item.nombre || item.slug}</p>
-									{isSelected ? (
-										<span className="inline-block text-[10px] font-black text-pink-600 bg-pink-100 px-2 py-0.5 rounded-lg">
-											+{Number(item.precio || 0)}€
-										</span>
-									) : (
-										<p className="text-xs font-bold text-gray-300">{Number(item.precio || 0)}€</p>
+									<p className={`text-sm font-black truncate ${isSelected ? 'text-text-black' : 'text-gray-800'}`}>
+										{item.nombre || item.slug}
+									</p>
+									{item.descripcion && (
+										<p className="text-xs text-gray-400 truncate leading-tight">
+											{item.descripcion}
+										</p>
 									)}
+									<div className="mt-0.5">
+										{isSelected ? (
+											<span className="inline-block text-[10px] font-black text-pink-600 bg-pink-100 px-2 py-0.5 rounded-lg">
+												+{Number(item.precio || 0)}€
+											</span>
+										) : (
+											<p className="text-xs font-bold text-gray-400">{Number(item.precio || 0)}€</p>
+										)}
+									</div>
 								</div>
 								<div className={`ml-auto w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
 									isSelected ? 'bg-pink-500 border-pink-500' : 'border-gray-200 bg-white'
