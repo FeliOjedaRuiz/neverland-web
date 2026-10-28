@@ -4,39 +4,34 @@ const createError = require('http-errors');
 const cloudinary = require('cloudinary').v2;
 const googleService = require('../services/google.service');
 const mailer = require('../config/mailer.config');
-const { safeParseDate, getSafeNow } = require('../utils/date');
+const { safeParseDate, getSafeNow, isTallerIniciado } = require('../utils/date');
 
 module.exports.list = async (req, res, next) => {
   try {
     const esAdmin = req.user && req.user.role === 'admin';
-    const { publico: publicoParam, talleresProximos } = req.query;
-    const query = {};
+    const { publico: parametroPublico, talleresProximos } = req.query;
+    const consulta = {};
 
     // Filtro de visibilidad
     if (!esAdmin) {
       // Público: solo talleres publicados
-      query.publico = true;
-    } else if (publicoParam === 'true') {
-      query.publico = true;
+      consulta.publico = true;
+    } else if (parametroPublico === 'true') {
+      consulta.publico = true;
     }
 
-    let talleres = await Taller.find(query).sort({ fecha: 1, 'horario.inicio': 1 });
+    let talleres = await Taller.find(consulta).sort({ fecha: 1, 'horario.inicio': 1 });
 
     // Aplicar limite si se solicita
     const limite = parseInt(req.query.limite) || 0;
 
-    // Filtrar talleres pasados (fecha + horario.fin ya pasó, hora española)
+    // Filtrar talleres ya iniciados (fecha + horario.inicio en hora española ya pasó).
+    // Un taller sigue visible/librable HASTA su hora de inicio y desaparece en ese instante.
     // El parámetro 'incluirPasados' permite a la home mostrar pasados para rellenar slots
     const incluirPasados = req.query.incluirPasados === 'true';
     if ((!esAdmin && !incluirPasados) || talleresProximos === 'true') {
       const ahora = getSafeNow();
-      talleres = talleres.filter(taller => {
-        if (!taller.horario?.fin) return true;
-        const fechaFinTaller = safeParseDate(taller.fecha);
-        const [h, m] = taller.horario.fin.split(':').map(Number);
-        fechaFinTaller.setHours(h, m, 0, 0);
-        return fechaFinTaller >= ahora;
-      });
+      talleres = talleres.filter(taller => !isTallerIniciado(taller, ahora));
     }
 
     // Aplicar limite después del filtrado
@@ -84,8 +79,8 @@ module.exports.cancelarInscripcion = async (req, res, next) => {
     if (tallerActualizado && tallerActualizado.googleEventId) {
       try {
         await googleService.createTallerCalendarEvent(tallerActualizado);
-      } catch (gErr) {
-        console.error('Google Calendar sync failed during taller inscription cancellation:', gErr);
+      } catch (errorGoogle) {
+        console.error('Falló la sincronización con Google Calendar al cancelar la inscripción del taller:', errorGoogle);
       }
     }
 
@@ -130,8 +125,8 @@ module.exports.create = async (req, res, next) => {
       if (bloqueo.googleEventId) {
         try {
           await googleService.deleteCalendarEvent(bloqueo.googleEventId);
-        } catch (gErr) {
-          console.error('Error eliminando evento de Google Calendar para bloqueo:', gErr);
+        } catch (errorGoogle) {
+          console.error('Error eliminando evento de Google Calendar para bloqueo:', errorGoogle);
         }
       }
       await Event.findByIdAndDelete(bloqueo._id);
@@ -151,15 +146,15 @@ module.exports.create = async (req, res, next) => {
       galeria: galeria || []
     });
 
-    // Google Calendar sync
+    // Sincronización con Google Calendar
     try {
-      const gEvento = await googleService.createTallerCalendarEvent(taller);
-      if (gEvento?.id) {
-        taller.googleEventId = gEvento.id;
+      const eventoGoogle = await googleService.createTallerCalendarEvent(taller);
+      if (eventoGoogle?.id) {
+        taller.googleEventId = eventoGoogle.id;
         await taller.save();
       }
-    } catch (gErr) {
-      console.error('Google Calendar sync failed during taller creation:', gErr);
+    } catch (errorGoogle) {
+      console.error('Falló la sincronización con Google Calendar al crear el taller:', errorGoogle);
     }
 
     return res.status(201).json(taller);
@@ -206,8 +201,8 @@ module.exports.update = async (req, res, next) => {
         if (bloqueo.googleEventId) {
           try {
             await googleService.deleteCalendarEvent(bloqueo.googleEventId);
-          } catch (gErr) {
-            console.error('Error eliminando bloqueo de Google Calendar:', gErr);
+          } catch (errorGoogle) {
+            console.error('Error eliminando bloqueo de Google Calendar:', errorGoogle);
           }
         }
         await Event.findByIdAndDelete(bloqueo._id);
@@ -223,13 +218,13 @@ module.exports.update = async (req, res, next) => {
     // Resincronizar Google Calendar si cambió fecha/horario
     if (fechaCambia || turnosCambian || horario) {
       try {
-        const gEvento = await googleService.createTallerCalendarEvent(taller);
-        if (gEvento?.id && !taller.googleEventId) {
-          taller.googleEventId = gEvento.id;
+        const eventoGoogle = await googleService.createTallerCalendarEvent(taller);
+        if (eventoGoogle?.id && !taller.googleEventId) {
+          taller.googleEventId = eventoGoogle.id;
           await taller.save();
         }
-      } catch (gErr) {
-        console.error('Google Calendar sync failed during taller update:', gErr);
+      } catch (errorGoogle) {
+        console.error('Falló la sincronización con Google Calendar al actualizar el taller:', errorGoogle);
       }
     }
 
@@ -250,8 +245,11 @@ module.exports.detail = async (req, res, next) => {
       return res.json(taller);
     }
 
+    // Público: un taller sin publicar no es accesible, ni siquiera por URL directa
+    if (!taller.publico) throw createError(404, 'Taller no encontrado');
+
     // Público: solo datos públicos, NUNCA datos de inscripciones
-    const publicData = {
+    const datosPublicos = {
       id: taller.id,
       nombre: taller.nombre,
       descripcion: taller.descripcion,
@@ -268,7 +266,7 @@ module.exports.detail = async (req, res, next) => {
       updatedAt: taller.updatedAt
     };
 
-    res.json(publicData);
+    res.json(datosPublicos);
   } catch (error) {
     next(error);
   }
@@ -283,8 +281,8 @@ module.exports.delete = async (req, res, next) => {
     if (taller.googleEventId) {
       try {
         await googleService.deleteCalendarEvent(taller.googleEventId);
-      } catch (gErr) {
-        console.error('Error eliminando evento de Google Calendar:', gErr);
+      } catch (errorGoogle) {
+        console.error('Error eliminando evento de Google Calendar:', errorGoogle);
       }
     }
 
@@ -302,8 +300,8 @@ module.exports.inscribir = async (req, res, next) => {
       nombreResponsable,
       telefonoResponsable,
       emailResponsable,
-      privacyPolicyConsent,
-      marketingConsent
+      privacyPolicyConsent: consentimientoPrivacidad,
+      marketingConsent: consentimientoMarketing
     } = req.body;
 
     // Validaciones
@@ -318,20 +316,29 @@ module.exports.inscribir = async (req, res, next) => {
       throw createError(400, 'La edad debe ser de máximo 2 cifras');
     }
 
-    if (!privacyPolicyConsent) {
+    if (!consentimientoPrivacidad) {
       throw createError(400, 'Debes aceptar la política de privacidad');
     }
 
     // Validar email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(emailResponsable)) {
+    const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!regexEmail.test(emailResponsable)) {
       throw createError(400, 'Email inválido');
     }
 
     // Validar teléfono (mínimo 9 dígitos)
-    const phoneDigits = (telefonoResponsable.match(/\d/g) || []).length;
-    if (phoneDigits < 9) {
+    const digitosTelefono = (telefonoResponsable.match(/\d/g) || []).length;
+    if (digitosTelefono < 9) {
       throw createError(400, 'Teléfono inválido (mínimo 9 dígitos)');
+    }
+
+    // Verificar disponibilidad ANTES del push atómico: el taller debe existir,
+    // estar publicado y no haber comenzado todavía.
+    const tallerDoc = await Taller.findById(req.params.id);
+    if (!tallerDoc) throw createError(404, 'Taller no encontrado');
+    if (!tallerDoc.publico) throw createError(409, 'El taller no está disponible');
+    if (isTallerIniciado(tallerDoc, getSafeNow())) {
+      throw createError(409, 'El taller ya ha comenzado y no admite más inscripciones');
     }
 
     // Inscripción atómica con validación de aforo
@@ -341,16 +348,15 @@ module.exports.inscribir = async (req, res, next) => {
       nombreResponsable,
       telefonoResponsable,
       emailResponsable,
-      privacyPolicyConsent,
-      marketingConsent: marketingConsent || false,
-      fechaConsentimiento: new Date()
+      privacyPolicyConsent: consentimientoPrivacidad,
+      marketingConsent: consentimientoMarketing || false,
+      fechaConsentimiento: getSafeNow()
     };
 
     const resultado = await Taller.findOneAndUpdate(
       {
         _id: req.params.id,
         publico: true,
-        fecha: { $gte: getSafeNow() },
         $expr: { $lt: [{ $size: '$inscripciones' }, '$aforo'] }
       },
       { $push: { inscripciones: datosInscripcion } },
@@ -367,21 +373,21 @@ module.exports.inscribir = async (req, res, next) => {
     // Enviar email de confirmación
     try {
       await mailer.sendTallerConfirmationEmail(resultado, nuevaInscripcion);
-    } catch (mErr) {
-      console.error('Taller confirmation email failed:', mErr);
+    } catch (errorCorreo) {
+      console.error('Falló el envío del email de confirmación del taller:', errorCorreo);
     }
 
     // Actualizar Google Calendar con la nueva lista de inscriptos
     if (resultado.googleEventId) {
       try {
         await googleService.createTallerCalendarEvent(resultado);
-      } catch (gErr) {
-        console.error('Google Calendar sync failed during taller inscription:', gErr);
+      } catch (errorGoogle) {
+        console.error('Falló la sincronización con Google Calendar al inscribir en el taller:', errorGoogle);
       }
     }
 
     // Devolver datos públicos + flag de éxito
-    const publicData = {
+    const datosPublicos = {
       id: resultado.id,
       nombre: resultado.nombre,
       descripcion: resultado.descripcion,
@@ -397,7 +403,7 @@ module.exports.inscribir = async (req, res, next) => {
       inscripcionExitosa: true
     };
 
-    res.status(201).json(publicData);
+    res.status(201).json(datosPublicos);
   } catch (error) {
     next(error);
   }
@@ -417,8 +423,8 @@ module.exports.eliminarInscripcion = async (req, res, next) => {
     if (taller.googleEventId) {
       try {
         await googleService.createTallerCalendarEvent(taller);
-      } catch (gErr) {
-        console.error('Google Calendar sync failed during taller inscription removal:', gErr);
+      } catch (errorGoogle) {
+        console.error('Falló la sincronización con Google Calendar al eliminar la inscripción del taller:', errorGoogle);
       }
     }
 
@@ -450,8 +456,8 @@ module.exports.editarInscripcion = async (req, res, next) => {
     if (taller.googleEventId) {
       try {
         await googleService.createTallerCalendarEvent(taller);
-      } catch (gErr) {
-        console.error('Google Calendar sync failed during taller inscription edit:', gErr);
+      } catch (errorGoogle) {
+        console.error('Falló la sincronización con Google Calendar al editar la inscripción del taller:', errorGoogle);
       }
     }
 
@@ -479,32 +485,32 @@ module.exports.upload = async (req, res, next) => {
  */
 module.exports.deleteImage = async (req, res, next) => {
   try {
-    const { imageUrl } = req.body;
-    if (!imageUrl) throw createError(400, 'Se requiere imageUrl');
+    const { imageUrl: urlImagen } = req.body;
+    if (!urlImagen) throw createError(400, 'Se requiere imageUrl');
 
     // Parsear URL de Cloudinary para extraer public_id de forma robusta
     // Formato: https://res.cloudinary.com/{cloud}/image/upload/[{transforms}/][v{version}/]{public_id}.{ext}
-    const url = new URL(imageUrl);
-    const pathParts = url.pathname.split('/');
-    const uploadIdx = pathParts.indexOf('upload');
-    if (uploadIdx === -1) throw createError(400, 'URL de Cloudinary no válida');
+    const url = new URL(urlImagen);
+    const partesRuta = url.pathname.split('/');
+    const indiceSubida = partesRuta.indexOf('upload');
+    if (indiceSubida === -1) throw createError(400, 'URL de Cloudinary no válida');
 
     // Después de 'upload': filtrar segmentos de versión (v1234567890), el resto es el public_id
-    const publicId = pathParts
-      .slice(uploadIdx + 1)
+    const idPublico = partesRuta
+      .slice(indiceSubida + 1)
       .filter((p) => !/^v\d+$/.test(p))
       .join('/')
       .replace(/\.[^.]+$/, ''); // quitar extensión
 
-    if (!publicId) throw createError(400, 'No se pudo extraer public_id de la URL');
+    if (!idPublico) throw createError(400, 'No se pudo extraer public_id de la URL');
 
-    const result = await cloudinary.uploader.destroy(publicId);
+    const resultado = await cloudinary.uploader.destroy(idPublico);
 
     // 'ok' = eliminada, 'not found' = ya no existía → ambos son éxito
-    if (result.result === 'ok' || result.result === 'not found') {
-      res.json({ success: true, publicId });
+    if (resultado.result === 'ok' || resultado.result === 'not found') {
+      res.json({ success: true, publicId: idPublico });
     } else {
-      throw createError(500, `Cloudinary respondió: ${result.result}`);
+      throw createError(500, `Cloudinary respondió: ${resultado.result}`);
     }
   } catch (error) {
     next(error);
