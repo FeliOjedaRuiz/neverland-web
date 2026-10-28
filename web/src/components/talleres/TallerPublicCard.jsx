@@ -35,7 +35,7 @@ const AforoIndicator = ({ numInscripciones, aforo }) => {
 	return null;
 };
 
-const TallerPublicCard = ({ taller, pasado = false }) => {
+const TallerPublicCard = ({ taller, cerrado = false }) => {
 	const { ref, controls } = useScrollReveal(0.15);
 
 	const fecha = safeParseDate(taller.fecha);
@@ -49,7 +49,7 @@ const TallerPublicCard = ({ taller, pasado = false }) => {
 		: '';
 
 	// Hora para el badge
-	const horaStr =
+	const textoHora =
 		taller.horario?.inicio && taller.horario?.fin
 			? `${taller.horario.inicio} – ${taller.horario.fin}`
 			: '';
@@ -58,10 +58,10 @@ const TallerPublicCard = ({ taller, pasado = false }) => {
 	const numInscripciones =
 		taller.numInscripciones || taller.inscripciones?.length || 0;
 
-	const cardInner = (
+	const contenidoTarjeta = (
 		<div
 			className={`group flex flex-col bg-white rounded-[32px] overflow-hidden shadow-sm border border-gray-100 h-full ${
-				pasado
+				cerrado
 					? 'grayscale cursor-default'
 					: 'hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer'
 				}`}
@@ -73,7 +73,7 @@ const TallerPublicCard = ({ taller, pasado = false }) => {
 						src={taller.portada}
 						alt={taller.nombre}
 						className={`w-full h-full object-cover ${
-							pasado ? '' : 'group-hover:scale-110 transition-transform duration-700'
+							cerrado ? '' : 'group-hover:scale-110 transition-transform duration-700'
 						}`}
 					/>
 				) : (
@@ -82,8 +82,8 @@ const TallerPublicCard = ({ taller, pasado = false }) => {
 					</div>
 				)}
 
-				{/* Overlay oscuro al hover (solo si no es pasado) */}
-				{!pasado && (
+				{/* Overlay oscuro al hover (solo si no está cerrado) */}
+				{!cerrado && (
 					<div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 				)}
 
@@ -92,9 +92,9 @@ const TallerPublicCard = ({ taller, pasado = false }) => {
 					<span className="block font-display font-black text-neverland-green text-sm leading-tight">
 						{fechaCorta}
 					</span>
-					{horaStr && (
+					{textoHora && (
 						<span className="block font-sans text-text-muted text-[10px] leading-tight mt-0.5">
-							{horaStr}
+							{textoHora}
 						</span>
 					)}
 				</div>
@@ -105,7 +105,7 @@ const TallerPublicCard = ({ taller, pasado = false }) => {
 				{/* Fila 1: Nombre + Precio en la misma línea */}
 				<div className="flex items-start justify-between gap-2 mb-2 min-w-0">
 					<h3 className={`font-display font-black text-lg text-text-black leading-tight truncate flex-1 min-w-0 ${
-						pasado ? '' : 'group-hover:text-neverland-green transition-colors'
+						cerrado ? '' : 'group-hover:text-neverland-green transition-colors'
 					}`}>
 						{taller.nombre}
 					</h3>
@@ -121,8 +121,8 @@ const TallerPublicCard = ({ taller, pasado = false }) => {
 					</p>
 				)}
 
-				{/* Aforo — solo si quedan ≤5 plazas o completo (y no es pasado) */}
-				{!pasado && (
+				{/* Aforo — solo si quedan ≤5 plazas o completo (y no es cerrado) */}
+				{!cerrado && (
 					<AforoIndicator
 						numInscripciones={numInscripciones}
 						aforo={taller.aforo}
@@ -135,13 +135,13 @@ const TallerPublicCard = ({ taller, pasado = false }) => {
 				{/* Botón CTA visual */}
 				<div
 					className={`mt-3 flex items-center justify-center gap-1.5 w-full py-2.5 rounded-2xl font-display font-bold text-sm ${
-						pasado
+						cerrado
 							? 'bg-gray-100 text-gray-400'
 							: 'bg-neverland-green/5 text-neverland-green group-hover:bg-neverland-green group-hover:text-white transition-all duration-300'
 					}`}
 				>
-					{pasado ? 'Finalizado' : '¡Inscríbete aquí!'}
-					{!pasado && (
+					{cerrado ? 'Inscripciones cerradas' : '¡Inscríbete aquí!'}
+					{!cerrado && (
 						<ArrowRight
 							size={15}
 							className="group-hover:translate-x-1 transition-transform"
@@ -167,14 +167,14 @@ const TallerPublicCard = ({ taller, pasado = false }) => {
 			}}
 			className="h-full"
 		>
-			{pasado ? (
-				cardInner
+			{cerrado ? (
+				contenidoTarjeta
 			) : (
 				<Link
 					to={`/talleres/${taller.id || taller._id}`}
 					className="block h-full"
 				>
-					{cardInner}
+					{contenidoTarjeta}
 				</Link>
 			)}
 		</motion.div>

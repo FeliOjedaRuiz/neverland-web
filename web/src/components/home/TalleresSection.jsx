@@ -7,7 +7,7 @@ import { Autoplay, Pagination } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
-import { safeParseDate } from '../../utils/safeDate';
+import { isTallerIniciado, getTallerStartInstant } from '../../utils/safeDate';
 import { getPublicTalleres } from '../../services/api';
 import TallerPublicCard from '../talleres/TallerPublicCard';
 
@@ -25,52 +25,42 @@ const TalleresSection = () => {
 	const [isSectionVisible, setIsSectionVisible] = useState(false);
 
 	useEffect(() => {
-		const fetchTalleres = async () => {
+		const cargarTalleres = async () => {
 			try {
-				const res = await getPublicTalleres({ incluirPasados: true });
-				const all = res.data || [];
+				const respuesta = await getPublicTalleres({ incluirPasados: true });
+				const todos = respuesta.data || [];
 
-				const hoy = new Date();
-				hoy.setHours(23, 59, 59, 999);
+				// Un solo "ahora" capturado al hacer fetch: un taller es próximo
+				// mientras NO haya empezado (visible hasta horario.inicio, Europe/Madrid).
+				const ahora = new Date();
 
-				const isFuture = (t) => {
-					const f = safeParseDate(t.fecha);
-					return f ? f >= hoy : false;
-				};
+				const instanteInicio = (t) => getTallerStartInstant(t.fecha, t.horario?.inicio);
 
-				const proximos = all
-					.filter(isFuture)
-					.sort((a, b) => {
-						const da = safeParseDate(a.fecha)?.getTime() || 0;
-						const db = safeParseDate(b.fecha)?.getTime() || 0;
-						return da - db;
-					});
+				const proximos = todos
+					.filter((t) => !isTallerIniciado(t, ahora))
+					.sort((a, b) => (instanteInicio(a)?.getTime() || 0) - (instanteInicio(b)?.getTime() || 0));
 
-				const pasados = all
-					.filter((t) => !isFuture(t))
-					.sort((a, b) => {
-						const da = safeParseDate(a.fecha)?.getTime() || 0;
-						const db = safeParseDate(b.fecha)?.getTime() || 0;
-						return db - da; // más recientes primero
-					});
+				const cerrados = todos
+					.filter((t) => isTallerIniciado(t, ahora))
+					.sort((a, b) => (instanteInicio(b)?.getTime() || 0) - (instanteInicio(a)?.getTime() || 0)); // más recientes primero
 
-				// Combinar: hasta 4 próximos, completar con pasados si faltan
+				// Combinar: hasta 4 próximos, completar con cerrados si faltan
 				const combinados = [
 					...proximos.slice(0, 4),
-					...pasados.slice(0, Math.max(0, 4 - proximos.length)),
+					...cerrados.slice(0, Math.max(0, 4 - proximos.length)),
 				].map((t) => ({
 					...t,
-					_esPasado: !isFuture(t),
+					_esCerrado: isTallerIniciado(t, ahora),
 				}));
 
 				setTalleres(combinados);
-			} catch (err) {
-				console.error('Error fetching talleres:', err);
+			} catch (error) {
+				console.error('Error al obtener los talleres:', error);
 			} finally {
 				setLoading(false);
 			}
 		};
-		fetchTalleres();
+		cargarTalleres();
 	}, []);
 
 	// 1) Solo observa si la sección está visible — no toca el Swiper
@@ -163,14 +153,14 @@ const TalleresSection = () => {
 				) : singleView ? (
 					/* Fallback: un solo taller → grid centrado sin carrusel */
 					<div className="max-w-sm mx-auto">
-						<TallerPublicCard taller={talleres[0]} pasado={talleres[0]._esPasado} />
+						<TallerPublicCard taller={talleres[0]} cerrado={talleres[0]._esCerrado} />
 					</div>
 				) : talleres.length < 4 ? (
 					/* Grid centrado cuando hay 2-3 talleres */
 					<div className="flex flex-wrap justify-center gap-6">
 						{talleres.map((taller) => (
 							<div key={taller.id || taller._id} className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] max-w-sm">
-								<TallerPublicCard taller={taller} pasado={taller._esPasado} />
+								<TallerPublicCard taller={taller} cerrado={taller._esCerrado} />
 							</div>
 						))}
 					</div>
@@ -205,7 +195,7 @@ const TalleresSection = () => {
 						>
 							{talleres.map((taller) => (
 								<SwiperSlide key={taller.id || taller._id} className="h-auto">
-									<TallerPublicCard taller={taller} pasado={taller._esPasado} />
+									<TallerPublicCard taller={taller} cerrado={taller._esCerrado} />
 								</SwiperSlide>
 							))}
 						</Swiper>

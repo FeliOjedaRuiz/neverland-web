@@ -13,7 +13,7 @@ import {
 	Sparkles,
 } from 'lucide-react';
 import { getTallerById } from '../services/api';
-import { safeParseDate } from '../utils/safeDate';
+import { safeParseDate, isTallerIniciado } from '../utils/safeDate';
 import SEO from '../components/common/SEO';
 import InscripcionForm from '../components/talleres/InscripcionForm';
 import ImageLightbox from '../components/common/ImageLightbox';
@@ -24,53 +24,44 @@ const TallerDetailPage = () => {
 
 	const [taller, setTaller] = useState(null);
 	const [loading, setLoading] = useState(true);
-	const [lightboxSrc, setLightboxSrc] = useState(null);
-	const [showFormModal, setShowFormModal] = useState(false);
+	const [srcLightbox, setSrcLightbox] = useState(null);
+	const [mostrarModal, setMostrarModal] = useState(false);
 
-	const fetchTaller = useCallback(async () => {
+	const obtenerTaller = useCallback(async () => {
 		setLoading(true);
 		try {
-			const res = await getTallerById(id);
-			setTaller(res.data);
-		} catch (err) {
-			console.error('Error fetching taller:', err);
+			const respuesta = await getTallerById(id);
+			setTaller(respuesta.data);
+		} catch (error) {
+			console.error('Error al obtener el taller:', error);
 		} finally {
 			setLoading(false);
 		}
 	}, [id]);
 
 	useEffect(() => {
-		fetchTaller();
-	}, [fetchTaller]);
+		obtenerTaller();
+	}, [obtenerTaller]);
 
 	// Bloquear scroll cuando el modal está abierto
 	useEffect(() => {
-		if (showFormModal) {
+		if (mostrarModal) {
 			document.body.style.overflow = 'hidden';
 		} else {
 			document.body.style.overflow = '';
 		}
 		return () => { document.body.style.overflow = ''; };
-	}, [showFormModal]);
+	}, [mostrarModal]);
 
-	const handleInscripcionSuccess = ({ inscripcionData, taller: tallerData }) => {
-		setShowFormModal(false);
+	const manejarInscripcionExitosa = ({ inscripcionData: datosInscripcion, taller: datosTaller }) => {
+		setMostrarModal(false);
 		navigate(`/talleres/${id}/confirmacion`, {
-			state: { inscripcionData, taller: tallerData },
+			state: { inscripcionData: datosInscripcion, taller: datosTaller },
 		});
 	};
 
-	const openLightbox = (src) => setLightboxSrc(src);
-	const closeLightbox = () => setLightboxSrc(null);
-
-	const isPasado = () => {
-		if (!taller?.fecha) return false;
-		const fecha = safeParseDate(taller.fecha);
-		if (!fecha) return false;
-		const hoy = new Date();
-		hoy.setHours(23, 59, 59, 999);
-		return fecha < hoy;
-	};
+	const abrirLightbox = (src) => setSrcLightbox(src);
+	const closeLightbox = () => setSrcLightbox(null);
 
 	if (loading) {
 		return (
@@ -108,33 +99,33 @@ const TallerDetailPage = () => {
 	}
 
 	/* ── Fecha con formato del admin ── */
-	const date = safeParseDate(taller.fecha);
-	const fechaFormateada = date
-		? `${date.toLocaleDateString('es-ES', { weekday: 'long' }).replace(/^\w/, (c) => c.toUpperCase())}, ${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getFullYear()).slice(-2)}`
+	const fechaTaller = safeParseDate(taller.fecha);
+	const fechaFormateada = fechaTaller
+		? `${fechaTaller.toLocaleDateString('es-ES', { weekday: 'long' }).replace(/^\w/, (c) => c.toUpperCase())}, ${String(fechaTaller.getDate()).padStart(2, '0')}/${String(fechaTaller.getMonth() + 1).padStart(2, '0')}/${String(fechaTaller.getFullYear()).slice(-2)}`
 		: '';
 
 	const numInscripciones = taller.numInscripciones || taller.inscripciones?.length || 0;
 	const restantes = taller.aforo - numInscripciones;
-	const pasado = isPasado();
+	const tallerIniciado = isTallerIniciado(taller);
 	const aforoCompleto = numInscripciones >= taller.aforo;
-	const bloqueado = pasado || aforoCompleto;
+	const bloqueado = tallerIniciado || aforoCompleto;
 
 	return (
 		<>
 			<SEO title={taller.nombre} description={taller.descripcion || `Taller ${taller.nombre} en Neverland.`} />
 
 			{/* Lightbox de imagen */}
-			{lightboxSrc && (
-				<ImageLightbox src={lightboxSrc} alt={taller.nombre} onClose={closeLightbox} />
+			{srcLightbox && (
+				<ImageLightbox src={srcLightbox} alt={taller.nombre} onClose={closeLightbox} />
 			)}
 
 			{/* ═══════════════════════════════════════════
 			    MODAL DEL FORMULARIO
 			    ═══════════════════════════════════════════ */}
-			{showFormModal && (
+			{mostrarModal && (
 				<div
 					className="fixed inset-0 z-50 flex items-start justify-center sm:items-center p-4 bg-black/60 backdrop-blur-sm"
-					onClick={() => setShowFormModal(false)}
+					onClick={() => setMostrarModal(false)}
 				>
 					<div
 						className="w-full max-w-lg bg-white rounded-3xl shadow-2xl max-h-[90dvh] overflow-y-auto"
@@ -151,7 +142,7 @@ const TallerDetailPage = () => {
 								</p>
 							</div>
 							<button
-								onClick={() => setShowFormModal(false)}
+								onClick={() => setMostrarModal(false)}
 								className="p-2 rounded-full hover:bg-gray-100 transition-colors"
 								aria-label="Cerrar"
 							>
@@ -163,7 +154,7 @@ const TallerDetailPage = () => {
 						<div className="p-6">
 							<InscripcionForm
 								taller={taller}
-								onSuccess={handleInscripcionSuccess}
+								onSuccess={manejarInscripcionExitosa}
 								plain
 							/>
 						</div>
@@ -182,12 +173,12 @@ const TallerDetailPage = () => {
 						<>
 							{/* Contenedor clickeable: div en vez de button para evitar stacking issues */}
 							<div
-								onClick={() => openLightbox(taller.portada)}
+								onClick={() => abrirLightbox(taller.portada)}
 								className="group absolute inset-0 cursor-zoom-in"
 								aria-label="Ampliar imagen de portada"
 								role="button"
 								tabIndex={0}
-								onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openLightbox(taller.portada); }}
+								onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') abrirLightbox(taller.portada); }}
 							>
 								<img
 									src={taller.portada}
@@ -208,7 +199,7 @@ const TallerDetailPage = () => {
 							<button
 								onClick={(e) => {
 									e.stopPropagation();
-									openLightbox(taller.portada);
+									abrirLightbox(taller.portada);
 								}}
 								className="absolute top-[4.25rem] md:top-[5.25rem] right-3 md:hidden z-10 flex items-center justify-center w-10 h-10 bg-black/40 backdrop-blur-md rounded-full border border-white/20 shadow-lg"
 								aria-label="Ampliar imagen de portada"
@@ -286,7 +277,7 @@ const TallerDetailPage = () => {
 								{taller.galeria.map((url, idx) => (
 									<button
 										key={idx}
-										onClick={() => openLightbox(url)}
+										onClick={() => abrirLightbox(url)}
 										className="group relative aspect-square rounded-2xl overflow-hidden bg-gray-100 cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-neverland-green/30"
 										aria-label={`Ampliar imagen ${idx + 1} de la galería`}
 									>
@@ -310,10 +301,10 @@ const TallerDetailPage = () => {
 
 					{/* ── CTA / Estado ── */}
 					<div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-soft text-center space-y-4">
-						{pasado ? (
+						{tallerIniciado ? (
 							<div className="flex items-center justify-center gap-2 text-gray-400">
 								<AlertCircle size={18} />
-								<span className="text-sm font-bold">Este taller ya ha finalizado</span>
+								<span className="text-sm font-bold">Inscripciones cerradas</span>
 							</div>
 						) : aforoCompleto ? (
 							<div className="flex items-center justify-center gap-2 text-red-500">
@@ -332,7 +323,7 @@ const TallerDetailPage = () => {
 								)}
 
 								<button
-									onClick={() => setShowFormModal(true)}
+									onClick={() => setMostrarModal(true)}
 									className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-neverland-green text-white rounded-2xl font-display font-black text-base uppercase tracking-wider shadow-lg shadow-neverland-green/20 hover:shadow-xl hover:shadow-neverland-green/30 hover:-translate-y-0.5 active:translate-y-0 active:shadow-md transition-all duration-200"
 								>
 									<Sparkles size={18} className="text-sun-yellow" />
