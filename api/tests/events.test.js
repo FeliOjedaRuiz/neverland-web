@@ -473,4 +473,183 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
     });
   });
 
+  describe('Multi-actividades (talleres)', () => {
+    beforeEach(async () => {
+      await Config.create({
+        menusNiños: [{ id: 'menu-1', precio: 15 }],
+        plusFinDeSemana: 2,
+        preciosAdultos: [],
+        workshops: [
+          { name: 'Slime', priceBase: 20, pricePlus: 30, active: true },
+          { name: 'Tattoos', priceBase: 22, pricePlus: 32, active: true },
+          { name: 'Cocina', priceBase: 25, pricePlus: 35, active: false },
+          { name: 'Magia', priceBase: 25, pricePlus: 30, active: true }
+        ],
+        preciosExtras: { extension30: 30, extension60: 50 },
+        extrasCatalogo: []
+      });
+    });
+
+    const buildEvent = (extras = {}) => ({
+      tipo: 'reserva',
+      fecha: futureTuesday,
+      turno: 'T1',
+      cliente: {
+        nombreNiño: 'Leo',
+        nombrePadre: 'Ana',
+        email: 'ana@example.com',
+        telefono: '123456789',
+        privacyPolicyConsent: true
+      },
+      detalles: {
+        niños: { cantidad: 12, menuId: 'menu-1' },
+        extras
+      }
+    });
+
+    it('Debería aceptar exactamente 3 actividades válidas', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(buildEvent({ talleres: ['Slime', 'Tattoos', 'Magia'] }));
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.talleres).toEqual(['Slime', 'Tattoos', 'Magia']);
+    });
+
+    it('Debería rechazar 4 actividades con 400', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(buildEvent({ talleres: ['Slime', 'Tattoos', 'Cocina', 'Magia'] }));
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toMatch(/Máximo 3 actividades permitidas/);
+    });
+
+    it('Debería aceptar un array vacío de actividades', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(buildEvent({ talleres: [] }));
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.talleres).toEqual([]);
+    });
+
+    it('Debería rechazar actividades duplicadas en talleres', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(buildEvent({ talleres: ['Slime', 'Tattoos', 'Slime'] }));
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toBe('Actividad duplicada: Slime');
+    });
+
+    it('Debería aceptar actividades sin duplicados', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(buildEvent({ talleres: ['Slime', 'Tattoos'] }));
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.talleres).toEqual(['Slime', 'Tattoos']);
+    });
+
+    it('Debería rechazar personajes duplicados', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(buildEvent({ personajes: ['Elsa', 'Anna', 'Elsa'] }));
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toBe('Personaje duplicado: Elsa');
+    });
+
+    it('Debería aceptar personajes sin duplicados', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(buildEvent({ personajes: ['Elsa', 'Anna'] }));
+      expect(res.statusCode).toBe(201);
+    });
+
+    it('Debería rechazar actividad inexistente en el catálogo', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(buildEvent({ talleres: ['Slime', 'ActividadFantasma'] }));
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toBe('Actividad no válida o inactiva: ActividadFantasma');
+    });
+
+    it('Debería rechazar actividad existente pero inactiva', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(buildEvent({ talleres: ['Slime', 'Cocina'] }));
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toBe('Actividad no válida o inactiva: Cocina');
+    });
+
+    it('Debería aceptar todas las actividades válidas y activas', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(buildEvent({ talleres: ['Slime', 'Tattoos', 'Magia'] }));
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.talleres).toEqual(['Slime', 'Tattoos', 'Magia']);
+    });
+
+    it('Debería detectar el límite de 3 actividades en el check explícito (caso no cubierto por el validador de schema en operadores de array)', async () => {
+      // Este test cubre activity-validation/REQ-07: el check explícito en
+      // validateEventData debe existir además del validador de schema.
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(buildEvent({ talleres: ['Slime', 'Tattoos', 'Magia', 'Otra'] }));
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toMatch(/Máximo 3 actividades permitidas/);
+    });
+
+    it('Debería permitir editar una reserva legacy con taller (sin talleres) aunque la actividad ya no exista', async () => {
+      const fixedDate = getFutureDate(2, 60);
+      const { insertedId } = await Event.collection.insertOne({
+        tipo: 'reserva',
+        fecha: fixedDate,
+        turno: 'T1',
+        estado: 'pendiente',
+        cliente: {
+          nombreNiño: 'Leo',
+          nombrePadre: 'Ana',
+          email: 'ana@example.com',
+          telefono: '123456789',
+          privacyPolicyConsent: true
+        },
+        detalles: {
+          niños: { cantidad: 12, menuId: 'menu-1' },
+          extras: { taller: 'ActividadAntigua' }
+        }
+      });
+
+      const res = await request(app)
+        .patch(`/api/v1/events/${insertedId}`)
+        .send({ notasAdmin: 'Nota de prueba legacy' });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.notasAdmin).toBe('Nota de prueba legacy');
+    });
+
+    it('Debería rechazar un PATCH con cliente inválido (la validación async debe propagarse como 400)', async () => {
+      const fixedDate = getFutureDate(2, 60);
+      const { insertedId } = await Event.collection.insertOne({
+        tipo: 'reserva',
+        fecha: fixedDate,
+        turno: 'T1',
+        estado: 'pendiente',
+        cliente: {
+          nombreNiño: 'Leo',
+          nombrePadre: 'Ana',
+          email: 'ana@example.com',
+          telefono: '123456789',
+          privacyPolicyConsent: true
+        },
+        detalles: {
+          niños: { cantidad: 12, menuId: 'menu-1' },
+          extras: { talleres: [] }
+        }
+      });
+
+      const res = await request(app)
+        .patch(`/api/v1/events/${insertedId}`)
+        .send({ cliente: { nombreNiño: 'x'.repeat(101) } });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toMatch(/Nombre del niño demasiado largo/);
+    });
+  });
 });
