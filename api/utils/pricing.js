@@ -21,6 +21,11 @@
  * @returns {Array} Array de nombres de actividades; siempre es un array.
  */
 const obtenerTalleres = (extras) => {
+  // Semántica de PRESENCIA: si la clave `talleres` existe y es un array,
+  // se respeta tal cual (incluso cuando está vacío). Solo si la clave NO
+  // está presente se recurre al campo legacy `taller`. Esto requiere que el
+  // schema NO defina `default: []` para `talleres`; de lo contrario Mongoose
+  // inyectaría siempre la clave y el fallback legacy nunca se activaría.
   if (extras && Array.isArray(extras.talleres)) {
     return [...extras.talleres];
   }

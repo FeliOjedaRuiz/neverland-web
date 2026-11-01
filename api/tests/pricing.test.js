@@ -31,6 +31,16 @@ describe('helpers de precio', () => {
       expect(obtenerTalleres(extras)).toEqual(['Slime']);
     });
 
+    it('debería respetar un array vacío explícito (la selección vacía gana al legacy)', () => {
+      const extras = { talleres: [], taller: 'Cocina' };
+      expect(obtenerTalleres(extras)).toEqual([]);
+    });
+
+    it('debería devolver array vacío cuando talleres es vacío y no hay legacy taller', () => {
+      const extras = { talleres: [] };
+      expect(obtenerTalleres(extras)).toEqual([]);
+    });
+
     it('debería ignorar un talleres que no sea array y caer al legacy', () => {
       expect(obtenerTalleres({ talleres: 'Slime' })).toEqual([]);
       expect(obtenerTalleres({ talleres: 'Slime', taller: 'Cocina' })).toEqual(['Cocina']);
