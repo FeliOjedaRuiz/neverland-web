@@ -1,9 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, Image as ImageIcon, X, ZoomIn, Plus } from 'lucide-react';
+import { sumarPrecioTalleres, obtenerPrecioTaller, esGrupoGrande } from '../../utils/bookingUtils';
 
-const Step5Workshops = ({ formData, setFormData, WORKSHOPS }) => {
+const Step5Workshops = ({
+	formData,
+	setFormData,
+	WORKSHOPS,
+	prices = { preciosExtras: { tallerBase: 25, tallerPlus: 30 } },
+}) => {
 	const [selectedWorkshopForModal, setSelectedWorkshopForModal] = useState(null);
+	const [toastMessage, setToastMessage] = useState(null);
+
+	const selectedTalleres = formData.extras?.talleres || [];
+	const ninosCount = formData.niños?.cantidad || 0;
+
+	const filteredWorkshops = useMemo(
+		() => (WORKSHOPS || []).filter((ws) => !ws.suspended && ws.active !== false),
+		[WORKSHOPS]
+	);
 
 	// Sync with browser history for mobile "back" button
 	useEffect(() => {
@@ -23,21 +38,85 @@ const Step5Workshops = ({ formData, setFormData, WORKSHOPS }) => {
 		};
 	}, [selectedWorkshopForModal]);
 
-	const openModal = (workshop) => setSelectedWorkshopForModal(workshop);
+	// El toast se cierra automáticamente
+	useEffect(() => {
+		if (toastMessage) {
+			const timer = setTimeout(() => {
+				try {
+					setToastMessage(null);
+				} catch (err) {
+					console.error('Error al cerrar el toast:', err);
+				}
+			}, 3000);
+			return () => clearTimeout(timer);
+		}
+	}, [toastMessage]);
+
+	const openModal = (workshop) => {
+		try {
+			setSelectedWorkshopForModal(workshop);
+		} catch (err) {
+			console.error('Error al abrir el modal:', err);
+		}
+	};
 	const closeModal = () => {
-		if (selectedWorkshopForModal) {
-			setSelectedWorkshopForModal(null);
-			window.history.back();
+		try {
+			if (selectedWorkshopForModal) {
+				setSelectedWorkshopForModal(null);
+				window.history.back();
+			}
+		} catch (err) {
+			console.error('Error al cerrar el modal:', err);
 		}
 	};
 
 	const selectWorkshop = (name) => {
-		setFormData({
-			...formData,
-			extras: { ...formData.extras, taller: name },
-		});
-		if (selectedWorkshopForModal) closeModal();
+		try {
+			const current = formData.extras?.talleres || [];
+			let nextTalleres = current;
+
+			if (current.includes(name)) {
+				// Deseleccionar: quitar del array
+				nextTalleres = current.filter((t) => t !== name);
+			} else {
+				// Seleccionar: añadir solo si < 3
+				if (current.length >= 3) {
+					setToastMessage('El máximo es 3 actividades');
+					if (selectedWorkshopForModal) closeModal();
+					return;
+				}
+				nextTalleres = [...current, name];
+			}
+
+			setFormData({
+				...formData,
+				extras: { ...formData.extras, talleres: nextTalleres },
+			});
+
+			if (selectedWorkshopForModal) closeModal();
+		} catch (err) {
+			console.error('Error al actualizar actividades:', err);
+		}
 	};
+
+	const clearAllWorkshops = () => {
+		try {
+			setFormData({
+				...formData,
+				extras: { ...formData.extras, talleres: [] },
+			});
+		} catch (err) {
+			console.error('Error al limpiar actividades:', err);
+		}
+	};
+
+	const showQuitarTodas = selectedTalleres.length >= 1;
+	const totalWorkshopsPrice = sumarPrecioTalleres(
+		selectedTalleres,
+		filteredWorkshops,
+		ninosCount,
+		prices.preciosExtras
+	);
 
 	return (
 		<div className="relative">
@@ -46,92 +125,154 @@ const Step5Workshops = ({ formData, setFormData, WORKSHOPS }) => {
 			</h2>
 
 			<div className="mb-6">
-				{/* "No Activity" Card - Separated at the top */}
-				<motion.div
-					whileHover={{ y: -2 }}
-					whileTap={{ scale: 0.98 }}
-					onClick={() => selectWorkshop('ninguno')}
-					className={`p-4 rounded-3xl border-2 transition-all cursor-pointer flex items-center justify-between px-6 ${
-						formData.extras.taller === 'ninguno'
-							? 'border-gray-400 bg-gray-100 shadow-inner'
-							: 'border-white bg-white shadow-sm hover:border-gray-200'
-					}`}
-				>
-					<div className="flex items-center gap-4">
-						<div className={`w-10 h-10 rounded-full flex items-center justify-center ${formData.extras.taller === 'ninguno' ? 'bg-gray-200 text-gray-400' : 'bg-gray-50 text-gray-300'}`}>
-							<X size={20} />
+				{/* Tarjeta "Sin actividad" separada en la parte superior */}
+				{showQuitarTodas ? (
+					<motion.button
+						type="button"
+						whileHover={{ y: -2 }}
+						whileTap={{ scale: 0.98 }}
+						onClick={clearAllWorkshops}
+						aria-label="Quitar todas las actividades"
+						className="w-full p-4 rounded-3xl border-2 transition-all flex items-center justify-between px-6 border-white bg-white shadow-sm hover:border-gray-200"
+					>
+						<div className="flex items-center gap-4">
+							<div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-50 text-gray-300">
+								<X size={20} />
+							</div>
+							<div className="flex flex-col">
+								<span className="font-black text-sm uppercase tracking-wide text-gray-400">
+									Quitar todas
+								</span>
+							</div>
 						</div>
-						<span className="font-black text-sm text-gray-600 uppercase tracking-wider">Sin actividad</span>
+					</motion.button>
+				) : (
+					<div
+						aria-disabled="true"
+						className="p-4 rounded-3xl border-2 transition-all flex items-center justify-between px-6 border-gray-400 bg-gray-100 shadow-inner"
+					>
+						<div className="flex items-center gap-4">
+							<div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-200 text-gray-400">
+								<X size={20} />
+							</div>
+							<div className="flex flex-col">
+								<span className="font-black text-sm uppercase tracking-wide text-gray-600">
+									Sin actividad
+								</span>
+							</div>
 					</div>
-					{formData.extras.taller === 'ninguno' && (
-						<CheckCircle className="text-gray-500" size={24} fill="currentColor" stroke="white" />
-					)}
-				</motion.div>
+				</div>
+				)}
 			</div>
 
+			{/* Precio dinámico de las actividades seleccionadas */}
+			{selectedTalleres.length > 0 && (
+				<div className="mb-4 px-4 py-3 text-center border border-blue-100 rounded-2xl bg-blue-50/50 shadow-sm">
+					<div className="flex items-center justify-center gap-2 flex-wrap">
+					{selectedTalleres.map((name) => {
+						return (
+							<span
+								key={name}
+								className="inline-flex items-center gap-1.5 bg-white text-rec-blue px-2.5 py-1 rounded-xl text-xs font-black shadow-sm border border-blue-100"
+							>
+								{name}
+							</span>
+						);
+					})}
+						<span className="font-black text-rec-blue text-base sm:text-lg">
+							{totalWorkshopsPrice}€
+						</span>
+					</div>
+				</div>
+			)}
+
 			<div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-				{/* Actual Workshops */}
-				{[...WORKSHOPS].reverse().filter((ws) => !ws.suspended).map((workshop) => {
-					const isSelected = formData.extras.taller === workshop.name;
-					const price =
-						formData.niños.cantidad >= 15
-							? (workshop.pricePlus > 0 ? workshop.pricePlus : workshop.priceBase)
-							: workshop.priceBase;
+				{/* Talleres disponibles */}
+				{[...filteredWorkshops].reverse().map((workshop) => {
+					const isSelected = selectedTalleres.includes(workshop.name);
+					const price = obtenerPrecioTaller(workshop, ninosCount);
 
 					return (
 						<motion.div
 							key={workshop.id}
-							whileHover={{ y: -4 }}
-							whileTap={{ scale: 0.98 }}
-							onClick={() => openModal(workshop)}
-							className={`group relative overflow-hidden rounded-2xl border-2 transition-all cursor-pointer flex flex-col ${
+							className={`group relative overflow-hidden rounded-2xl border-2 transition-all flex flex-col ${
 								isSelected
 									? 'border-rec-blue bg-blue-50/30 shadow-lg shadow-blue-500/10'
 									: 'border-white bg-white shadow-sm hover:shadow-md'
 							}`}
 						>
-							{/* Square Image Container */}
-							<div className="aspect-square w-full bg-gray-50 relative overflow-hidden">
-								{workshop.imageUrl ? (
-									<img
-										src={workshop.imageUrl}
-										alt={workshop.name}
-										className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-									/>
-								) : (
-									<div className="w-full h-full flex flex-col items-center justify-center text-gray-200 gap-1">
-										<ImageIcon size={24} strokeWidth={1.5} />
-										<span className="text-[8px] font-black uppercase tracking-widest opacity-50">Taller</span>
-									</div>
-								)}
-								
-								{/* Selection Overlay */}
-								{isSelected && (
-									<div className="absolute inset-0 bg-rec-blue/20 backdrop-blur-[1px] flex items-center justify-center">
-										<CheckCircle size={32} className="text-white drop-shadow-md" fill="currentColor" stroke="#4b8cc8" />
-									</div>
-								)}
+							<motion.button
+								type="button"
+							whileHover={{ y: -4 }}
+							whileTap={{ scale: 0.98 }}
+							onClick={() => selectWorkshop(workshop.name)}
+							aria-pressed={isSelected}
+								aria-label={isSelected ? `Quitar ${workshop.name}` : `Añadir ${workshop.name}`}
+								className="w-full text-left flex flex-col"
+							>
+								{/* Contenedor de imagen cuadrada */}
+								<div className="aspect-square w-full bg-gray-50 relative overflow-hidden">
+									{workshop.imageUrl ? (
+										<img
+											src={workshop.imageUrl}
+											alt={workshop.name}
+											className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+										/>
+									) : (
+										<div className="w-full h-full flex flex-col items-center justify-center text-gray-200 gap-1">
+											<ImageIcon size={24} strokeWidth={1.5} />
+											<span className="text-[8px] font-black uppercase tracking-widest opacity-50">Taller</span>
+										</div>
+									)}
 
-								{/* Zoom hint on hover */}
-								<div className="absolute bottom-2 right-2 bg-white/90 p-1.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-2 group-hover:translate-y-0">
-									<ZoomIn size={14} className="text-rec-blue" />
+									{/* Capa de selección */}
+									{isSelected && (
+										<div className="absolute inset-0 bg-rec-blue/20 backdrop-blur-[1px] flex items-center justify-center">
+											<CheckCircle size={32} className="text-white drop-shadow-md" fill="currentColor" stroke="#4b8cc8" />
+										</div>
+									)}
 								</div>
-							</div>
 
-							<div className="p-3 flex flex-col justify-between flex-1">
-								<h3 className={`font-black text-xs sm:text-sm leading-tight mb-1 line-clamp-2 ${isSelected ? 'text-rec-blue' : 'text-gray-800'}`}>
-									{workshop.name}
-								</h3>
-								<p className="font-black text-sm text-rec-blue">
-									{price}€
-								</p>
-							</div>
+								<div className="p-3 flex flex-col justify-between flex-1">
+									<h3 className={`font-black text-xs sm:text-sm leading-tight mb-1 line-clamp-2 ${isSelected ? 'text-rec-blue' : 'text-gray-800'}`}>
+										{workshop.name}
+									</h3>
+									<p className="font-black text-sm text-rec-blue">
+										{price}€
+									</p>
+								</div>
+							</motion.button>
+
+							{/* Botón de detalle: abre el modal de forma independiente */}
+							<button
+							type="button"
+							onClick={() => openModal(workshop)}
+							aria-label={`Ver detalles de ${workshop.name}`}
+								className="absolute bottom-2 right-2 bg-white/90 p-1.5 rounded-full shadow-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity transform sm:translate-y-2 sm:group-hover:translate-y-0 z-10"
+							>
+								<ZoomIn size={14} className="text-rec-blue" />
+							</button>
 						</motion.div>
 					);
 				})}
 			</div>
 
-			{/* Modal Detail */}
+			{/* Mensaje de toast */}
+			<AnimatePresence>
+				{toastMessage && (
+					<motion.div
+						initial={{ opacity: 0, y: 20 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: 20 }}
+						className="fixed inset-x-4 bottom-24 sm:bottom-4 mx-auto max-w-sm bg-gray-900 text-white px-4 py-3 rounded-2xl shadow-xl z-[1001]"
+						role="alert"
+					>
+						<p className="text-sm font-bold text-center">{toastMessage}</p>
+					</motion.div>
+				)}
+			</AnimatePresence>
+
+			{/* Modal de detalle */}
 			<AnimatePresence>
 				{selectedWorkshopForModal && (
 					<motion.div
@@ -169,11 +310,7 @@ const Step5Workshops = ({ formData, setFormData, WORKSHOPS }) => {
 										</div>
 									)}
 									<div className="absolute bottom-3 right-3 bg-rec-blue text-white px-3.5 py-1.5 rounded-2xl font-black text-base shadow-lg z-10">
-										{formData.niños.cantidad >= 15
-											? (selectedWorkshopForModal.pricePlus > 0
-													? selectedWorkshopForModal.pricePlus
-													: selectedWorkshopForModal.priceBase)
-											: selectedWorkshopForModal.priceBase}€
+										{obtenerPrecioTaller(selectedWorkshopForModal, ninosCount)}€
 									</div>
 								</div>
 
@@ -192,7 +329,7 @@ const Step5Workshops = ({ formData, setFormData, WORKSHOPS }) => {
 										{selectedWorkshopForModal.desc}
 									</p>
 
-									{formData.niños.cantidad >= 15 &&
+									{esGrupoGrande(ninosCount) &&
 										selectedWorkshopForModal.pricePlus > selectedWorkshopForModal.priceBase && (
 										<div className="bg-blue-50/50 p-2.5 sm:p-3 rounded-2xl border border-blue-100 mb-3 sm:mb-4 flex items-center gap-3">
 											<div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
@@ -206,15 +343,19 @@ const Step5Workshops = ({ formData, setFormData, WORKSHOPS }) => {
 
 									<button
 										onClick={() => selectWorkshop(selectedWorkshopForModal.name)}
+										aria-label={selectedTalleres.includes(selectedWorkshopForModal.name) ? 'Quitar actividad' : 'Añadir actividad'}
 										className="w-full py-3 sm:py-3.5 bg-rec-blue hover:bg-rec-blue/90 text-white rounded-2xl font-black shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base"
 									>
-										{formData.extras.taller === selectedWorkshopForModal.name ? (
+										{selectedTalleres.includes(selectedWorkshopForModal.name) ? (
 											<>
-												<CheckCircle size={20} strokeWidth={3} />
-												ACTIVIDAD SELECCIONADA
+												<X size={20} strokeWidth={3} />
+												QUITAR
 											</>
 										) : (
-											'SELECCIONAR ESTE TALLER'
+											<>
+												<CheckCircle size={20} strokeWidth={3} />
+												AÑADIR
+											</>
 										)}
 									</button>
 								</div>
