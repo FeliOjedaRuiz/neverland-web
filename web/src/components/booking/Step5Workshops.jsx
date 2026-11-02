@@ -110,7 +110,8 @@ const Step5Workshops = ({
 		}
 	};
 
-	const showQuitarTodas = selectedTalleres.length >= 1;
+	const showAccionEliminar = selectedTalleres.length >= 1;
+	const etiquetaEliminar = selectedTalleres.length === 1 ? 'Quitar actividad' : 'Quitar todas';
 	const totalWorkshopsPrice = sumarPrecioTalleres(
 		selectedTalleres,
 		filteredWorkshops,
@@ -126,13 +127,13 @@ const Step5Workshops = ({
 
 			<div className="mb-6">
 				{/* Tarjeta "Sin actividad" separada en la parte superior */}
-				{showQuitarTodas ? (
+				{showAccionEliminar ? (
 					<motion.button
 						type="button"
 						whileHover={{ y: -2 }}
 						whileTap={{ scale: 0.98 }}
 						onClick={clearAllWorkshops}
-						aria-label="Quitar todas las actividades"
+						aria-label={selectedTalleres.length === 1 ? 'Quitar actividad seleccionada' : 'Quitar todas las actividades'}
 						className="w-full p-4 rounded-3xl border-2 transition-all flex items-center justify-between px-6 border-white bg-white shadow-sm hover:border-gray-200"
 					>
 						<div className="flex items-center gap-4">
@@ -141,7 +142,7 @@ const Step5Workshops = ({
 							</div>
 							<div className="flex flex-col">
 								<span className="font-black text-sm uppercase tracking-wide text-gray-400">
-									Quitar todas
+									{etiquetaEliminar}
 								</span>
 							</div>
 						</div>
