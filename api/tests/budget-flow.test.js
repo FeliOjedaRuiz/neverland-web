@@ -853,6 +853,32 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
       warnSpy.mockRestore();
     });
 
+    it('D-01: debería resolver del catálogo un nombre con espacio final (priceBase 30) en vez de cobrar el fallback 25', async () => {
+      await Config.deleteMany({});
+      await Config.create({
+        menusNiños: [{ id: 'menu-1', nombre: 'Menú Aventura', precio: 15 }],
+        plusFinDeSemana: 1.5,
+        preciosAdultos: [],
+        workshops: [
+          // Caso real D-01: el catálogo conserva el espacio final, la migración
+          // trimmea el valor guardado en el evento.
+          { name: 'Fiesta aquatica básica ', priceBase: 30, pricePlus: 35 }
+        ],
+        characters: [],
+        preciosExtras: { personaje: 40, tallerBase: 25, tallerPlus: 30, extension30: 30, extension60: 50 }
+      });
+
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payloadConTalleres(['Fiesta aquatica básica'], { ninos: 12 }));
+
+      expect(res.statusCode).toBe(201);
+      // 12 niños (≤ 15) → priceBase del catálogo = 30; el fallback daría 25.
+      expect(res.body.detalles.extras.precioTallerApplied).toBe(30);
+      // 12 * 15 = 180 + 30 = 210 (martes sin plus de fin de semana)
+      expect(res.body.precioTotal).toBe(210);
+    });
+
     it('Debería incluir la suma de actividades en precioTotal', async () => {
       const res = await request(app)
         .post('/api/v1/events')

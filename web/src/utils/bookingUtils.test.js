@@ -111,6 +111,20 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
       expect(sumarPrecioTalleres(['NoExiste'], workshops, 10, undefined)).toBe(25);
       expect(sumarPrecioTalleres(['NoExiste'], workshops, 16, undefined)).toBe(30);
     });
+
+    it('D-01: debería resolver un nombre con espacio final en el catálogo (priceBase 30, no fallback 25)', () => {
+      const catalogoConEspacioFinal = [
+        { name: 'Fiesta aquatica básica ', priceBase: 30, pricePlus: 35 }
+      ];
+      expect(
+        sumarPrecioTalleres(['Fiesta aquatica básica'], catalogoConEspacioFinal, 12, preciosExtras)
+      ).toBe(30);
+    });
+
+    it('D-01: debería resolver el catálogo ignorando mayúsculas y espacios en ambos lados', () => {
+      const catalogo = [{ name: 'Taller de chapas ', priceBase: 20, pricePlus: 30 }];
+      expect(sumarPrecioTalleres(['  TALLER DE CHAPAS'], catalogo, 12, preciosExtras)).toBe(20);
+    });
   });
 
   describe('obtenerTalleres', () => {

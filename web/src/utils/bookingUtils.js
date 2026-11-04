@@ -45,11 +45,13 @@ export const obtenerTalleres = (extras) => {
  */
 export const sumarPrecioTalleres = (nombres, workshops, ninos, preciosExtras) => {
   return (nombres || []).reduce((sum, name) => {
-    const rawName = String(name || '').trim();
+    const rawName = String(name ?? '').trim();
     if (!rawName) return sum;
+    // Normaliza AMBOS lados (trim + lowercase): el catálogo puede conservar
+    // espacios finales legacy que la migración ya recortó en el evento (D-01).
     const workshopName = rawName.toLowerCase();
     const workshop = (workshops || []).find(
-      (w) => String(w.name).toLowerCase() === workshopName
+      (w) => String(w?.name ?? '').trim().toLowerCase() === workshopName
     );
     if (workshop) {
       return sum + obtenerPrecioTaller(workshop, ninos);
