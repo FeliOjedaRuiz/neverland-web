@@ -973,3 +973,66 @@ El `aria-label` del botón hereda los saltos de línea, lo que invalida cualquie
 `GET /api/v1/events/availability` responde 503 cuando el servicio de Google Calendar no está disponible
 (`api/controllers/events.controllers.js:936-938`), lo que bloquea el paso 1 del wizard. Observado al
 neutralizar Google en el entorno local; no es una regresión de multi-actividades.
+
+---
+
+## TASK-08b — Slice WU-8: corrección de D-01 (normalización del catálogo)
+
+**Rama**: `feat/multi-actividades-wu-8-normalizacion-catalogo` (base: `feat/multi-actividades-wu-7-tests-gate`) · **PR #16** · commit `2c8901c`.
+
+### Causa raíz
+
+La resolución del catálogo comparaba los nombres sin normalizar espacios en ninguno de los dos lados:
+
+- `api/controllers/events.controllers.js` — `w.name.toLowerCase() === nombre.toLowerCase()`.
+- `web/src/utils/bookingUtils.js` (`sumarPrecioTalleres`) — `trim()` del nombre recibido, pero
+  comparación contra `w.name` sin `trim()`.
+
+El catálogo de producción tiene 8 actividades con espacio final y la migración recorta el valor
+legacy, de modo que tras migrar ambos textos dejan de coincidir.
+
+### Cambios
+
+| Fichero | Cambio |
+|---|---|
+| `api/utils/pricing.js` | Nuevos helpers `normalizarNombreActividad` y `resolverWorkshop` (trim + minúsculas en ambos lados) |
+| `api/controllers/events.controllers.js` | Usa los helpers en la clave de deduplicación, la validación de catálogo, la comparación de "selección modificada", la resolución de precio y los **dos** pases de invalidación de snapshot |
+| `web/src/utils/bookingUtils.js` | Espejo web con la misma normalización a ambos lados |
+| `api/scripts/normalize-workshop-names.js` | Nuevo script idempotente con `--dry-run`, backup previo obligatorio y reporte de coherencia; solo toca `workshops[].name` |
+| `api/tests/pricing.test.js` | +15 tests de los helpers |
+| `api/tests/events.test.js` | Regresión: PATCH que conserva una actividad migrada → 200 (antes 400); duplicado que solo difiere en espacios/mayúsculas |
+| `api/tests/budget-flow.test.js` | Regresión: precio 30 € del catálogo en vez del fallback de 25 € |
+| `web/src/utils/bookingUtils.test.js` | Regresión del espejo web |
+
+### Verificación
+
+| Prueba | Antes | Después |
+|---|---|---|
+| A) PATCH admin sobre reserva migrada con "Taller de chapas" | 400 | **200 OK** |
+| B) PATCH admin con coincidencia exacta (control) | 200 OK | 200 OK |
+| C) Recálculo de "Fiesta aquatica básica" (catálogo base=30) | 25 € (fallback) | **30 € (catálogo)** |
+| Suites API | 144/144 | **159/159** |
+| Suite web | 136/136 | **138/138** |
+| Build web | OK | OK |
+
+Script de normalización sobre la copia local de los datos de producción: dry-run (8 cambios, 0
+escrituras) → ejecución real (backup previo + 8 escrituras) → segunda ejecución (0 escrituras,
+idempotente). Resultado: 0 nombres con espacio final en el catálogo.
+
+El fallback histórico de 25/30 € para actividades retiradas del catálogo **se mantiene** (15
+eventos: "Show de Magia", "Spa de Princesas" y el valor corrupto "Fiesta aquatica premi…").
+
+### Orden de despliegue (actualizado)
+
+1. Backup de `events` + `config`.
+2. Deploy del código (merge de la cadena en `main`): el fix de D-01 entra con el resto.
+3. Normalización del catálogo (`normalize-workshop-names.js`): **después** del deploy, porque si se
+   normaliza antes, la API antigua (que compara sin normalizar) dejaría de resolver las actividades
+   legacy que aún conservan el espacio final.
+4. Migración de `taller` → `talleres` (dry-run → ejecución → idempotencia → spot-checks).
+
+### Pendiente
+
+- **D-02** (nombres de catálogo corruptos con saltos de línea): operación de datos de seguimiento,
+  con backup y dry-run previos.
+- **D-03** (preexistente): `GET /api/v1/events/availability` responde 503 sin Google Calendar.
