@@ -39,7 +39,7 @@ const mongoose = require('mongoose');
 
 const Event = require('../models/event.model');
 const Config = require('../models/config.model');
-const { resolverWorkshop } = require('../utils/pricing');
+const { resolverWorkshop, obtenerTalleres } = require('../utils/pricing');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/neverland';
 const IS_DRY_RUN = process.argv.includes('--dry-run');
@@ -78,8 +78,14 @@ function ejecutarBackup() {
 
 /**
  * Comprueba, con el criterio de comparación normalizado (trim + minúsculas),
- * cuántos valores de `detalles.extras.talleres` de los eventos resuelven
- * contra el catálogo y cuáles no.
+ * cuántos valores de actividad de los eventos resuelven contra el catálogo y
+ * cuáles no.
+ *
+ * Se consideran tanto el campo nuevo `detalles.extras.talleres` como el legacy
+ * `detalles.extras.taller`, de modo que el reporte es útil tanto antes de la
+ * migración (solo legacy) como después (solo `talleres`). La lectura de la
+ * selección usa `obtenerTalleres`, que ya aplica la semántica de presencia con
+ * fallback al campo legacy.
  *
  * Es un reporte INFORMATIVO (no un error): los valores no resueltos
  * corresponden a actividades retiradas del catálogo, para las que el sistema
@@ -91,13 +97,24 @@ function ejecutarBackup() {
  * @returns {Promise<void>} Imprime el reporte por consola.
  */
 async function reportarCoherencia(talleresDelCatalogo) {
-  const eventos = await Event.find({ 'detalles.extras.talleres': { $exists: true, $ne: [] } }).lean();
+  // Se incluyen los eventos con el array nuevo y los que solo tienen el campo
+  // legacy, para que el reporte sea válido antes y después de la migración.
+  const eventos = await Event.find({
+    $or: [
+      { 'detalles.extras.talleres': { $exists: true, $ne: [] } },
+      { 'detalles.extras.taller': { $exists: true } }
+    ]
+  }).lean();
 
   let resueltas = 0;
   const noResueltas = new Map(); // valor → conteo
 
   for (const evento of eventos) {
-    const talleres = evento.detalles?.extras?.talleres;
+    const extras = evento.detalles?.extras;
+    if (!extras) continue;
+
+    // `obtenerTalleres` resuelve la semántica de presencia y el fallback legacy.
+    const talleres = obtenerTalleres(extras);
     if (!Array.isArray(talleres)) continue;
 
     for (const valor of talleres) {
@@ -110,14 +127,15 @@ async function reportarCoherencia(talleresDelCatalogo) {
     }
   }
 
-  const totalValores = resueltas + [...noResueltas.values()].reduce((a, b) => a + b, 0);
+  const totalNoResueltos = [...noResueltas.values()].reduce((a, b) => a + b, 0);
+  const totalValores = resueltas + totalNoResueltos;
 
   console.log('\n==============================================');
   console.log('VERIFICACIÓN DE COHERENCIA (informativa)');
   console.log('==============================================');
-  console.log(`Valores de detalles.extras.talleres analizados: ${totalValores}`);
-  console.log(`Resuelven contra el catálogo (normalizado):    ${resueltas}`);
-  console.log(`NO resuelven (fallback histórico 25/30 €):     ${[...noResueltas.values()].reduce((a, b) => a + b, 0)}`);
+  console.log(`Valores de actividad analizados:            ${totalValores}`);
+  console.log(`Resuelven contra el catálogo (normalizado): ${resueltas}`);
+  console.log(`NO resuelven (fallback histórico 25/30 €):  ${totalNoResueltos}`);
 
   if (noResueltas.size > 0) {
     console.log('\nValores no resueltos, agrupados por valor y conteo:');
@@ -127,8 +145,10 @@ async function reportarCoherencia(talleresDelCatalogo) {
     }
     console.log('\nNota: no es un error. Son actividades retiradas del catálogo;');
     console.log('      el sistema aplica el fallback histórico diseñado al recalcular.');
+  } else if (totalValores === 0) {
+    console.log('\nNo hay valores de actividad que analizar en la base de datos.');
   } else {
-    console.log('\n✓ Todos los valores de talleres resuelven contra el catálogo.');
+    console.log('\n✓ Todos los valores de actividades resuelven contra el catálogo.');
   }
   console.log('==============================================');
 }
