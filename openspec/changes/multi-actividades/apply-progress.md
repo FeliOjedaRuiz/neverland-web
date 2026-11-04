@@ -949,7 +949,7 @@ Consecuencia medida sobre los 169 eventos con actividad migrados:
 | No resuelven contra el catálogo con la comparación actual | 52 de 169 (30,8 %) |
 | Falsos negativos (la actividad sí existe en el catálogo) | 37 |
 | Genuinamente ausentes del catálogo ("Show de Magia", "Spa de Princesas", valor corrupto) | 15 |
-| Reservas legacy whose actividades no se pueden editar en admin (HTTP 400) | 37 |
+| Reservas legacy cuya actividad no se puede conservar al modificar la selección (HTTP 400) | 37 por el defecto + 15 por actividad ausente del catálogo |
 | Recálculo que cobra el fallback 25 € en vez de los 30 € del catálogo ("Fiesta aquatica básica") | 6 |
 
 Prueba A/B contra el API local (contraste con control):
