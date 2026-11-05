@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { getTalleres, updateTaller, deleteTaller } from '../../services/api';
-import { safeParseDate } from '../../utils/safeDate';
+import { isTallerIniciado, safeParseDate } from '../../utils/safeDate';
 import ConfirmModal from './ConfirmModal';
 
 const ToggleSwitch = ({ active, onChange, disabled }) => {
@@ -112,14 +112,7 @@ const TalleresList = () => {
 		}
 	};
 
-	const isPasado = (taller) => {
-		if (!taller.fecha) return false;
-		const fecha = safeParseDate(taller.fecha);
-		if (!fecha) return false;
-		const hoy = new Date();
-		hoy.setHours(23, 59, 59, 999);
-		return fecha < hoy;
-	};
+	const isPasado = (taller) => isTallerIniciado(taller);
 
 	const proximos = talleres
 		.filter((t) => !isPasado(t))
