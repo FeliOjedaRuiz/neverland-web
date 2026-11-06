@@ -1,9 +1,11 @@
 import React from 'react';
-import { CalendarCheck } from 'lucide-react';
+import { CalendarCheck, ImageIcon } from 'lucide-react';
 import {
 	filterActiveCatalog,
 	getCatalogItemById,
+	obtenerTalleres,
 	sumCatalogPrices,
+	sumarPrecioTalleres,
 } from '../../utils/bookingUtils';
 
 const StepBudgetSummary = ({
@@ -16,6 +18,7 @@ const StepBudgetSummary = ({
 	onNext,
 }) => {
 	const total = calculateTotal();
+	const talleresSeleccionados = obtenerTalleres(formData.extras);
 
 	// Detectar si habría plus de fin de semana (sin fecha aún no sabemos)
 	const plusPerKid = prices.plusFinDeSemana || 1.5;
@@ -29,9 +32,9 @@ const StepBudgetSummary = ({
 			<div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col gap-4 relative overflow-hidden mb-6">
 				<div className="absolute top-0 left-0 w-full h-2 bg-linear-to-r from-neverland-green via-energy-orange to-sun-yellow"></div>
 
-				{/* Detail List */}
+				{/* Lista de detalles */}
 				<div className="space-y-3 text-sm pr-2">
-					{/* Children Menu */}
+					{/* Menú infantil */}
 					<div className="flex justify-between text-energy-orange">
 						<span>
 							{childrenMenusWithPrices?.find(
@@ -50,7 +53,7 @@ const StepBudgetSummary = ({
 						</span>
 					</div>
 
-					{/* Adult Food Summary */}
+					{/* Resumen comida adultos */}
 					{formData.adultos.comida?.length > 0 && (
 						<div className="flex justify-between text-energy-orange">
 							<span>
@@ -73,26 +76,49 @@ const StepBudgetSummary = ({
 						</div>
 					)}
 
-					{/* Workshop */}
-					{formData.extras.taller && formData.extras.taller !== 'ninguno' && (
-						<div className="flex justify-between text-rec-blue border-t border-blue-50 pt-2">
-							<span>Actividad: {formData.extras.taller}</span>
-							<span className="font-bold">
-								{(() => {
-									const workshop = (workshops || []).find(
-										(w) => w.name === formData.extras.taller,
-									);
-									if (!workshop) return '0';
-									return formData.niños.cantidad >= 15
-										? (workshop.pricePlus > 0 ? workshop.pricePlus : workshop.priceBase)
-										: workshop.priceBase;
-								})()}
-								€
-							</span>
+					{/* Talleres */}
+					{talleresSeleccionados.length > 0 && (
+						<div className="flex flex-col gap-2 p-3 bg-blue-50/50 rounded-2xl border border-blue-100/50 mb-1">
+							<div className="flex justify-between items-center">
+								<div className="flex items-center gap-3">
+									<div className="flex flex-col">
+										<p className="text-[10px] text-rec-blue font-black uppercase tracking-widest leading-none mb-1">Actividades</p>
+										<div className="flex flex-wrap gap-2">
+											{talleresSeleccionados.map((tallerName) => {
+												const workshop = (workshops || []).find((w) => w.name === tallerName);
+												return (
+													<div key={tallerName} className="flex items-center gap-1.5">
+														<div className="w-8 h-8 rounded-lg overflow-hidden bg-white shadow-sm shrink-0 border border-blue-100">
+															{workshop?.imageUrl ? (
+																<img src={workshop.imageUrl} alt={tallerName} className="w-full h-full object-cover" />
+													) : (
+														<div className="w-full h-full flex items-center justify-center text-blue-200 bg-blue-50">
+															<ImageIcon size={16} />
+														</div>
+													)}
+														</div>
+														<span className="font-black text-rec-blue text-xs">{tallerName}</span>
+													</div>
+												);
+											})}
+										</div>
+									</div>
+								</div>
+								<div className="flex flex-col items-end">
+									<span className="font-black text-rec-blue">
+										{sumarPrecioTalleres(
+											talleresSeleccionados,
+											workshops,
+											formData.niños?.cantidad || 0,
+											prices.preciosExtras
+										)}€
+									</span>
+								</div>
+							</div>
 						</div>
 					)}
 
-					{/* Character */}
+					{/* Personaje */}
 					{formData.extras.personajes && formData.extras.personajes.length > 0 && (
 						<div className="flex flex-col gap-2 p-3 bg-purple-50/50 rounded-2xl border border-purple-100/50 mb-1">
 							<div className="flex justify-between items-center">
@@ -146,7 +172,7 @@ const StepBudgetSummary = ({
 						</div>
 					)}
 
-					{/* Extension */}
+					{/* Tiempo extra */}
 					{formData.extras.extension > 0 && (
 						<div className="flex justify-between text-purple-600 italic text-xs pt-1 border-t border-purple-50 mt-1">
 							<span>Tiempo Extra (+{formData.extras.extension}m)</span>
@@ -162,13 +188,11 @@ const StepBudgetSummary = ({
 					{/* Catálogo de extras adicionales (incluye Piñata — no es caso especial) */}
 					{(() => {
 						const hasCatalogo = formData.extras.catalogoItemIds?.length > 0;
-						const hasTaller = formData.extras.taller && formData.extras.taller !== 'ninguno';
 						const hasPersonajes = (formData.extras.personajes?.length || 0) > 0;
 						const hasLegacyPinata =
 							formData.extras.pinata &&
 							!(formData.extras.catalogoItemIds || []).includes('pinata');
-						if (!hasCatalogo && !hasTaller && !hasPersonajes && !hasLegacyPinata) return null;
-						const tallerSnap = formData.extras.precioTallerApplied || 0;
+						if (!hasCatalogo && !hasPersonajes && !hasLegacyPinata) return null;
 						const personajesSnap = formData.extras.precioPersonajeApplied || 0;
 						const legacyPinataSnap = hasLegacyPinata
 							? (formData.extras.precioPinataApplied || prices.preciosExtras?.pinata || 0)
@@ -194,10 +218,10 @@ const StepBudgetSummary = ({
 									</div>
 								)}
 								<div className="flex justify-between text-pink-700 text-xs font-bold mt-2 pt-2 border-t border-pink-100">
-									<span>Subtotal actividades y extras</span>
+									{/* Subtotal de extras adicionales sin incluir actividades */}
+									<span>Subtotal extras</span>
 									<span>
 										{(
-											tallerSnap +
 											personajesSnap +
 											legacyPinataSnap +
 											sumCatalogPrices(
@@ -212,7 +236,7 @@ const StepBudgetSummary = ({
 						);
 					})()}
 
-					{/* Allergens */}
+					{/* Alérgenos */}
 					{formData.extras.alergenos && (
 						<div className="text-energy-orange text-xs pt-2 border-t border-orange-100 mt-2">
 							<span className="font-bold flex items-center gap-1 mb-1">
@@ -224,7 +248,7 @@ const StepBudgetSummary = ({
 						</div>
 					)}
 
-					{/* Notes */}
+					{/* Notas */}
 					{formData.extras.observaciones && (
 						<div className="text-gray-600 text-xs pt-2 border-t border-gray-100 mt-2">
 							<span className="font-bold block mb-1">Notas:</span>
@@ -260,7 +284,7 @@ const StepBudgetSummary = ({
 				</div>
 			</div>
 
-			{/* Sticky CTA Footer */}
+			{/* Pie de llamada a la acción fijo */}
 			<div className="sticky bottom-0 pb-4 pt-4 sm:pb-6 left-0 right-0 mt-auto bg-white/95 backdrop-blur-md z-10 border-t border-gray-100 shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.1)] -mx-4 px-4 sm:-mx-6 sm:px-6">
 				<div className="text-center mb-3">
 					<p className="text-sm font-bold text-neverland-green flex items-center justify-center gap-2">

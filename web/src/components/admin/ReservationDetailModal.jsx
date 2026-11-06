@@ -14,6 +14,7 @@ import {
 	MessageSquare,
 } from 'lucide-react';
 import { safeParseDate } from '../../utils/safeDate';
+import { obtenerTalleres } from '../../utils/bookingUtils';
 
 const ReservationDetailModal = ({ reservation, onClose }) => {
 	if (!reservation) return null;
@@ -210,19 +211,30 @@ const ReservationDetailModal = ({ reservation, onClose }) => {
 							<Sparkles size={14} /> Extras y Actividades
 						</h4>
 						<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-							<div
-								className={`p-4 rounded-2xl border flex flex-col items-center gap-1 transition-all ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-50 border-blue-100 text-blue-600' : 'bg-gray-50 border-gray-100 text-gray-300'}`}
-							>
-								<Sparkles size={20} />
-								<span className="text-[10px] font-black uppercase">
-									Actividad
-								</span>
-								<span className="text-xs font-bold text-center capitalize">
-									{reservation.detalles?.extras?.taller === 'ninguno'
-										? 'Sin actividad'
-										: reservation.detalles?.extras?.taller}
-								</span>
-							</div>
+                            {(() => {
+                                const talleres = obtenerTalleres(reservation.detalles?.extras);
+                                const totalTaller = reservation.detalles?.extras?.precioTallerApplied || 0;
+                                return (
+                                    <div
+                                        className={`p-4 rounded-2xl border flex flex-col items-center gap-1 transition-all ${talleres.length > 0 ? 'bg-blue-50 border-blue-100 text-blue-600' : 'bg-gray-50 border-gray-100 text-gray-300'}`}
+                                    >
+                                        <Sparkles size={20} />
+                                        <span className="text-[10px] font-black uppercase">
+                                            Actividad{talleres.length > 1 ? 'es' : ''}
+                                        </span>
+                                        <span className="text-xs font-bold text-center capitalize">
+                                            {talleres.length === 0
+                                                ? 'Sin actividad'
+                                                : talleres.join(', ')}
+                                        </span>
+                                        {talleres.length > 0 && totalTaller > 0 && (
+                                            <span className="text-[10px] font-black bg-blue-100 text-blue-600 px-2 py-0.5 rounded-lg">
+                                                +{totalTaller}€
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })()}
 							<div
 								className={`p-4 rounded-2xl border flex flex-col items-center gap-1 transition-all ${(reservation.detalles?.extras?.personajes?.length || 0) > 0 ? 'bg-purple-50 border-purple-100 text-purple-600' : 'bg-gray-50 border-gray-100 text-gray-300'}`}
 							>
