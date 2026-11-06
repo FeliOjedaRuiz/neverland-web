@@ -5,6 +5,10 @@ import {
   filterActiveCatalog,
   getCatalogItemById,
   sumCatalogPrices,
+  esGrupoGrande,
+  obtenerPrecioTaller,
+  sumarPrecioTalleres,
+  obtenerTalleres,
 } from './bookingUtils';
 
 describe('BookingUtils - Lógica de Negocio Frontend', () => {
@@ -21,7 +25,11 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
       extension60: 50
     },
     workshops: [
-      { name: 'Cocina', priceBase: 20, pricePlus: 25 }
+      { name: 'Cocina', priceBase: 20, pricePlus: 25 },
+      { name: 'Magia', priceBase: 30, pricePlus: 0 },
+      { name: 'Pintura', priceBase: 22 },
+      { name: 'Slime', priceBase: 20, pricePlus: 30 },
+      { name: 'Tattoos', priceBase: 30, pricePlus: 35 }
     ]
   };
 
@@ -29,13 +37,169 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
     { id: 'm1', price: 10 }
   ];
 
+  describe('esGrupoGrande', () => {
+    it('debería devolver false para 15 niños exactos', () => {
+      expect(esGrupoGrande(15)).toBe(false);
+    });
+
+    it('debería devolver true para 16 niños', () => {
+      expect(esGrupoGrande(16)).toBe(true);
+    });
+
+    it('debería devolver false para cantidades ausentes o cero', () => {
+      expect(esGrupoGrande(0)).toBe(false);
+      expect(esGrupoGrande(null)).toBe(false);
+      expect(esGrupoGrande(undefined)).toBe(false);
+    });
+  });
+
+  describe('obtenerPrecioTaller', () => {
+    it('debería devolver priceBase para grupo normal', () => {
+      expect(obtenerPrecioTaller({ priceBase: 20, pricePlus: 25 }, 10)).toBe(20);
+    });
+
+    it('debería devolver pricePlus para grupo grande', () => {
+      expect(obtenerPrecioTaller({ priceBase: 20, pricePlus: 25 }, 16)).toBe(25);
+    });
+
+    it('debería hacer fallback a priceBase cuando pricePlus es 0', () => {
+      expect(obtenerPrecioTaller({ priceBase: 30, pricePlus: 0 }, 16)).toBe(30);
+    });
+
+    it('debería hacer fallback a priceBase cuando pricePlus no está definido', () => {
+      expect(obtenerPrecioTaller({ priceBase: 22 }, 18)).toBe(22);
+    });
+
+    it('debería devolver 0 si el taller no es válido', () => {
+      expect(obtenerPrecioTaller(null, 10)).toBe(0);
+      expect(obtenerPrecioTaller(undefined, 10)).toBe(0);
+      expect(obtenerPrecioTaller('string', 10)).toBe(0);
+    });
+  });
+
+  describe('sumarPrecioTalleres', () => {
+    const workshops = [
+      { name: 'Cocina', priceBase: 20, pricePlus: 25 },
+      { name: 'Slime', priceBase: 20, pricePlus: 30 },
+      { name: 'Tattoos', priceBase: 30, pricePlus: 35 },
+    ];
+    const preciosExtras = { tallerBase: 25, tallerPlus: 30 };
+
+    it('debería devolver 0 para un array vacío', () => {
+      expect(sumarPrecioTalleres([], workshops, 10, preciosExtras)).toBe(0);
+      expect(sumarPrecioTalleres(null, workshops, 10, preciosExtras)).toBe(0);
+    });
+
+    it('debería sumar priceBase para grupo normal', () => {
+      expect(sumarPrecioTalleres(['Cocina', 'Slime'], workshops, 10, preciosExtras)).toBe(40);
+    });
+
+    it('debería sumar pricePlus para grupo grande', () => {
+      expect(sumarPrecioTalleres(['Cocina', 'Slime'], workshops, 16, preciosExtras)).toBe(55);
+    });
+
+    it('debería ignorar nombres vacíos o nulos', () => {
+      expect(sumarPrecioTalleres(['Cocina', '', null], workshops, 10, preciosExtras)).toBe(20);
+    });
+
+    it('debería aplicar fallback a preciosExtras si el nombre no está en el catálogo', () => {
+      expect(sumarPrecioTalleres(['NoExiste'], workshops, 10, preciosExtras)).toBe(25);
+      expect(sumarPrecioTalleres(['NoExiste'], workshops, 16, preciosExtras)).toBe(30);
+    });
+
+    it('debería aplicar fallback duro 25/30 si preciosExtras no está definido', () => {
+      expect(sumarPrecioTalleres(['NoExiste'], workshops, 10, undefined)).toBe(25);
+      expect(sumarPrecioTalleres(['NoExiste'], workshops, 16, undefined)).toBe(30);
+    });
+
+    it('D-01: debería resolver un nombre con espacio final en el catálogo (priceBase 30, no fallback 25)', () => {
+      const catalogoConEspacioFinal = [
+        { name: 'Fiesta aquatica básica ', priceBase: 30, pricePlus: 35 }
+      ];
+      expect(
+        sumarPrecioTalleres(['Fiesta aquatica básica'], catalogoConEspacioFinal, 12, preciosExtras)
+      ).toBe(30);
+    });
+
+    it('D-01: debería resolver el catálogo ignorando mayúsculas y espacios en ambos lados', () => {
+      const catalogo = [{ name: 'Taller de chapas ', priceBase: 20, pricePlus: 30 }];
+      expect(sumarPrecioTalleres(['  TALLER DE CHAPAS'], catalogo, 12, preciosExtras)).toBe(20);
+    });
+  });
+
+  describe('obtenerTalleres', () => {
+    it('debería devolver una copia defensiva del array talleres', () => {
+      const talleres = ['Cocina', 'Magia'];
+      const extras = { talleres };
+      const result = obtenerTalleres(extras);
+      expect(result).toEqual(talleres);
+      expect(result).not.toBe(talleres);
+      result.push('Slime');
+      expect(extras.talleres).toHaveLength(2);
+    });
+
+    it('debería devolver array vacío explícito cuando talleres está vacío', () => {
+      expect(obtenerTalleres({ talleres: [] })).toEqual([]);
+    });
+
+    it('debería leer extras.taller legacy cuando talleres no es array', () => {
+      expect(obtenerTalleres({ taller: 'Cocina' })).toEqual(['Cocina']);
+    });
+
+    it('debería normalizar el sentinel legacy "ninguno" ignorando mayúsculas y espacios', () => {
+      expect(obtenerTalleres({ taller: 'ninguno' })).toEqual([]);
+      expect(obtenerTalleres({ taller: '  NINGUNO  ' })).toEqual([]);
+      expect(obtenerTalleres({ taller: 'Ninguno' })).toEqual([]);
+    });
+
+    it('debería ignorar taller legacy vacío o no string', () => {
+      expect(obtenerTalleres({ taller: '' })).toEqual([]);
+      expect(obtenerTalleres({ taller: '   ' })).toEqual([]);
+      expect(obtenerTalleres({ taller: null })).toEqual([]);
+      expect(obtenerTalleres({ taller: 123 })).toEqual([]);
+    });
+
+    it('el array nuevo debería ganar al legacy aunque esté vacío', () => {
+      expect(obtenerTalleres({ talleres: [], taller: 'Cocina' })).toEqual([]);
+    });
+
+    it('debería devolver [] cuando extras es undefined', () => {
+      expect(obtenerTalleres(undefined)).toEqual([]);
+      expect(obtenerTalleres(null)).toEqual([]);
+    });
+  });
+
   describe('calculateBookingTotal', () => {
+    it('debería cobrar el precio del catálogo usando extras.taller legacy', () => {
+      const formData = {
+        fecha: '2026-05-13',
+        niños: { cantidad: 10, menuId: 'm1' },
+        adultos: { comida: [] },
+        extras: { taller: 'Cocina' }
+      };
+
+      // (10 * 10) + 20 (Cocina base) = 120€
+      expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(120);
+    });
+
+    it('debería cobrar 0 cuando talleres es [] explícito aunque exista taller legacy', () => {
+      const formData = {
+        fecha: '2026-05-13',
+        niños: { cantidad: 10, menuId: 'm1' },
+        adultos: { comida: [] },
+        extras: { talleres: [], taller: 'Cocina' }
+      };
+
+      // 10 * 10 = 100€ (array vacío explícito gana al legacy)
+      expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(100);
+    });
+
     it('debería calcular el precio base correctamente para niños en día de semana', () => {
       const formData = {
         fecha: '2026-05-13', // Miércoles
         niños: { cantidad: 10, menuId: 'm1' },
         adultos: { comida: [] },
-        extras: { taller: 'ninguno' }
+        extras: { talleres: [] }
       };
 
       // 10 niños * 10€ = 100€
@@ -47,23 +211,25 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
         fecha: '2026-05-15', // Viernes
         niños: { cantidad: 10, menuId: 'm1' },
         adultos: { comida: [] },
-        extras: { taller: 'ninguno' }
+        extras: { talleres: [] }
       };
 
       // (10 * 10) + (10 * 1.5) = 115€
       expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(115);
     });
 
-    it('debería calcular el taller plus para exactamente 15 niños (umbral >= 15)', () => {
+    it('debería calcular el taller base para exactamente 15 niños (umbral > 15, corregido)', () => {
+      // Corrección deliberada: el cliente veía plus a 15 niños, pero el servidor
+      // cobraba base (umbral > 15). Ahora ambas capas usan esGrupoGrande = ninos > 15.
       const formData = {
         fecha: '2026-05-13',
         niños: { cantidad: 15, menuId: 'm1' },
         adultos: { comida: [] },
-        extras: { taller: 'Cocina' }
+        extras: { talleres: ['Cocina'] }
       };
 
-      // (15 * 10) + 25 (plus taller, porque cantidad >= 15) = 175€
-      expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(175);
+      // (15 * 10) + 20 (base taller, porque 15 no es grupo grande) = 170€
+      expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(170);
     });
 
 
@@ -72,10 +238,10 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
         fecha: '2026-05-13',
         niños: { cantidad: 16, menuId: 'm1' },
         adultos: { comida: [] },
-        extras: { taller: 'Cocina' }
+        extras: { talleres: ['Cocina'] }
       };
 
-      // (16 * 10) + 25 (plus taller) = 185€
+      // (16 * 10) + 25 (plus taller, porque 16 > 15) = 185€
       expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(185);
     });
 
@@ -90,7 +256,7 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
         fecha: '2026-05-13',
         niños: { cantidad: 16, menuId: 'm1' },
         adultos: { comida: [] },
-        extras: { taller: 'Magia' }
+        extras: { talleres: ['Magia'] }
       };
 
       // 16 * 10 = 160€ + 30€ (fallback a priceBase en vez de 0€) = 190€
@@ -108,11 +274,47 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
         fecha: '2026-05-13',
         niños: { cantidad: 18, menuId: 'm1' },
         adultos: { comida: [] },
-        extras: { taller: 'Pintura' }
+        extras: { talleres: ['Pintura'] }
       };
 
       // 18 * 10 = 180€ + 22€ (fallback a priceBase) = 202€
       expect(calculateBookingTotal(formData, pricesWithoutPlus, mockMenus)).toBe(202);
+    });
+
+    it('debería calcular 0€ sin actividades seleccionadas', () => {
+      const formData = {
+        fecha: '2026-05-13',
+        niños: { cantidad: 10, menuId: 'm1' },
+        adultos: { comida: [] },
+        extras: { talleres: [] }
+      };
+
+      // 10 niños * 10€ = 100€ (sin actividades)
+      expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(100);
+    });
+
+    it('debería sumar el precio de 2 actividades seleccionadas', () => {
+      const formData = {
+        fecha: '2026-05-13',
+        niños: { cantidad: 10, menuId: 'm1' },
+        adultos: { comida: [] },
+        extras: { talleres: ['Slime', 'Tattoos'] }
+      };
+
+      // (10 * 10) + 20 (Slime) + 30 (Tattoos) = 150€
+      expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(150);
+    });
+
+    it('debería sumar el precio de 3 actividades seleccionadas con grupo grande', () => {
+      const formData = {
+        fecha: '2026-05-13',
+        niños: { cantidad: 18, menuId: 'm1' },
+        adultos: { comida: [] },
+        extras: { talleres: ['Slime', 'Tattoos', 'Cocina'] }
+      };
+
+      // (18 * 10) + 30 (Slime plus) + 35 (Tattoos plus) + 25 (Cocina plus) = 270€
+      expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(270);
     });
 
     it('debería sumar correctamente la comida de adultos', () => {
@@ -125,7 +327,7 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
             { precioUnitario: 10, cantidad: 1 } // 10
           ]
         },
-        extras: { taller: 'ninguno' }
+        extras: { talleres: [] }
       };
 
       expect(calculateBookingTotal(formData, mockPrices, mockMenus)).toBe(20);
@@ -136,7 +338,7 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
         fecha: '2026-05-13',
         niños: { cantidad: 10, menuId: 'm1' },
         adultos: { comida: [] },
-        extras: { taller: 'ninguno', personajes: [] }
+        extras: { talleres: [], personajes: [] }
       };
 
       // 10 niños * 10€ = 100€ (sin personajes)
@@ -148,7 +350,7 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
         fecha: '2026-05-13',
         niños: { cantidad: 10, menuId: 'm1' },
         adultos: { comida: [] },
-        extras: { taller: 'ninguno', personajes: ['Elsa'] }
+        extras: { talleres: [], personajes: ['Elsa'] }
       };
 
       // 100€ (menú) + 40€ (1 personaje) = 140€
@@ -160,7 +362,7 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
         fecha: '2026-05-13',
         niños: { cantidad: 10, menuId: 'm1' },
         adultos: { comida: [] },
-        extras: { taller: 'ninguno', personajes: ['Elsa', 'Anna'] }
+        extras: { talleres: [], personajes: ['Elsa', 'Anna'] }
       };
 
       // 100€ (menú) + 80€ (2 personajes) = 180€
@@ -172,7 +374,7 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
         fecha: '2026-05-13',
         niños: { cantidad: 10, menuId: 'm1' },
         adultos: { comida: [] },
-        extras: { taller: 'ninguno', personajes: ['Elsa', 'Anna', 'Mickey'] }
+        extras: { talleres: [], personajes: ['Elsa', 'Anna', 'Mickey'] }
       };
 
       // 100€ (menú) + 100€ (pack 3 personajes) = 200€
@@ -191,7 +393,7 @@ describe('BookingUtils - Lógica de Negocio Frontend', () => {
         fecha: '2026-05-13',
         niños: { cantidad: 10, menuId: 'm1' },
         adultos: { comida: [] },
-        extras: { taller: 'ninguno', personajes: ['A', 'B', 'C'] }
+        extras: { talleres: [], personajes: ['A', 'B', 'C'] }
       };
 
       // 100€ (menú) + 95€ (pack custom) = 195€

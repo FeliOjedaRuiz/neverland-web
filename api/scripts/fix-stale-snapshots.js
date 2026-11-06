@@ -13,6 +13,7 @@ const mongoose = require('mongoose');
 const Event = require('../models/event.model');
 const Config = require('../models/config.model');
 const { safeParseDate } = require('../utils/date');
+const { obtenerTalleres, obtenerPrecioTaller, esGrupoGrande } = require('../utils/pricing');
 
 const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) {
@@ -90,20 +91,23 @@ async function calculatePrice(eventData) {
 
   // 3. Extras
   if (detalles?.extras) {
-    if (detalles.extras.taller && detalles.extras.taller !== 'ninguno') {
-      let tallerPrice = detalles.extras.precioTallerApplied;
-      if (tallerPrice === undefined || tallerPrice === null) {
+    const talleres = obtenerTalleres(detalles.extras);
+    if (talleres.length > 0) {
+      let tallerPrice = 0;
+      const isLargeGroup = esGrupoGrande(detalles.niños?.cantidad || 0);
+      for (const nombre of talleres) {
         const workshop = safeConfig.workshops?.find(
-          (w) => w.name.toLowerCase() === detalles.extras.taller.toLowerCase()
+          (w) => w.name.toLowerCase() === nombre.toLowerCase()
         );
-        const isLargeGroup = (detalles.niños?.cantidad || 0) > 15;
         if (workshop) {
-          tallerPrice = isLargeGroup ? workshop.pricePlus : workshop.priceBase;
+          tallerPrice += obtenerPrecioTaller(workshop, detalles.niños?.cantidad || 0);
         } else {
-          tallerPrice = isLargeGroup ? 30 : 25;
+          tallerPrice += isLargeGroup
+            ? (safeConfig.preciosExtras?.tallerPlus || 30)
+            : (safeConfig.preciosExtras?.tallerBase || 25);
         }
-        detalles.extras.precioTallerApplied = tallerPrice;
       }
+      detalles.extras.precioTallerApplied = tallerPrice;
       total += tallerPrice;
     }
 
