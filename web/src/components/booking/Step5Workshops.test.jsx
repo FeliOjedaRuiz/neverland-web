@@ -68,13 +68,13 @@ describe('Step5Workshops Component', () => {
 		});
 	});
 
-	it('debería mostrar "Quitar todas" cuando hay al menos 1 actividad seleccionada', () => {
+	it('debería mostrar "Quitar actividad" cuando solo hay 1 seleccionada', () => {
 		const formDataWithOne = {
 			...baseFormData,
 			extras: { ...baseFormData.extras, talleres: ['Cocina'] },
 		};
 		render(<Step5Workshops {...defaultProps} formData={formDataWithOne} />);
-		expect(screen.getByText(/Quitar todas/i)).toBeDefined();
+		expect(screen.getByText(/Quitar actividad/i)).toBeDefined();
 	});
 
 	it('debería limpiar todas las actividades al pulsar "Quitar todas"', () => {
@@ -141,7 +141,7 @@ describe('Step5Workshops Component', () => {
 		// Abrir el modal de Cocina desde el botón de detalle (hermano de la card)
 		fireEvent.click(screen.getByRole('button', { name: /Ver detalles de Cocina/i }));
 
-		expect(screen.getByRole('button', { name: /Quitar actividad/i })).toBeDefined();
+		expect(screen.getByRole('button', { name: /^Quitar actividad$/i })).toBeDefined();
 	});
 
 	it('debería quitar una actividad desde el botón QUITAR del modal', () => {
@@ -154,7 +154,7 @@ describe('Step5Workshops Component', () => {
 
 		fireEvent.click(screen.getByRole('button', { name: /Ver detalles de Cocina/i }));
 
-		fireEvent.click(screen.getByRole('button', { name: /Quitar actividad/i }));
+		fireEvent.click(screen.getByRole('button', { name: /^Quitar actividad$/i }));
 
 		expect(setFormData).toHaveBeenCalled();
 		expect(setFormData).toHaveBeenLastCalledWith({
