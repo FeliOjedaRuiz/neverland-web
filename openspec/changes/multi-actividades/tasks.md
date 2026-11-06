@@ -33,7 +33,7 @@ Ramas: tracker `feat/multi-actividades` (única que mergea a `main`; PR draft/no
 - [x] TASK-06: admin y colaterales (`feat/multi-actividades-wu-6-admin-colaterales`, 529 líneas revisables).
 - [x] TASK-07: suites transversales y gate de verificación final.
 
-- [ ] TASK-08: despliegue controlado y ejecución manual de migración.
+- [x] TASK-08: despliegue controlado y ejecución manual de la migración (cadena de 11 PRs mergeada en `main` = `fa219a3f`; backup → normalización del catálogo → migración de 397 eventos, verificado idempotente; 0 diferencias de `precioTotal`).
 
 TASK-05 se subdividió después de implementar porque el candidato real alcanzó 1.065 líneas, por encima del presupuesto de 800. Los tres PRs encadenados anteriores sustituyen el único PR-5 inicialmente estimado; cada uno está por debajo del límite. La suma real acumulada de los nueve slices es ~3.268 líneas, con máximo de 760 por PR.
 

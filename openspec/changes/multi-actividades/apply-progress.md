@@ -1036,3 +1036,76 @@ eventos: "Show de Magia", "Spa de Princesas" y el valor corrupto "Fiesta aquatic
 - **D-02** (nombres de catálogo corruptos con saltos de línea): operación de datos de seguimiento,
   con backup y dry-run previos.
 - **D-03** (preexistente): `GET /api/v1/events/availability` responde 503 sin Google Calendar.
+
+---
+
+## TASK-08 — Completada (despliegue y migración ejecutados)
+
+### Estado final
+
+| Componente | Estado |
+|---|---|
+| `main` | `fa219a3f` (cadena de 11 PRs + PR #17 del script de reparación) |
+| Render (API) | `live` · deploy `dep-dbmsbo8n74is73bean50` |
+| Vercel (web) | `success` |
+| Datos | 398 eventos migrados · 0 con el campo legacy `taller` · 0 con ambos campos |
+
+### Secuencia ejecutada en producción
+
+| # | Operación | Resultado | Idempotencia |
+|---|---|---|---|
+| A | `fix-corrupt-workshop-names.js` (nuevo, PR #17) | 10 valores corruptos reparados (7 triplicados + 3 truncados) | 2.ª ejecución: 0 |
+| B | `migrate-taller-to-array.js` | 398 leídos · 170 con actividad · 227 selección vacía · 1 ya migrado · 0 backfill · **397 escrituras** | 2.ª ejecución: 0 transformaciones |
+| C | `normalize-workshop-names.js` | 8 nombres de catálogo normalizados | 2.ª ejecución: 0 |
+
+### Verificación post-migración (contra el backup previo a la migración)
+
+| Invariante | Resultado |
+|---|---|
+| Eventos del backup ausentes en la BD | 0 |
+| `precioTotal` distintos | **0** |
+| `precioTallerApplied` distintos | 4 (residuos de 25/30 € en reservas sin actividad, eliminados por diseño) |
+| Eventos con array `talleres` | 398 / 398, ninguno con más de 3 |
+| Eventos que conservan el campo legacy `taller` | 0 |
+
+Los 4 snapshots retirados corresponden a reservas con `taller: 'ninguno'` cuyo importe de actividad era
+un residuo de una actividad eliminada en su día (el código legacy no lo borraba al vaciar la selección).
+`precioTotal` no se modificó en ningún caso.
+
+### Coherencia final con el catálogo
+
+| Métrica | Valor |
+|---|---:|
+| Valores de actividad analizados | 173 |
+| Resuelven contra el catálogo | 161 |
+| No resuelven (actividades retiradas: "Show de Magia" ×9, "Spa de Princesas" ×3) | 12 |
+
+Las 12 restantes conservan el fallback histórico 25/30 € por diseño. Un administrador puede retirar la
+actividad obsoleta de esas reservas; no se modifican de forma automática porque el nombre histórico es
+la facturación de esa reserva.
+
+### Verificación funcional en producción (navegador real)
+
+| Comprobación | Resultado |
+|---|---|
+| `/presupuesto` con "Fiesta aquatica básica" | 30 € en tarjeta, chip y total (antes 25 €) |
+| `/mi-reserva/:id` reserva migrada | Muestra la actividad y su importe; nunca "Sin actividad" |
+| `/mi-reserva/:id` reserva antes corrupta | "Spa de beauty" +25 € (antes "Spa de beauty Spa beauty Spa beauty") |
+| `/mi-reserva/:id` reserva legacy normal | "Taller científico" +25 € |
+
+### Rollback documentado
+
+1. Restaurar `events` desde cualquiera de los backups de `api/scripts/backups/` (copias en
+   `C:\Users\Asus\Desktop\Neverland\backups-multi-actividades\`): `backup-2026-11-06T13-01-19.json`
+   (antes de A), `backup-2026-11-06T13-01-44.json` (antes de B), `backup-2026-11-06T13-02-27.json`
+   (antes de C).
+2. Revertir el deploy de `main` al commit `7944695a`.
+3. El script inverso de la migración es *lossy* con más de una actividad: no existe. El rollback de
+   datos es restaurar el backup.
+
+### Pendiente
+
+- `sdd-verify` (verify-report) y `sdd-archive`.
+- Follow-up: retirar la ruta `taller` deprecated del schema y simplificar `obtenerTalleres` (ya sin uso
+  en producción, porque no queda ningún documento legacy).
+- Deuda preexistente de mass assignment (`event.set(req.body)`): change aparte.
