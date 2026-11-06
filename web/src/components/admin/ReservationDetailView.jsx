@@ -48,6 +48,7 @@ import {
 	sumCatalogPrices,
 	obtenerTalleres,
 	sumarPrecioTalleres,
+	obtenerPrecioTaller,
 } from '../../utils/bookingUtils';
 
 
@@ -2522,6 +2523,10 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 							</div>
 							{config?.workshops?.map((ws) => {
 								const isSelected = (formData.talleres || []).includes(ws.name);
+								// Precio de catálogo de esta actividad para el grupo de niños
+								// de la reserva (mismo criterio que el wizard y que la suma
+								// del total, de modo que lo que se ve suma lo que se cobra).
+								const precioActividad = obtenerPrecioTaller(ws, ninosCantidad || 0);
 								return (
 									<div
 										key={ws.id || ws._id}
@@ -2558,6 +2563,11 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 										</div>
 										<div className="min-w-0 flex-1">
 											<p className="text-sm font-black text-text-black truncate">{ws.name}</p>
+											{precioActividad > 0 && (
+												<p className="text-[11px] font-bold text-gray-400 leading-tight">
+													{precioActividad}€
+												</p>
+											)}
 										</div>
 										{isSelected && (
 											<div className="ml-auto w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
