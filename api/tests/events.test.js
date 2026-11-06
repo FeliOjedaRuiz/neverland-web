@@ -651,5 +651,69 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
       expect(res.statusCode).toBe(400);
       expect(res.body.message).toMatch(/Nombre del niño demasiado largo/);
     });
+
+    it('D-01: debería aceptar un PATCH que añade actividad sobre una reserva migrada cuyo nombre del catálogo tiene espacio final', async () => {
+      // Reproduce el caso real: la migración trimmea el valor legacy
+      // ('Taller de chapas ') mientras el catálogo conserva el espacio final.
+      await Config.deleteMany({});
+      await Config.create({
+        menusNiños: [{ id: 'menu-1', precio: 15 }],
+        plusFinDeSemana: 2,
+        preciosAdultos: [],
+        workshops: [
+          { name: 'Taller de chapas ', priceBase: 20, pricePlus: 30, active: true },
+          { name: 'Slime', priceBase: 20, pricePlus: 30, active: true }
+        ],
+        preciosExtras: { extension30: 30, extension60: 50 },
+        extrasCatalogo: []
+      });
+
+      const fixedDate = getFutureDate(2, 60);
+      const { insertedId } = await Event.collection.insertOne({
+        tipo: 'reserva',
+        fecha: fixedDate,
+        turno: 'T1',
+        estado: 'pendiente',
+        cliente: {
+          nombreNiño: 'Leo',
+          nombrePadre: 'Ana',
+          email: 'ana@example.com',
+          telefono: '123456789',
+          privacyPolicyConsent: true
+        },
+        detalles: {
+          niños: { cantidad: 12, menuId: 'menu-1' },
+          extras: { talleres: ['Taller de chapas'], precioTallerApplied: 20 }
+        }
+      });
+
+      const res = await request(app)
+        .patch(`/api/v1/events/${insertedId}`)
+        .send({
+          detalles: {
+            extras: {
+              talleres: ['Taller de chapas', 'Slime'],
+              personajes: [],
+              pinata: false,
+              observaciones: '',
+              alergenos: ''
+            }
+          }
+        });
+
+      // Antes del fix devolvía 400 "Actividad no válida o inactiva: Taller de chapas"
+      expect(res.statusCode).toBe(200);
+      expect(res.body.detalles.extras.talleres).toEqual(['Taller de chapas', 'Slime']);
+      expect(res.body.detalles.extras.precioTallerApplied).toBe(40);
+    });
+
+    it('D-01: debería tratar como duplicada una actividad que solo difiere en espacios o mayúsculas', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(buildEvent({ talleres: ['Slime', ' slime '] }));
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toBe('Actividad duplicada:  slime ');
+    });
   });
 });

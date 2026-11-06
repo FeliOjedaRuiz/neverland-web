@@ -46,6 +46,8 @@ import {
 	filterActiveCatalog,
 	getCatalogItemById,
 	sumCatalogPrices,
+	obtenerTalleres,
+	sumarPrecioTalleres,
 } from '../../utils/bookingUtils';
 
 
@@ -937,38 +939,39 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 								)}
 							</div>
 							<div className="grid grid-cols-1 gap-3">
-								{/* Actividad */}
-								<div
-									className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-50/50 border-blue-100' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
-								>
-									<div
-										className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${reservation.detalles?.extras?.taller !== 'ninguno' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}
-									>
-										<Sparkles size={20} />
-									</div>
-									<div className="min-w-0 flex-1">
-										<p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
-											Actividad
-										</p>
-										<p className="font-display font-black text-lg text-text-black truncate">
-											{!reservation.detalles?.extras?.taller ||
-											reservation.detalles?.extras?.taller === 'ninguno'
-												? 'Sin actividad'
-												: reservation.detalles?.extras?.taller}
-										</p>
-									</div>
-									{reservation.detalles?.extras?.taller !== 'ninguno' && (() => {
-										const pTaller = reservation.detalles?.extras?.precioTallerApplied;
-										if (!pTaller || pTaller <= 0) return null;
-										return (
-											<div className="flex flex-col items-end gap-1 shrink-0">
-												<span className="text-[10px] font-black text-blue-600 bg-blue-100 px-2 py-1 rounded-lg">
-													+{pTaller}€
-												</span>
-											</div>
-										);
-									})()}
-								</div>
+                {/* Actividad */}
+                {(() => {
+                    const talleres = obtenerTalleres(reservation.detalles?.extras);
+                    const pTaller = reservation.detalles?.extras?.precioTallerApplied;
+                    return (
+                        <div
+                            className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${talleres.length > 0 ? 'bg-blue-50/50 border-blue-100' : 'bg-gray-50/50 border-gray-100/50 opacity-60'}`}
+                        >
+                            <div
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${talleres.length > 0 ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}
+                            >
+                                <Sparkles size={20} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[9px] text-gray-400 font-black uppercase mb-0.5 tracking-tight">
+                                    Actividad{talleres.length > 1 ? 'es' : ''}
+                                </p>
+                                <p className="font-display font-black text-lg text-text-black truncate">
+                                    {talleres.length === 0
+                                        ? 'Sin actividad'
+                                        : talleres.join(', ')}
+                                </p>
+                            </div>
+                            {talleres.length > 0 && pTaller > 0 && (
+                                <div className="flex flex-col items-end gap-1 shrink-0">
+                                    <span className="text-[10px] font-black text-blue-600 bg-blue-100 px-2 py-1 rounded-lg">
+                                        +{pTaller}€
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
 
 								{/* Personajes */}
 								<div
@@ -1222,34 +1225,26 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 									return null;
 								})()}
 
-								{/* Taller */}
-								{reservation.detalles?.extras?.taller && reservation.detalles.extras.taller !== 'ninguno' && (() => {
-									let pTaller = reservation.detalles.extras.precioTallerApplied;
-									if (pTaller == null || pTaller === 0) {
-										const tallerInfo = config?.workshops?.find(w => w.nombre === reservation.detalles.extras.taller);
-										if (tallerInfo) {
-											const cant = reservation.detalles?.niños?.cantidad || 0;
-											const base = tallerInfo.precioBase || tallerInfo.priceBase || 0;
-											const plus = tallerInfo.precioPlus || tallerInfo.pricePlus || 0;
-											pTaller = cant > 15 ? (plus > 0 ? plus : base) : base;
-										} else {
-											pTaller = 0;
-										}
-									}
-									if (pTaller > 0) {
-										return (
-											<div className="flex justify-between items-center text-sm">
-												<span className="text-gray-600 font-medium">
-													Actividad ({reservation.detalles.extras.taller})
-												</span>
-												<span className="font-black text-text-black">
-													{pTaller.toFixed(2)}€
-												</span>
-											</div>
-										);
-									}
-									return null;
-								})()}
+							{/* Actividad (Σ) */}
+							{(() => {
+								const talleres = obtenerTalleres(reservation.detalles?.extras);
+								if (talleres.length === 0) return null;
+								let pTaller = reservation.detalles?.extras?.precioTallerApplied;
+								if (pTaller == null || pTaller === 0) {
+									const cant = reservation.detalles?.niños?.cantidad || 0;
+									pTaller = sumarPrecioTalleres(talleres, config?.workshops, cant, config?.preciosExtras);
+								}
+								return (
+									<div className="flex justify-between items-center text-sm">
+										<span className="text-gray-600 font-medium">
+											Actividad ({talleres.join(', ')})
+										</span>
+										<span className="font-black text-text-black">
+											{pTaller.toFixed(2)}€
+										</span>
+									</div>
+								);
+							})()}
 
 								{/* Personajes — usar snapshot del evento (precio histórico cobrado) */}
 								{(() => {
@@ -2370,8 +2365,13 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 
 // Sub-component for Extras Edit
 const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
-	// Initialize with personajes array (handle legacy personaje string conversion)
+	// Initialize with talleres array (handle legacy taller string conversion)
 	const initialFormData = { ...current };
+	if (!Array.isArray(initialFormData.talleres)) {
+		initialFormData.talleres = obtenerTalleres(initialFormData);
+	}
+
+	// Initialize with personajes array (handle legacy personaje string conversion)
 	if (!initialFormData.personajes && initialFormData.personaje) {
 		// Legacy: convert single personaje string to personajes array
 		if (initialFormData.personaje === 'ninguno' || !initialFormData.personaje) {
@@ -2396,10 +2396,16 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 	const [isTallerOpen, setIsTallerOpen] = useState(false);
 	const [isPersonajeOpen, setIsPersonajeOpen] = useState(false);
 
-	// Snapshot original (precio histórico cobrado) y array original de personajes
-	// para detectar si el usuario modificó la selección. Si no la modificó, mantenemos
-	// el precio del snapshot. Si la modificó, recalculamos con el config actual.
-	const originalSnapshot = initialFormData.precioPersonajeApplied || 0;
+	// Snapshots originales (precios históricos cobrados) y arrays originales de
+	// actividades y personajes para detectar si el usuario modificó la selección.
+	// Si no la modificó, mantenemos el precio del snapshot; si la modificó,
+	// recalculamos con el config actual.
+	const originalTallerSnapshot = initialFormData.precioTallerApplied || 0;
+	const originalTalleresSorted = [...(initialFormData.talleres || [])].sort();
+	const currentTalleresSorted = [...(formData.talleres || [])].sort();
+	const talleresChanged = JSON.stringify(originalTalleresSorted) !== JSON.stringify(currentTalleresSorted);
+
+	const originalPersonajeSnapshot = initialFormData.precioPersonajeApplied || 0;
 	const originalPersonajesSorted = [...(initialFormData.personajes || [])].sort();
 	const currentPersonajesSorted = [...(formData.personajes || [])].sort();
 	const personajesChanged = JSON.stringify(originalPersonajesSorted) !== JSON.stringify(currentPersonajesSorted);
@@ -2409,27 +2415,26 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 	const dynamicPrice = (formData.personajes?.length || 0) === 3
 		? packPrice
 		: unitPrice * (formData.personajes?.length || 0);
-	const displayPrice = personajesChanged ? dynamicPrice : originalSnapshot;
+	const displayPrice = personajesChanged ? dynamicPrice : originalPersonajeSnapshot;
 
-	const selectedWs = config?.workshops?.find(ws => ws.name === formData.taller);
-	const selectedWsBase = selectedWs ? (selectedWs.precioBase || selectedWs.priceBase || 0) : 0;
-	const selectedWsPlus = selectedWs ? (selectedWs.precioPlus || selectedWs.pricePlus || 0) : 0;
-	const editorTallerPrice = selectedWs
-		? ((ninosCantidad || 0) > 15
-			? (selectedWsPlus > 0 ? selectedWsPlus : selectedWsBase)
-			: selectedWsBase)
-		: 0;
+	const dynamicTallerPrice = sumarPrecioTalleres(
+		formData.talleres,
+		config?.workshops,
+		ninosCantidad || 0,
+		config?.preciosExtras,
+	);
+	const displayTallerPrice = talleresChanged ? dynamicTallerPrice : originalTallerSnapshot;
 
 	return (
 		<div className="space-y-8 pb-4">
 			<div className="space-y-6">
-				{/* ACTIVIDAD / TALLER */}
+				{/* ACTIVIDADES / TALLERES */}
 				<div className="space-y-3">
 					<h5 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2 pl-1">
 						<Sparkles size={14} />
-						Actividad Seleccionada
+						Actividades Seleccionadas
 					</h5>
-					
+
 					{/* Selected Card / Trigger */}
 					<div
 						onClick={() => setIsTallerOpen(!isTallerOpen)}
@@ -2438,26 +2443,31 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 						}`}
 					>
 						<div className="flex items-center gap-4 min-w-0 flex-1">
-							<div className="w-16 h-16 rounded-2xl overflow-hidden bg-white border border-gray-100 shrink-0">
-								{selectedWs?.imageUrl || selectedWs?.image ? (
-									<img src={selectedWs.imageUrl || selectedWs.image} className="w-full h-full object-cover" alt="" />
-								) : (
-									<div className="w-full h-full flex items-center justify-center text-gray-200">
-										{formData.taller === 'ninguno' ? <X size={24} /> : <Sparkles size={24} />}
-									</div>
+							<div className="w-16 h-16 rounded-2xl overflow-hidden bg-white border border-gray-100 shrink-0 flex items-center justify-center text-gray-200">
+								{(formData.talleres?.length || 0) === 1 ? (() => {
+									const ws = config?.workshops?.find(w => w.name === formData.talleres[0]);
+									return ws?.imageUrl || ws?.image ? (
+										<img src={ws.imageUrl || ws.image} className="w-full h-full object-cover" alt="" />
+									) : <Sparkles size={24} />;
+								})() : (
+									(formData.talleres?.length || 0) === 0 ? <X size={24} /> : <Sparkles size={24} />
 								)}
 							</div>
 							<div className="min-w-0 flex-1">
 								<p className="font-display font-black text-lg text-text-black truncate">
-									{formData.taller === 'ninguno' ? 'Sin actividad especial' : formData.taller}
+									{(formData.talleres?.length || 0) === 0
+										? 'Sin actividad especial'
+										: (formData.talleres?.length || 0) === 1
+											? formData.talleres[0]
+											: `${formData.talleres.length} actividades`}
 								</p>
 								<p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-									{isTallerOpen ? 'Cerrar selector' : 'Pulsa para cambiar actividad'}
+									{isTallerOpen ? 'Cerrar selector' : 'Pulsa para cambiar actividades'}
 								</p>
 							</div>
-							{formData.taller !== 'ninguno' && editorTallerPrice > 0 && (
+							{(formData.talleres?.length || 0) > 0 && displayTallerPrice > 0 && (
 								<span className="text-[10px] font-black text-blue-600 bg-blue-100 px-2 py-1 rounded-lg shrink-0">
-									+{editorTallerPrice}€
+									+{displayTallerPrice}€
 								</span>
 							)}
 						</div>
@@ -2466,39 +2476,75 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 						</div>
 					</div>
 
+					{/* Selected activity chips (removable) */}
+					{(formData.talleres?.length || 0) > 0 && (
+						<div className="flex flex-wrap gap-2 animate-in fade-in duration-200">
+							{formData.talleres.map((tallerName) => (
+								<div
+									key={tallerName}
+									className="flex items-center gap-1.5 pl-2 pr-1 py-1 bg-blue-100 rounded-full border border-blue-200"
+								>
+									<span className="text-xs font-black text-blue-700">{tallerName}</span>
+									<button
+										type="button"
+										onClick={(e) => {
+											e.stopPropagation();
+											setFormData({
+												...formData,
+												talleres: formData.talleres.filter((n) => n !== tallerName),
+											});
+										}}
+										className="w-5 h-5 rounded-full bg-blue-200 hover:bg-blue-300 flex items-center justify-center transition-colors"
+									>
+										<X size={12} className="text-blue-600" />
+									</button>
+								</div>
+							))}
+						</div>
+					)}
+
 					{/* Collapsible Picker */}
 					{isTallerOpen && (
 						<div className="p-3 bg-gray-50 rounded-[32px] border border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in slide-in-from-top-4 duration-300">
-							{/* Opción Ninguno */}
+							{/* Opción Ninguna (clear all) */}
 							<div
 								onClick={() => {
-									setFormData({ ...formData, taller: 'ninguno' });
-									setIsTallerOpen(false);
+									setFormData({ ...formData, talleres: [] });
 								}}
-								className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer bg-white ${
-									formData.taller === 'ninguno' ? 'border-blue-500' : 'border-gray-100 hover:border-blue-200'
+								className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
+									(formData.talleres?.length || 0) === 0 ? 'border-blue-500' : 'border-transparent hover:border-blue-200'
 								}`}
 							>
-								<div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-300 shrink-0">
+								<div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-300">
 									<X size={18} />
 								</div>
-								<span className="text-sm font-black text-text-black">Ninguna</span>
+								<span className="text-xs font-black text-text-black">Ninguna</span>
 							</div>
 							{config?.workshops?.map((ws) => {
-								const basePrice = ws.precioBase || ws.priceBase || 0;
-								const plusPrice = ws.precioPlus || ws.pricePlus || 0;
-								const wsPrice = (ninosCantidad || 0) > 15
-									? (plusPrice > 0 ? plusPrice : basePrice)
-									: basePrice;
+								const isSelected = (formData.talleres || []).includes(ws.name);
 								return (
 									<div
 										key={ws.id || ws._id}
 										onClick={() => {
-											setFormData({ ...formData, taller: ws.name });
-											setIsTallerOpen(false);
+											const current = formData.talleres || [];
+											if (isSelected) {
+												setFormData({
+													...formData,
+													talleres: current.filter(n => n !== ws.name),
+												});
+											} else {
+												if (current.length >= 3) {
+													toast('El máximo es 3 actividades');
+													return;
+												}
+												setFormData({
+													...formData,
+													talleres: [...current, ws.name],
+												});
+											}
 										}}
 										className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer bg-white ${
-											formData.taller === ws.name ? 'border-blue-500' : 'border-gray-100 hover:border-blue-200'
+											isSelected ? 'border-blue-500' : 'border-gray-100 hover:border-blue-200'
 										}`}
 									>
 										<div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100">
@@ -2512,16 +2558,29 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 										</div>
 										<div className="min-w-0 flex-1">
 											<p className="text-sm font-black text-text-black truncate">{ws.name}</p>
-											<p className="text-[10px] font-bold text-gray-400">{wsPrice}€{(ninosCantidad || 0) > 15 ? ' (plus)' : ''}</p>
 										</div>
-										{wsPrice > 0 && (
-											<span className="text-[10px] font-black text-blue-600 bg-blue-100 px-2 py-1 rounded-lg shrink-0">
-												+{wsPrice}€
-											</span>
+										{isSelected && (
+											<div className="ml-auto w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+												<Check size={12} className="text-white" />
+											</div>
 										)}
 									</div>
 								);
-							})}
+								})}
+							</div>
+						)}
+
+					{/* Dynamic price display */}
+					{(formData.talleres?.length || 0) > 0 && (
+						<div className="flex flex-col items-end gap-1 animate-in fade-in duration-200">
+							<span className="text-sm font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100">
+								{formData.talleres.length} actividad{formData.talleres.length > 1 ? 'es' : ''} = {displayTallerPrice}€
+							</span>
+							{talleresChanged && originalTallerSnapshot > 0 && (
+								<span className="text-[9px] font-bold text-gray-400 italic">
+									Antes: {originalTallerSnapshot}€
+								</span>
+							)}
 						</div>
 					)}
 				</div>
@@ -2777,20 +2836,18 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 
 			<div className="flex gap-3 pt-6 border-t border-gray-100">
 				<button
-					onClick={() => {
-						// NO borramos los snapshots históricos: precioTallerApplied,
-						// precioPersonajeApplied y precioPinataApplied. El servidor los
-						// recalcula solo si la selección correspondiente cambia (PATCH
-						// invalidation). Borrarlos client-side destruye el precio
-						// histórico de reservas legacy.
-						const { precioTallerApplied, precioPersonajeApplied, ...cleanExtras } = formData;
-						const hasPinata = (cleanExtras.catalogoItemIds || []).includes('pinata');
-						cleanExtras.pinata = hasPinata;
-						if (!hasPinata) {
-							cleanExtras.precioPinataApplied = undefined;
-						}
-						onSave(cleanExtras);
-					}}
+						onClick={() => {
+							// No enviamos snapshots de precio ni el campo legacy `taller`:
+							// el servidor recalcula `precioTallerApplied` cuando cambia la
+							// selección y rechaza cualquier snapshot enviado por el cliente.
+							const { precioTallerApplied, precioPersonajeApplied, taller, ...cleanExtras } = formData;
+							const hasPinata = (cleanExtras.catalogoItemIds || []).includes('pinata');
+							cleanExtras.pinata = hasPinata;
+							if (!hasPinata) {
+								cleanExtras.precioPinataApplied = undefined;
+							}
+							onSave(cleanExtras);
+						}}
 					className="flex-1 py-4 bg-neverland-green text-white rounded-2xl font-black text-sm shadow-lg shadow-neverland-green/20 transition-all active:scale-95"
 				>
 					Guardar Cambios

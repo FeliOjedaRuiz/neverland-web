@@ -6,6 +6,7 @@ const googleService = require('../services/google.service');
 const mailer = require('../config/mailer.config');
 const pushService = require('../services/push.service');
 const { safeParseDate, getSafeNow, createSafeDate } = require('../utils/date');
+const { obtenerTalleres, obtenerPrecioTaller, esGrupoGrande, normalizarNombreActividad, resolverWorkshop } = require('../utils/pricing');
 
 const Config = require('../models/config.model');
 
@@ -56,8 +57,12 @@ const validateEventData = async (data, previousData) => {
 
       const seenTalleres = new Set();
       for (const nombre of talleres) {
-        if (seenTalleres.has(nombre)) throw createError(400, `Actividad duplicada: ${nombre}`);
-        seenTalleres.add(nombre);
+        // Clave normalizada: un mismo nombre que solo difiera en espacios o
+        // mayúsculas cuenta como duplicado (D-01), pero el error muestra el
+        // nombre tal como llegó.
+        const clave = normalizarNombreActividad(nombre);
+        if (seenTalleres.has(clave)) throw createError(400, `Actividad duplicada: ${nombre}`);
+        seenTalleres.add(clave);
       }
 
       // Validación de catálogo: solo cuando la selección es NUEVA (create) o
@@ -65,8 +70,12 @@ const validateEventData = async (data, previousData) => {
       // cambio de selección se aplica fallback + console.warn (TASK-03), para no
       // bloquear reservas legacy cuya actividad ya no esté en el catálogo.
       // `previousData` es el documento previo al merge en PATCH; en create no existe.
-      const prevTalleres = (previousData?.detalles?.extras?.talleres || []).slice().sort();
-      const currTalleres = talleres.slice().sort();
+      // La comparación usa conjuntos NORMALIZADOS para que una selección que solo
+      // difiera en espacios/mayúsculas NO cuente como modificada (D-01).
+      const prevTalleres = (previousData?.detalles?.extras?.talleres || [])
+        .map(normalizarNombreActividad)
+        .sort();
+      const currTalleres = talleres.map(normalizarNombreActividad).sort();
       const seleccionModificada = !previousData || JSON.stringify(prevTalleres) !== JSON.stringify(currTalleres);
 
       if (seleccionModificada) {
@@ -75,9 +84,7 @@ const validateEventData = async (data, previousData) => {
         const workshops = safeConfig.workshops || [];
 
         for (const nombre of talleres) {
-          const workshop = workshops.find(w =>
-            typeof w.name === 'string' && w.name.toLowerCase() === nombre.toLowerCase()
-          );
+          const workshop = resolverWorkshop(workshops, nombre);
           if (!workshop || workshop.active === false || workshop.suspended === true) {
             throw createError(400, `Actividad no válida o inactiva: ${nombre}`);
           }
@@ -207,23 +214,41 @@ const calculateEventPrice = async (eventData, config) => {
       }
     }
 
-    if (detalles.extras.taller && detalles.extras.taller !== 'ninguno') {
-      let tallerPrice = detalles.extras.precioTallerApplied;
-      if (tallerPrice === undefined || tallerPrice === null) {
-        const workshop = safeConfig.workshops?.find(
-          (w) => w.name.toLowerCase() === detalles.extras.taller.toLowerCase()
-        );
-        const isLargeGroup = (detalles.niños?.cantidad || 0) > 15;
-        if (workshop) {
-          tallerPrice = isLargeGroup
-            ? (workshop.pricePlus > 0 ? workshop.pricePlus : workshop.priceBase)
-            : workshop.priceBase;
-        } else {
-          tallerPrice = isLargeGroup ? 30 : 25;
+    // Pricing de actividades: suma sobre el array `talleres` (con fallback
+    // de lectura al campo legacy `taller` durante la ventana deploy↔migración).
+    // `precioTallerApplied` almacena el TOTAL de la selección; con 0 actividades
+    // se elimina el snapshot (activity-sum-pricing/REQ-04).
+    const talleres = obtenerTalleres(detalles.extras);
+    if (talleres.length > 0) {
+      let tallerTotal = detalles.extras.precioTallerApplied;
+
+      if (tallerTotal === undefined || tallerTotal === null) {
+        tallerTotal = 0;
+        const ninos = detalles.niños?.cantidad || 0;
+
+        for (const nombre of talleres) {
+          const workshop = resolverWorkshop(safeConfig.workshops, nombre);
+
+          if (!workshop) {
+            // Fallback histórico para reservas legacy cuya actividad ya no está
+            // en el catálogo. La validación de catálogo ya rechazó selecciones
+            // nuevas/modificadas inválidas (activity-validation/REQ-05).
+            const fallbackPrice = esGrupoGrande(ninos)
+              ? (safeConfig.preciosExtras?.tallerPlus || 30)
+              : (safeConfig.preciosExtras?.tallerBase || 25);
+            console.warn(`Actividad "${nombre}" no resuelta en catálogo; aplicando fallback ${fallbackPrice}€`);
+            tallerTotal += fallbackPrice;
+          } else {
+            tallerTotal += obtenerPrecioTaller(workshop, ninos);
+          }
         }
-        detalles.extras.precioTallerApplied = tallerPrice;
+
+        detalles.extras.precioTallerApplied = tallerTotal;
       }
-      total += tallerPrice;
+
+      total += tallerTotal;
+    } else {
+      delete detalles.extras.precioTallerApplied;
     }
 
     // Multi-personaje pricing: array-based
@@ -572,9 +597,18 @@ module.exports.update = async (req, res, next) => {
         delete oldDetalles.niños.menuNombre;
         shouldInvalidateCatalogSnapshot = true;
       }
-      if (newDetalles.extras?.taller && newDetalles.extras.taller !== oldDetalles.extras?.taller) {
-        delete oldDetalles.extras.precioTallerApplied;
-        shouldInvalidateCatalogSnapshot = true;
+      // Invalidación de snapshot de actividades: guard por presencia de campo
+      // (no truthiness) y comparación de conjuntos NORMALIZADOS y ordenados,
+      // espejando el patrón de personajes (activity-sum-pricing/REQ-05/REQ-06).
+      // Normalizar evita invalidar el snapshot cuando solo cambian espacios o
+      // mayúsculas en los nombres (D-01).
+      if (newDetalles.extras && 'talleres' in newDetalles.extras) {
+        const oldTalleres = (oldDetalles.extras?.talleres || []).map(normalizarNombreActividad).sort();
+        const newTalleres = (newDetalles.extras.talleres || []).map(normalizarNombreActividad).sort();
+        if (JSON.stringify(oldTalleres) !== JSON.stringify(newTalleres)) {
+          delete oldDetalles.extras.precioTallerApplied;
+          shouldInvalidateCatalogSnapshot = true;
+        }
       }
       // Multi-personaje: compare sorted arrays to detect content changes
       {
@@ -630,9 +664,16 @@ module.exports.update = async (req, res, next) => {
         event.set('detalles.niños.menuNombre', undefined);
         shouldInvalidateCatalogSnapshotSecondPass = true;
       }
-      if (newDetalles.extras?.taller && newDetalles.extras.taller !== oldDetalles.extras?.taller) {
-        event.set('detalles.extras.precioTallerApplied', undefined);
-        shouldInvalidateCatalogSnapshotSecondPass = true;
+      // Segundo pase de invalidación de snapshot de actividades (misma lógica
+      // de presencia de campo + conjunto NORMALIZADO y ordenado que en el
+      // primer pase, para que ambos pases coincidan en D-01).
+      if (newDetalles.extras && 'talleres' in newDetalles.extras) {
+        const oldTalleres = (oldDetalles.extras?.talleres || []).map(normalizarNombreActividad).sort();
+        const newTalleres = (newDetalles.extras.talleres || []).map(normalizarNombreActividad).sort();
+        if (JSON.stringify(oldTalleres) !== JSON.stringify(newTalleres)) {
+          event.set('detalles.extras.precioTallerApplied', undefined);
+          shouldInvalidateCatalogSnapshotSecondPass = true;
+        }
       }
       // Multi-personaje: compare sorted arrays (order-independent)
       {

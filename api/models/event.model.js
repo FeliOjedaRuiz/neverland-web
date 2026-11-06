@@ -61,7 +61,14 @@ const eventSchema = new mongoose.Schema({
       taller: { type: String },
       talleres: {
         type: [String],
-        default: [],
+        // Mongoose asigna `default: []` automáticamente a los arrays. Se fuerza
+        // `default: undefined` para preservar la semántica de PRESENCIA en la
+        // compat-read: un documento legacy sin la clave `talleres` hidrata
+        // `undefined`, permitiendo que `obtenerTalleres` caiga al campo legacy
+        // `taller`. Un array vacío explícito (`talleres: []`) es una selección
+        // válida que gana al legacy y permite vaciar la selección sin resucitar
+        // la actividad antigua.
+        default: undefined,
         validate: {
           validator: v => v.length <= 3,
           message: 'Máximo 3 actividades permitidas'
