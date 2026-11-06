@@ -46,7 +46,7 @@ STRICT_MODE="true"
 # Restaurado al default de la herramienta: con 120s el proveedor (opencode) se
 # agotaba de forma intermitente, porque el revisor ejecuta tests, greps y un
 # session summary antes de emitir el veredicto.
-TIMEOUT="300"
+TIMEOUT="900"
 
 # Base branch for --pr-mode (auto-detects main/master/develop if empty)
 # Default: auto-detect
