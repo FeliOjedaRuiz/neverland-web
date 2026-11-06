@@ -1109,3 +1109,23 @@ la facturación de esa reserva.
 - Follow-up: retirar la ruta `taller` deprecated del schema y simplificar `obtenerTalleres` (ya sin uso
   en producción, porque no queda ningún documento legacy).
 - Deuda preexistente de mass assignment (`event.set(req.body)`): change aparte.
+
+---
+
+## Mejora posterior al cierre de TASK-08 (PR #18)
+
+**Observation del usuario (QA manual sobre producción)**: en el modal "Editar Extras y Actividades"
+—tanto en la vista de usuario como en la de admin— la lista de actividades del selector mostraba
+solo el nombre. No había forma de saber cuánto costaba una actividad antes de elegirla, ni cuánto
+costaría cambiarla o sumar otra. El wizard de reserva pública ya mostraba el precio en cada tarjeta.
+
+**Cambio** (`web/src/components/admin/ReservationDetailView.jsx`, componente `ExtrasEdit`): cada
+tarjeta del selector muestra el precio de catálogo de esa actividad para el tamaño del grupo de la
+reserva, con el helper `obtenerPrecioTaller` — el mismo que usa el wizard y el mismo que suma el
+total de la selección (`sumarPrecioTalleres`), de modo que lo que se ve suma lo que se cobra. Respeta
+el umbral de grupo grande (16 o más niños → precio `plus`).
+
+**Verificación**: `cd web && npm run test:run` → 138/138 · `npm run build` OK · comprobado con
+navegador real contra la API local (grupo normal de 13 niños → 25 € base, "Fiesta aquatica básica"
+30 €, "Fiesta aquatica premium" 50 €, "Fiestas aquaticas vip" 120 €; grupo grande de 21 niños → 30 €
+plus) y confirmado en el bundle desplegado en producción tras el merge (`main = 319b8232`).
