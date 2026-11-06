@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const Event = require('../models/event.model');
 const fs = require('fs');
 const path = require('path');
+const { obtenerTalleres } = require('../utils/pricing');
 
 const AFFECTED_IDS = ['ZCJ33Z', 'SKUTB3', '9MOMOF', 'YOS8HI', '9Z97MA', 'KWK6MQ'];
 
@@ -24,8 +25,9 @@ async function main() {
     cliente: { nombreNiño: e.cliente?.nombreNiño },
     precioTotal: e.precioTotal,
     precioTallerApplied: e.detalles?.extras?.precioTallerApplied,
-    taller: e.detalles?.extras?.taller,
-    niños: e.detalles?.niños?.cantidad,
+    talleres: obtenerTalleres(e.detalles?.extras),
+    // Nota: este script legacy usaba el campo `taller` antes de la migración.
+    // En documentos ya migrados `talleres` refleja la selección actual.
     _id: e._id.toString(),
     _raw: e,
   }));
@@ -39,7 +41,8 @@ async function main() {
   console.log(`✅ Backup guardado: ${file}`);
   console.log(`   ${backup.length} reservas respaldadas.`);
   for (const b of backup) {
-    console.log(`   ${b.publicId} | ${b.precioTotal}€ | taller: ${b.taller} (${b.precioTallerApplied}€)`);
+    const actividades = b.talleres.length > 0 ? b.talleres.join(', ') : 'Sin actividad';
+    console.log(`   ${b.publicId} | ${b.precioTotal}€ | actividades: ${actividades} (${b.precioTallerApplied ?? 0}€)`);
   }
   await mongoose.disconnect();
 }

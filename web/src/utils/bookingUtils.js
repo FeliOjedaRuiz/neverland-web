@@ -1,6 +1,70 @@
 import { safeParseDate } from './safeDate';
 
 /**
+ * Helpers de precio para actividades (espejo del backend api/utils/pricing.js).
+ */
+export const esGrupoGrande = (ninos) => (ninos || 0) > 15;
+
+export const obtenerPrecioTaller = (workshop, ninos) => {
+  if (!workshop || typeof workshop !== 'object') return 0;
+  const priceBase = Number(workshop.priceBase) || 0;
+  const pricePlus = Number(workshop.pricePlus) || 0;
+  if (esGrupoGrande(ninos)) {
+    return pricePlus > 0 ? pricePlus : priceBase;
+  }
+  return priceBase;
+};
+
+/**
+ * Resuelve la lista de actividades desde extras con semántica por presencia.
+ * - Si extras.talleres es un array, devuelve una copia defensiva (incluso []).
+ * - Si no, lee extras.taller legacy solo si es string no vacío y distinto de
+ *   'ninguno' (ignorando mayúsculas/espacios); devuelve [nombre] limpio.
+ * - En cualquier otro caso devuelve [].
+ */
+export const obtenerTalleres = (extras) => {
+  if (Array.isArray(extras?.talleres)) {
+    return [...extras.talleres];
+  }
+
+  const legacy = extras?.taller;
+  if (typeof legacy === 'string' && legacy.trim().length > 0) {
+    const clean = legacy.trim();
+    if (clean.toLowerCase() !== 'ninguno') {
+      return [clean];
+    }
+  }
+
+  return [];
+};
+
+/**
+ * Suma el precio de un listado de actividades, buscando cada nombre en el
+ * catálogo de talleres. Si un nombre no se resuelve, aplica el fallback
+ * histórico 25/30 € para mantener paridad con el backend.
+ */
+export const sumarPrecioTalleres = (nombres, workshops, ninos, preciosExtras) => {
+  return (nombres || []).reduce((sum, name) => {
+    const rawName = String(name ?? '').trim();
+    if (!rawName) return sum;
+    // Normaliza AMBOS lados (trim + lowercase): el catálogo puede conservar
+    // espacios finales legacy que la migración ya recortó en el evento (D-01).
+    const workshopName = rawName.toLowerCase();
+    const workshop = (workshops || []).find(
+      (w) => String(w?.name ?? '').trim().toLowerCase() === workshopName
+    );
+    if (workshop) {
+      return sum + obtenerPrecioTaller(workshop, ninos);
+    }
+    // Fallback histórico a la par del backend para nombres no resueltos
+    if (esGrupoGrande(ninos)) {
+      return sum + (preciosExtras?.tallerPlus || 30);
+    }
+    return sum + (preciosExtras?.tallerBase || 25);
+  }, 0);
+};
+
+/**
  * Helpers para el catálogo genérico de extras.
  */
 export const filterActiveCatalog = (items) =>
@@ -48,25 +112,11 @@ export const calculateBookingTotal = (formData, prices, childrenMenusWithPrices)
     total += (item.precioUnitario || 0) * (item.cantidad || 0);
   });
 
-  // 3. Extras: Talleres (umbral >=15 niños para precio Plus)
-  if (formData.extras?.taller && formData.extras.taller !== 'ninguno') {
-    const workshopName = String(formData.extras?.taller || '').toLowerCase();
-    const workshop = prices.workshops?.find(
-      (w) => String(w.name).toLowerCase() === workshopName
-    );
-
-    const isPlus = (formData.niños?.cantidad || 0) >= 15;
-
-    if (workshop) {
-      const tallerPrice = isPlus
-        ? (workshop.pricePlus > 0 ? workshop.pricePlus : (workshop.priceBase || 0))
-        : (workshop.priceBase || 0);
-      total += tallerPrice;
-    } else {
-      total += isPlus
-        ? (prices.preciosExtras?.tallerPlus || 30)
-        : (prices.preciosExtras?.tallerBase || 25);
-    }
+  // 3. Extras: Talleres (umbral >15 niños para precio Plus; unificado con el backend)
+  const talleres = obtenerTalleres(formData.extras);
+  const ninosCount = formData.niños?.cantidad || 0;
+  if (talleres.length > 0) {
+    total += sumarPrecioTalleres(talleres, prices.workshops, ninosCount, prices.preciosExtras);
   }
 
   // 4. Personajes (multi-select: hasta 3)

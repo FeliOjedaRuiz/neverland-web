@@ -484,13 +484,14 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
       const eventId = createRes.body.id;
 
       // Paso 2: PATCH — cambiar taller a Pintura (priceBase: 20)
+      // Se usa el array `talleres`; el guard de invalidación compara conjuntos ordenados.
       // Enviar stale precioTallerApplied: 25 (como haría el frontend con datos desactualizados)
       const patchRes = await request(app)
         .patch(`/api/v1/events/${eventId}`)
         .send({
           detalles: {
             extras: {
-              taller: 'Pintura',
+              talleres: ['Pintura'],
               personajes: [],
               pinata: true,
               observaciones: 'Mesa cerca de la puerta',
@@ -509,7 +510,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
       expect(patchRes.body.detalles.extras.precioTallerApplied).toBe(20);
     });
 
-    it('Debería recalcular precioTotal al remover taller (cambiar a "ninguno")', async () => {
+    it('Debería recalcular precioTotal al remover taller (selección vacía)', async () => {
       // Paso 1: Crear reserva con taller Magia
       const createRes = await request(app)
         .post('/api/v1/events')
@@ -520,14 +521,15 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
       const precioConMagia = createRes.body.precioTotal;
       const eventId = createRes.body.id;
 
-      // Paso 2: PATCH — quitar taller
+      // Paso 2: PATCH — quitar taller enviando array vacío
+      // El guard por presencia de campo detecta 'talleres' aunque su valor sea falsy [].
       // Enviar stale precioTallerApplied: 25 (como haría el frontend con datos desactualizados)
       const patchRes = await request(app)
         .patch(`/api/v1/events/${eventId}`)
         .send({
           detalles: {
             extras: {
-              taller: 'ninguno',
+              talleres: [],
               personajes: [],
               pinata: true,
               observaciones: 'Mesa cerca de la puerta',
@@ -543,6 +545,396 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
       // Sin taller, precioTotal baja en 25€ (priceBase de Magia)
       expect(patchRes.body.precioTotal).toBe(precioConMagia - 25);
       expect(patchRes.body.detalles.extras.precioTallerApplied).toBeUndefined();
+    });
+  });
+
+  // =====================================================
+  // Multi-actividades: pricing por suma e invalidación de snapshots
+  // =====================================================
+  describe('Multi-actividades — pricing por suma e invalidación de snapshots', () => {
+    const martesDate = futureTuesday;
+
+    // Helper para construir un payload limpio con array de actividades
+    const payloadConTalleres = (talleres, { ninos = 15, pinata = false, dia = martesDate } = {}) => {
+      const payload = {
+        ...budgetFlowPayload,
+        fecha: dia,
+        detalles: {
+          ...budgetFlowPayload.detalles,
+          niños: { cantidad: ninos, menuId: 'menu-1' },
+          extras: {
+            ...budgetFlowPayload.detalles.extras,
+            talleres,
+            pinata
+          }
+        }
+      };
+      delete payload.detalles.extras.taller; // forzar lectura desde talleres
+      return payload;
+    };
+
+    it('Debería calcular 0€ y no snapshotear precioTallerApplied con 0 actividades', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payloadConTalleres([]));
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.talleres).toEqual([]);
+      expect(res.body.detalles.extras.precioTallerApplied).toBeUndefined();
+      expect([225, 247.5]).toContain(res.body.precioTotal);
+    });
+
+    it('Debería calcular el mismo precio legacy con 1 actividad', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payloadConTalleres(['Magia']));
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.talleres).toEqual(['Magia']);
+      expect(res.body.detalles.extras.precioTallerApplied).toBe(25);
+      expect([225, 247.5]).toContain(res.body.precioTotal - 25);
+    });
+
+    it('Debería sumar precios de 2 actividades', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payloadConTalleres(['Magia', 'Pintura']));
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.talleres).toEqual(['Magia', 'Pintura']);
+      expect(res.body.detalles.extras.precioTallerApplied).toBe(45); // 25 + 20
+      expect([225, 247.5]).toContain(res.body.precioTotal - 45);
+    });
+
+    it('Debería sumar precios de 3 actividades en grupo grande', async () => {
+      await Config.deleteMany({});
+      await Config.create({
+        menusNiños: [{ id: 'menu-1', nombre: 'Menú Aventura', precio: 15 }],
+        plusFinDeSemana: 1.5,
+        preciosAdultos: [],
+        workshops: [
+          { name: 'Magia', priceBase: 25, pricePlus: 30 },
+          { name: 'Pintura', priceBase: 20, pricePlus: 25 },
+          { name: 'Cocina', priceBase: 22, pricePlus: 28 }
+        ],
+        characters: [],
+        preciosExtras: { personaje: 40, extension30: 30, extension60: 50 }
+      });
+
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payloadConTalleres(['Magia', 'Pintura', 'Cocina'], { ninos: 18 }));
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.talleres).toEqual(['Magia', 'Pintura', 'Cocina']);
+      expect(res.body.detalles.extras.precioTallerApplied).toBe(83); // 30 + 25 + 28
+    });
+
+    it('Debería aplicar precio base con exactamente 15 niños', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payloadConTalleres(['Magia'], { ninos: 15 }));
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.precioTallerApplied).toBe(25);
+    });
+
+    it('Debería aplicar precio plus con 16 niños', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payloadConTalleres(['Magia'], { ninos: 16 }));
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.precioTallerApplied).toBe(30);
+    });
+
+    it('Debería usar priceBase como fallback cuando pricePlus es 0 en grupo grande', async () => {
+      await Config.deleteMany({});
+      await Config.create({
+        menusNiños: [{ id: 'menu-1', nombre: 'Menú Aventura', precio: 15 }],
+        plusFinDeSemana: 1.5,
+        preciosAdultos: [],
+        workshops: [
+          { name: 'Magia', priceBase: 25, pricePlus: 0 }
+        ],
+        characters: [],
+        preciosExtras: { personaje: 40, extension30: 30, extension60: 50 }
+      });
+
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payloadConTalleres(['Magia'], { ninos: 18 }));
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.precioTallerApplied).toBe(25);
+    });
+
+    it('NO debería aplicar fallback cuando una actividad resuelta tiene priceBase 0', async () => {
+      await Config.deleteMany({});
+      await Config.create({
+        menusNiños: [{ id: 'menu-1', nombre: 'Menú Aventura', precio: 15 }],
+        plusFinDeSemana: 1.5,
+        preciosAdultos: [],
+        workshops: [
+          { name: 'Magia', priceBase: 0, pricePlus: 0 }
+        ],
+        characters: [],
+        preciosExtras: { personaje: 40, extension30: 30, extension60: 50 }
+      });
+
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payloadConTalleres(['Magia'], { ninos: 15 }));
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.detalles.extras.precioTallerApplied).toBe(0);
+    });
+
+    it('Debería invalidar snapshot al cambiar el conjunto de actividades', async () => {
+      const createRes = await request(app)
+        .post('/api/v1/events')
+        .send(payloadConTalleres(['Magia']));
+
+      expect(createRes.statusCode).toBe(201);
+      expect(createRes.body.detalles.extras.precioTallerApplied).toBe(25);
+      const precioInicial = createRes.body.precioTotal;
+      const eventId = createRes.body.id;
+
+      const patchRes = await request(app)
+        .patch(`/api/v1/events/${eventId}`)
+        .send({
+          detalles: {
+            extras: {
+              talleres: ['Magia', 'Pintura'],
+              personajes: [],
+              pinata: false,
+              observaciones: '',
+              alergenos: ''
+            }
+          }
+        });
+
+      expect(patchRes.statusCode).toBe(200);
+      expect(patchRes.body.detalles.extras.precioTallerApplied).toBe(45);
+      expect(patchRes.body.precioTotal).toBe(precioInicial + 20);
+    });
+
+    it('NO debería invalidar snapshot si el conjunto es igual en orden distinto', async () => {
+      const createRes = await request(app)
+        .post('/api/v1/events')
+        .send(payloadConTalleres(['Magia', 'Pintura']));
+
+      expect(createRes.statusCode).toBe(201);
+      const precioInicial = createRes.body.precioTotal;
+      const eventId = createRes.body.id;
+
+      const patchRes = await request(app)
+        .patch(`/api/v1/events/${eventId}`)
+        .send({
+          detalles: {
+            extras: {
+              talleres: ['Pintura', 'Magia'],
+              personajes: [],
+              pinata: false,
+              observaciones: '',
+              alergenos: ''
+            }
+          }
+        });
+
+      expect(patchRes.statusCode).toBe(200);
+      expect(patchRes.body.precioTotal).toBe(precioInicial);
+    });
+
+    it('Debería eliminar snapshot al vaciar la selección de actividades', async () => {
+      const createRes = await request(app)
+        .post('/api/v1/events')
+        .send(payloadConTalleres(['Magia']));
+
+      expect(createRes.statusCode).toBe(201);
+      expect(createRes.body.detalles.extras.precioTallerApplied).toBe(25);
+      const eventId = createRes.body.id;
+
+      const patchRes = await request(app)
+        .patch(`/api/v1/events/${eventId}`)
+        .send({
+          detalles: {
+            extras: {
+              talleres: [],
+              personajes: [],
+              pinata: false,
+              observaciones: '',
+              alergenos: ''
+            }
+          }
+        });
+
+      expect(patchRes.statusCode).toBe(200);
+      expect(patchRes.body.detalles.extras.talleres).toEqual([]);
+      expect(patchRes.body.detalles.extras.precioTallerApplied).toBeUndefined();
+    });
+
+    it('Debería sobrescribir snapshot stale enviado por el cliente', async () => {
+      const createRes = await request(app)
+        .post('/api/v1/events')
+        .send(payloadConTalleres(['Magia']));
+
+      expect(createRes.statusCode).toBe(201);
+      const eventId = createRes.body.id;
+
+      const patchRes = await request(app)
+        .patch(`/api/v1/events/${eventId}`)
+        .send({
+          detalles: {
+            extras: {
+              talleres: ['Pintura'],
+              personajes: [],
+              pinata: false,
+              observaciones: '',
+              alergenos: '',
+              precioTallerApplied: 25 // stale
+            }
+          }
+        });
+
+      expect(patchRes.statusCode).toBe(200);
+      expect(patchRes.body.detalles.extras.precioTallerApplied).toBe(20);
+    });
+
+    it('Debería aplicar fallback y emitir warning para actividad legacy no resoluble sin devolver 400', async () => {
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      // Crear directamente en BD una reserva con actividad que ya no existe en catálogo
+      const eventoLegacy = await Event.create({
+        tipo: 'reserva',
+        fecha: martesDate,
+        turno: 'T2',
+        cliente: {
+          nombreNiño: 'Lucía',
+          edadNiño: 6,
+          nombrePadre: 'Carlos García',
+          telefono: '+34612345678',
+          email: 'carlos@example.com',
+          privacyPolicyConsent: true,
+          marketingConsent: false
+        },
+        detalles: {
+          niños: { cantidad: 15, menuId: 'menu-1' },
+          adultos: { cantidad: 5, comida: [] },
+          extras: {
+            talleres: ['ActividadAntigua'],
+            personajes: [],
+            pinata: false
+          }
+        },
+        horario: {
+          inicio: '18:00',
+          fin: '20:00',
+          extensionMinutos: 0
+        }
+      });
+
+      // PATCH sin modificar la selección: solo cambiamos observaciones
+      const patchRes = await request(app)
+        .patch(`/api/v1/events/${eventoLegacy.id}`)
+        .send({
+          detalles: {
+            extras: {
+              observaciones: 'Nota actualizada'
+            }
+          }
+        });
+
+      expect(patchRes.statusCode).toBe(200);
+      expect(patchRes.body.detalles.extras.precioTallerApplied).toBe(25);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('ActividadAntigua'));
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('fallback'));
+
+      warnSpy.mockRestore();
+    });
+
+    it('D-01: debería resolver del catálogo un nombre con espacio final (priceBase 30) en vez de cobrar el fallback 25', async () => {
+      await Config.deleteMany({});
+      await Config.create({
+        menusNiños: [{ id: 'menu-1', nombre: 'Menú Aventura', precio: 15 }],
+        plusFinDeSemana: 1.5,
+        preciosAdultos: [],
+        workshops: [
+          // Caso real D-01: el catálogo conserva el espacio final, la migración
+          // trimmea el valor guardado en el evento.
+          { name: 'Fiesta aquatica básica ', priceBase: 30, pricePlus: 35 }
+        ],
+        characters: [],
+        preciosExtras: { personaje: 40, tallerBase: 25, tallerPlus: 30, extension30: 30, extension60: 50 }
+      });
+
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payloadConTalleres(['Fiesta aquatica básica'], { ninos: 12 }));
+
+      expect(res.statusCode).toBe(201);
+      // 12 niños (≤ 15) → priceBase del catálogo = 30; el fallback daría 25.
+      expect(res.body.detalles.extras.precioTallerApplied).toBe(30);
+      // 12 * 15 = 180 + 30 = 210 (martes sin plus de fin de semana)
+      expect(res.body.precioTotal).toBe(210);
+    });
+
+    it('Debería incluir la suma de actividades en precioTotal', async () => {
+      const res = await request(app)
+        .post('/api/v1/events')
+        .send(payloadConTalleres(['Magia', 'Pintura']));
+
+      expect(res.statusCode).toBe(201);
+      // 15 niños * 15€ = 225€ + 2 actividades (45€) = 270€ (martes sin plus)
+      expect(res.body.precioTotal).toBe(270);
+    });
+
+    it('Debería preservar el precio legacy al editar una reserva antigua con campo taller', async () => {
+      // Simula una reserva creada antes de multi-actividades que solo tiene
+      // `taller` y NO tiene la clave `talleres` en el documento.
+      const eventoLegacy = await Event.create({
+        tipo: 'reserva',
+        fecha: martesDate,
+        turno: 'T2',
+        cliente: {
+          nombreNiño: 'Leo',
+          edadNiño: 7,
+          nombrePadre: 'Ana',
+          telefono: '+34612345678',
+          email: 'ana@example.com',
+          privacyPolicyConsent: true,
+          marketingConsent: false
+        },
+        detalles: {
+          niños: { cantidad: 15, menuId: 'menu-1' },
+          adultos: { cantidad: 5, comida: [] },
+          extras: {
+            taller: 'Magia',
+            personajes: [],
+            pinata: false
+          }
+        },
+        horario: {
+          inicio: '18:00',
+          fin: '20:00',
+          extensionMinutos: 0
+        }
+      });
+
+      const patchRes = await request(app)
+        .patch(`/api/v1/events/${eventoLegacy.id}`)
+        .send({
+          detalles: {
+            extras: {
+              observaciones: 'Solo cambio de nota'
+            }
+          }
+        });
+
+      expect(patchRes.statusCode).toBe(200);
+      expect(patchRes.body.detalles.extras.precioTallerApplied).toBe(25);
+      // 15 niños * 15€ = 225€ + Magia 25€ = 250€
+      expect(patchRes.body.precioTotal).toBe(250);
     });
   });
 

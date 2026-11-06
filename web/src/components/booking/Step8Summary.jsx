@@ -1,9 +1,12 @@
 import React from 'react';
+import { ImageIcon } from 'lucide-react';
 import { safeParseDate } from '../../utils/safeDate';
 import {
 	filterActiveCatalog,
 	getCatalogItemById,
+	obtenerTalleres,
 	sumCatalogPrices,
+	sumarPrecioTalleres,
 } from '../../utils/bookingUtils';
 
 const Step8Summary = ({
@@ -15,6 +18,8 @@ const Step8Summary = ({
 	workshops,
 	extrasCatalogo = [],
 }) => {
+	const talleresSeleccionados = obtenerTalleres(formData.extras);
+
 	return (
 		<div>
 			<h2 className="text-xl font-display font-bold text-text-black text-center mb-2">
@@ -39,7 +44,7 @@ const Step8Summary = ({
 					</div>
 				</div>
 
-				{/* Detail List */}
+				{/* Lista de detalles */}
 				<div className="space-y-3 text-sm pr-2">
 					<div className="flex justify-between text-energy-orange">
 						<span>
@@ -75,7 +80,7 @@ const Step8Summary = ({
 							</div>
 						)}
 
-					{/* Adult Food Summary */}
+					{/* Resumen comida adultos */}
 					{formData.adultos.comida?.length > 0 && (
 						<div className="flex justify-between text-energy-orange">
 							<span>
@@ -97,21 +102,44 @@ const Step8Summary = ({
 							</span>
 						</div>
 					)}
-					{formData.extras.taller !== 'ninguno' && (
-						<div className="flex justify-between text-rec-blue border-t border-blue-50 pt-2">
-							<span>Actividad: {formData.extras.taller}</span>
-							<span className="font-bold">
-								{(() => {
-									const workshop = (workshops || []).find(
-										(w) => w.name === formData.extras.taller,
-									);
-									if (!workshop) return '0';
-									return formData.niños.cantidad >= 15
-										? (workshop.pricePlus > 0 ? workshop.pricePlus : workshop.priceBase)
-										: workshop.priceBase;
-								})()}
-								€
-							</span>
+					{talleresSeleccionados.length > 0 && (
+						<div className="flex flex-col gap-2 p-3 bg-blue-50/50 rounded-2xl border border-blue-100/50 mb-1">
+							<div className="flex justify-between items-center">
+								<div className="flex items-center gap-3">
+									<div className="flex flex-col">
+										<p className="text-[10px] text-rec-blue font-black uppercase tracking-widest leading-none mb-1">Actividades</p>
+										<div className="flex flex-wrap gap-2">
+											{talleresSeleccionados.map((tallerName) => {
+												const workshop = (workshops || []).find((w) => w.name === tallerName);
+												return (
+													<div key={tallerName} className="flex items-center gap-1.5">
+														<div className="w-8 h-8 rounded-lg overflow-hidden bg-white shadow-sm shrink-0 border border-blue-100">
+															{workshop?.imageUrl ? (
+																<img src={workshop.imageUrl} alt={tallerName} className="w-full h-full object-cover" />
+													) : (
+														<div className="w-full h-full flex items-center justify-center text-blue-200 bg-blue-50">
+															<ImageIcon size={16} />
+														</div>
+													)}
+														</div>
+														<span className="font-black text-rec-blue text-xs">{tallerName}</span>
+													</div>
+												);
+											})}
+										</div>
+									</div>
+								</div>
+								<div className="flex flex-col items-end">
+									<span className="font-black text-rec-blue">
+										{sumarPrecioTalleres(
+											talleresSeleccionados,
+											workshops,
+											formData.niños?.cantidad || 0,
+											prices.preciosExtras
+										)}€
+									</span>
+								</div>
+							</div>
 						</div>
 					)}
 					{formData.extras.personajes && formData.extras.personajes.length > 0 && (
@@ -169,13 +197,11 @@ const Step8Summary = ({
 					)}
 					{(() => {
 						const hasCatalogo = formData.extras.catalogoItemIds?.length > 0;
-						const hasTaller = formData.extras.taller && formData.extras.taller !== 'ninguno';
 						const hasPersonajes = (formData.extras.personajes?.length || 0) > 0;
 						const hasLegacyPinata =
 							formData.extras.pinata &&
 							!(formData.extras.catalogoItemIds || []).includes('pinata');
-						if (!hasCatalogo && !hasTaller && !hasPersonajes && !hasLegacyPinata) return null;
-						const tallerSnap = formData.extras.precioTallerApplied || 0;
+						if (!hasCatalogo && !hasPersonajes && !hasLegacyPinata) return null;
 						const personajesSnap = formData.extras.precioPersonajeApplied || 0;
 						const legacyPinataSnap = hasLegacyPinata
 							? (formData.extras.precioPinataApplied || prices.preciosExtras?.pinata || 0)
@@ -201,10 +227,10 @@ const Step8Summary = ({
 									</div>
 								)}
 								<div className="flex justify-between text-pink-700 text-xs font-bold mt-2 pt-2 border-t border-pink-100">
-									<span>Subtotal actividades y extras</span>
+									{/* Subtotal de extras adicionales sin incluir actividades */}
+									<span>Subtotal extras</span>
 									<span>
 										{(
-											tallerSnap +
 											personajesSnap +
 											legacyPinataSnap +
 											sumCatalogPrices(

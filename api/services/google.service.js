@@ -2,6 +2,7 @@ const { google } = require('googleapis');
 const path = require('path');
 const createError = require('http-errors');
 const Config = require('../models/config.model');
+const { obtenerTalleres } = require('../utils/pricing');
 
 const KEYFILE_PATH = path.join(__dirname, '../google-credentials.json');
 
@@ -115,7 +116,11 @@ module.exports.createCalendarEvent = async (booking) => {
       const comidaItems = detalles?.adultos?.comida || [];
       comidaItems.forEach(c => { precioAdultos += (c.cantidad || 0) * (c.precioUnitario || 0); });
       if (precioAdultos > 0) precioLines.push(`  Comida Adultos = ${precioAdultos.toFixed(2)}€`);
-      if (detalles?.extras?.precioTallerApplied > 0) precioLines.push(`  Actividad (${detalles.extras.taller}) = ${detalles.extras.precioTallerApplied.toFixed(2)}€`);
+      const tallerNames = obtenerTalleres(detalles?.extras);
+      if (tallerNames.length > 0 && detalles?.extras?.precioTallerApplied > 0) {
+        const actividadLineLabel = tallerNames.length > 1 ? 'Actividades' : 'Actividad';
+        precioLines.push(`  ${actividadLineLabel} (${tallerNames.join(', ')}) = ${detalles.extras.precioTallerApplied.toFixed(2)}€`);
+      }
       if (detalles?.extras?.precioPersonajeApplied > 0) precioLines.push(`  Personajes (${(detalles.extras.personajes || []).join(', ')}) = ${detalles.extras.precioPersonajeApplied.toFixed(2)}€`);
 
       // Generic catalog extras vs legacy
@@ -165,7 +170,7 @@ module.exports.createCalendarEvent = async (booking) => {
 - **Raciones**: ${(detalles?.adultos?.comida || []).map(function(c) { return c.item + ' (x' + c.cantidad + ')'; }).join(', ') || 'Sin comida'}
 
 **✨ ACTIVIDADES Y EXTRAS**:
-- **Taller**: ${detalles?.extras?.taller && detalles.extras.taller !== 'ninguno' ? detalles.extras.taller : 'No'}
+- **Actividad${tallerNames.length > 1 ? 'es' : ''}**: ${tallerNames.length > 0 ? tallerNames.join(', ') : 'No'}
 - **Personajes**: ${(detalles?.extras?.personajes?.length > 0) ? detalles.extras.personajes.join(', ') : 'No'}
 - **Extras**: ${extrasNombres.length > 0 ? extrasNombres.join(', ') : 'Ninguno'}
 - **Extensión**: ${booking.horario?.extensionMinutos || 0} min

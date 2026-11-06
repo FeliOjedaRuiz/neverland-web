@@ -92,7 +92,7 @@ const BudgetPage = () => {
 			comida: [],
 		},
 		extras: {
-			taller: null,
+			talleres: [],
 			personajes: [],
 			pinata: false,
 			observaciones: '',
@@ -194,10 +194,11 @@ const BudgetPage = () => {
 
 	// --- Exit Guard (Prevent accidental data loss) ---
 	useEffect(() => {
+		const hasSelectedWorkshops = (formData.extras?.talleres || []).length > 0;
 		const isDirty =
 			step > 1 ||
 			(formData.niños.menuId !== null) ||
-			(formData.extras.taller !== null);
+			hasSelectedWorkshops;
 
 		const handleBeforeUnload = (e) => {
 			if (isDirty && !createdEventId) {
@@ -212,7 +213,7 @@ const BudgetPage = () => {
 	}, [
 		step,
 		formData.niños.menuId,
-		formData.extras.taller,
+		formData.extras?.talleres,
 		createdEventId,
 	]);
 
@@ -573,6 +574,7 @@ const BudgetPage = () => {
 											formData={formData}
 											setFormData={setFormData}
 											WORKSHOPS={prices.workshops}
+											prices={prices}
 										/>
 									)}
 									{step === 5 && (

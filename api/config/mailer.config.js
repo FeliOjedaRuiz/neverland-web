@@ -1,6 +1,28 @@
 const nodemailer = require('nodemailer');
 const Config = require('../models/config.model');
 const { safeParseDate } = require('../utils/date');
+const { obtenerTalleres } = require('../utils/pricing');
+
+/**
+ * Devuelve la representación textual de las actividades seleccionadas y el
+ * total almacenado en `precioTallerApplied`. Si no hay actividades, devuelve
+ * "Sin actividad" con total 0.
+ */
+const tallerText = (extras) => {
+  const nombres = obtenerTalleres(extras);
+  if (nombres.length === 0) {
+    return { label: 'Sin actividad', total: 0, nombres: [] };
+  }
+  const total = extras?.precioTallerApplied || 0;
+  const texto = nombres.map((nombre) => {
+    const lower = nombre.toLowerCase();
+    if (lower.startsWith('taller') || lower.startsWith('show') || lower.startsWith('visita')) {
+      return nombre;
+    }
+    return `Taller de ${nombre}`;
+  }).join(', ');
+  return { label: texto, total, nombres };
+};
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -95,13 +117,8 @@ ${publicUrl}
 
   const googleCalendarUrl = generateGCalUrl();
 
-  // Preparamos el texto del taller para evitar duplicados
-  let tallerText = detalles.extras.taller;
-  if (tallerText && tallerText !== 'ninguno') {
-    if (!tallerText.toLowerCase().startsWith('taller') && !tallerText.toLowerCase().startsWith('show') && !tallerText.toLowerCase().startsWith('visita')) {
-      tallerText = `Taller de ${tallerText}`;
-    }
-  }
+  // Preparamos el texto del taller/lista de actividades
+  const { label: actividadLabel, total: actividadTotal, nombres: actividadNombres } = tallerText(detalles.extras);
 
   const html = `
     <!DOCTYPE html>
@@ -203,10 +220,10 @@ ${publicUrl}
               </div>
             </div>` : ''}
 
-            ${tallerText && tallerText !== 'ninguno' ? `
+            ${actividadLabel !== 'Sin actividad' ? `
             <div class="summary-row">
-              <span class="summary-label">Extra:</span>
-              <span class="summary-value">${tallerText}</span>
+              <span class="summary-label">${actividadNombres.length > 1 ? 'Actividades' : 'Actividad'}:</span>
+              <span class="summary-value">${actividadLabel}${actividadTotal > 0 ? ` (+${actividadTotal}€)` : ''}</span>
             </div>` : ''}
             ${(detalles.extras.personajes?.length > 0) ? `
             <div class="summary-row">
@@ -407,3 +424,5 @@ module.exports.sendTallerConfirmationEmail = async (taller, inscripcion) => {
       throw error;
     });
 };
+
+module.exports.tallerText = tallerText;
