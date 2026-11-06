@@ -106,7 +106,7 @@ const DayDetailView = () => {
 							detalles: {
 								niños: { cantidad: 12, menuId: 1 },
 								extras: {
-									taller: 'ninguno',
+									talleres: [],
 									personajes: [],
 									pinata: false,
 								},
@@ -135,7 +135,7 @@ const DayDetailView = () => {
 					notasAdmin: reason || 'Bloqueo desde app',
 					detalles: {
 						niños: { cantidad: 12, menuId: 1 },
-						extras: { taller: 'ninguno', personaje: 'ninguno', pinata: false },
+							extras: { talleres: [], personajes: [], pinata: false },
 						adultos: [],
 					},
 				});

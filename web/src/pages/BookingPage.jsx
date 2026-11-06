@@ -92,7 +92,7 @@ const BookingPage = () => {
 			comida: [],
 		},
 		extras: {
-			taller: null,
+			talleres: [],
 			personajes: [],
 			pinata: false,
 			observaciones: '',
@@ -188,10 +188,12 @@ const BookingPage = () => {
 
 	// --- Exit Guard (Prevent accidental data loss) ---
 	useEffect(() => {
+		const hasSelectedWorkshops = (formData.extras?.talleres || []).length > 0;
 		const isDirty =
 			step > 1 ||
 			(formData.cliente.nombreNiño && formData.cliente.nombreNiño.length > 0) ||
-			(formData.cliente.telefono && formData.cliente.telefono.length > 0);
+			(formData.cliente.telefono && formData.cliente.telefono.length > 0) ||
+			hasSelectedWorkshops;
 
 		const handleBeforeUnload = (e) => {
 			if (isDirty && !createdEventId) {
@@ -207,6 +209,7 @@ const BookingPage = () => {
 		step,
 		formData.cliente.nombreNiño,
 		formData.cliente.telefono,
+		formData.extras?.talleres,
 		createdEventId,
 	]);
 
@@ -468,6 +471,7 @@ const BookingPage = () => {
 											formData={formData}
 											setFormData={setFormData}
 											WORKSHOPS={prices.workshops}
+											prices={prices}
 										/>
 									)}
 									{step === 5 && (

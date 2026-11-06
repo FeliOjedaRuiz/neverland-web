@@ -58,7 +58,7 @@ const BlockDateModal = ({
 						detalles: {
 							niños: { cantidad: 12, menuId: 1 },
 							extras: {
-								taller: 'ninguno',
+								talleres: [],
 								personajes: [],
 								pinata: false,
 							},
