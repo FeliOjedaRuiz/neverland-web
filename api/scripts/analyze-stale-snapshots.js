@@ -10,6 +10,7 @@ const mongoose = require('mongoose');
 const Event = require('../models/event.model');
 const Config = require('../models/config.model');
 const { safeParseDate } = require('../utils/date');
+const { obtenerTalleres, obtenerPrecioTaller, esGrupoGrande } = require('../utils/pricing');
 
 const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) {
@@ -41,23 +42,34 @@ function detectStaleSnapshot(event, config) {
     }
   }
 
-  // --- Taller: precioTallerApplied vs config ---
-  if (detalles?.extras?.taller && detalles.extras.taller !== 'ninguno' && detalles.extras.precioTallerApplied != null) {
-    const ws = (safeConfig.workshops || []).find(
-      (w) => (w.name || '').toLowerCase() === detalles.extras.taller.toLowerCase()
-    );
-    if (ws) {
-      const isLarge = (detalles.niños?.cantidad || 0) > 15;
-      const expected = isLarge ? (ws.pricePlus || 0) : (ws.priceBase || 0);
-      if (detalles.extras.precioTallerApplied !== expected) {
-        issues.push({
-          field: 'detalles.extras.precioTallerApplied',
-          current: detalles.extras.precioTallerApplied,
-          expected,
-          taller: detalles.extras.taller,
-          grupo: isLarge ? 'plus (>15)' : 'base (≤15)',
-        });
+  // --- Taller: precioTallerApplied vs suma de talleres ---
+  const talleres = obtenerTalleres(detalles?.extras);
+  if (detalles?.extras?.precioTallerApplied != null) {
+    let expected = 0;
+    const cant = detalles.niños?.cantidad || 0;
+    if (talleres.length > 0) {
+      for (const nombre of talleres) {
+        const ws = (safeConfig.workshops || []).find(
+          (w) => (w.name || '').toLowerCase() === nombre.toLowerCase()
+        );
+        if (ws) {
+          expected += obtenerPrecioTaller(ws, cant);
+        } else {
+          // Fallback config-driven a la par del backend; si no hay config, 25/30 € histórico
+          expected += esGrupoGrande(cant)
+            ? (safeConfig.preciosExtras?.tallerPlus || 30)
+            : (safeConfig.preciosExtras?.tallerBase || 25);
+        }
       }
+    }
+    if (detalles.extras.precioTallerApplied !== expected) {
+      issues.push({
+        field: 'detalles.extras.precioTallerApplied',
+        current: detalles.extras.precioTallerApplied,
+        expected,
+        talleres,
+        grupo: esGrupoGrande(cant) ? 'plus (>15)' : 'base (≤15)',
+      });
     }
   }
 
@@ -176,7 +188,7 @@ async function main() {
       console.log(`⚠️  ${event.publicId} | ${fecha} | ${event.turno} | ${event.cliente?.nombreNiño || '?'} | Estado: ${event.estado}`);
       console.log(`   precioTotal actual: ${event.precioTotal?.toFixed(2) || '?'}€`);
       for (const issue of issues) {
-        console.log(`   ❌ ${issue.field}: guardado=${issue.current}, esperado=${issue.expected}${issue.menu ? ` (${issue.menu})` : ''}${issue.taller ? ` (${issue.taller}, ${issue.grupo})` : ''}`);
+        console.log(`   ❌ ${issue.field}: guardado=${issue.current}, esperado=${issue.expected}${issue.menu ? ` (${issue.menu})` : ''}${issue.talleres ? ` (${issue.talleres.join(', ')}, ${issue.grupo})` : ''}`);
       }
     }
   }

@@ -74,8 +74,44 @@ const obtenerPrecioTaller = (workshop, ninos) => {
     : priceBase;
 };
 
+/**
+ * Normaliza un nombre de actividad para compararlos de forma segura.
+ *
+ * Aplica `trim()` y `toLowerCase()`, de modo que un nombre con espacios
+ * finales (dato legacy del catálogo, p. ej. `"Taller de chapas "`) o en
+ * mayúsculas se considera IGUAL que su versión limpia.
+ *
+ * @param {*} nombre - Valor a normalizar; se acepta cualquier tipo
+ *   (`null`/`undefined` se tratan como cadena vacía).
+ * @returns {string} Nombre normalizado (trim + minúsculas).
+ */
+const normalizarNombreActividad = (nombre) => String(nombre ?? '').trim().toLowerCase();
+
+/**
+ * Busca una actividad en el catálogo comparando nombres normalizados.
+ *
+ * Insensible a espacios exteriores y a mayúsculas/minúsculas en AMBOS lados
+ * (el nombre recibido y el `name` del catálogo). Esto evita falsos negativos
+ * tras la migración de datos, que trimmea el valor guardado en el evento
+ * mientras el catálogo conserva el espacio final (defecto D-01).
+ *
+ * @param {Array} workshops - Catálogo de actividades (`Config.workshops`).
+ * @param {string} nombre - Nombre de la actividad a resolver.
+ * @returns {Object|null} El workshop encontrado o `null` si no existe.
+ */
+const resolverWorkshop = (workshops, nombre) => {
+  if (!Array.isArray(workshops) || typeof nombre !== 'string') return null;
+  const nombreBuscado = normalizarNombreActividad(nombre);
+  if (!nombreBuscado) return null;
+  return workshops.find(
+    (w) => w && typeof w.name === 'string' && normalizarNombreActividad(w.name) === nombreBuscado
+  ) || null;
+};
+
 module.exports = {
   obtenerTalleres,
   esGrupoGrande,
-  obtenerPrecioTaller
+  obtenerPrecioTaller,
+  normalizarNombreActividad,
+  resolverWorkshop
 };
