@@ -64,6 +64,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 	const [activeModal, setActiveModal] = useState(null); // 'client', 'datetime', 'menus', 'extras'
 	const [config, setConfig] = useState(contextConfig);
 	const [loading, setLoading] = useState(!propReservation);
+	const [noEncontrada, setNoEncontrada] = useState(false);
 	const [showConfirmSuccessModal, setShowConfirmSuccessModal] = useState(false);
 
 	const isAdmin = React.useMemo(
@@ -171,6 +172,10 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 					}
 				}
 			} catch (err) {
+				// 404 = la reserva no existe (enlace caducado o reserva eliminada).
+				// Se distingue de un fallo de red para poder mostrar un mensaje útil
+				// en lugar de una página en blanco.
+				if (err.response?.status === 404) setNoEncontrada(true);
 				console.error('Error fetching data:', err);
 			} finally {
 				if (isMounted) setLoading(false);
@@ -194,7 +199,43 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 		);
 	}
 
-	if (!reservation) return null;
+	if (!reservation) {
+		// Sin reserva y sin 404 (p. ej. fallo de red) se mantiene el comportamiento previo.
+		if (!noEncontrada) return null;
+
+		return (
+			<div className="min-h-[60dvh] flex items-center justify-center px-6 py-16">
+				<div className="max-w-xl w-full flex flex-col items-center text-center bg-white rounded-[32px] border border-gray-100 shadow-sm p-8 sm:p-12">
+					<div className="w-16 h-16 rounded-2xl bg-energy-orange/10 flex items-center justify-center mb-6">
+						<AlertTriangle className="w-8 h-8 text-energy-orange" strokeWidth={1.8} />
+					</div>
+					<h2 className="font-display font-black text-3xl text-text-black mb-3">
+						No encontramos tu reserva
+					</h2>
+					<p className="text-text-muted text-base leading-relaxed font-medium mb-8">
+						Puede que el enlace que abriste no sea el correcto o que la reserva ya no esté
+						disponible. Si crees que hay un error, escríbenos y lo revisamos personalmente.
+					</p>
+					<div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+						<button
+							onClick={() => navigate('/')}
+							className="px-6 py-3 rounded-2xl font-bold font-display flex items-center justify-center gap-2 bg-neverland-green text-white shadow-lg shadow-neverland-green/20 hover:scale-105 active:scale-95 transition-all"
+						>
+							<Sparkles className="w-4 h-4" />
+							Ir al Inicio
+						</button>
+						<button
+							onClick={() => navigate(-1)}
+							className="px-6 py-3 rounded-2xl font-bold font-display flex items-center justify-center gap-2 bg-white text-text-black border-2 border-gray-100 hover:border-neverland-green/30 hover:bg-neverland-green/5 transition-all"
+						>
+							<ChevronLeft className="w-4 h-4" />
+							Volver Atrás
+						</button>
+					</div>
+				</div>
+			</div>
+		);
+	}
 
 	const handleStatusChange = async (newStatus) => {
 		if (newStatus === reservation.estado) {
