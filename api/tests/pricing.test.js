@@ -1,4 +1,10 @@
-const { obtenerTalleres, obtenerPrecioTaller, esGrupoGrande } = require('../utils/pricing');
+const {
+  obtenerTalleres,
+  obtenerPrecioTaller,
+  esGrupoGrande,
+  normalizarNombreActividad,
+  resolverWorkshop
+} = require('../utils/pricing');
 
 describe('helpers de precio', () => {
   describe('obtenerTalleres', () => {
@@ -129,6 +135,80 @@ describe('helpers de precio', () => {
       const workshop = { priceBase: 20, pricePlus: 30 };
       expect(obtenerPrecioTaller(workshop, undefined)).toBe(20);
       expect(obtenerPrecioTaller(workshop, 'muchos')).toBe(20);
+    });
+  });
+
+  describe('normalizarNombreActividad', () => {
+    it('debería recortar espacios exteriores y pasar a minúsculas', () => {
+      expect(normalizarNombreActividad('Taller de chapas ')).toBe('taller de chapas');
+      expect(normalizarNombreActividad('  Fiesta aquatica básica  ')).toBe('fiesta aquatica básica');
+    });
+
+    it('debería ser insensible a mayúsculas', () => {
+      expect(normalizarNombreActividad('TALLER GAMER')).toBe('taller gamer');
+      expect(normalizarNombreActividad('Taller Gamer')).toBe('taller gamer');
+    });
+
+    it('debería devolver cadena vacía para entradas nulas o undefined', () => {
+      expect(normalizarNombreActividad(undefined)).toBe('');
+      expect(normalizarNombreActividad(null)).toBe('');
+    });
+
+    it('debería coercer el resto de tipos a string (comportamiento de String())', () => {
+      expect(normalizarNombreActividad(42)).toBe('42');
+      expect(normalizarNombreActividad({ name: 'Slime' })).toBe('[object object]');
+    });
+
+    it('debería devolver cadena vacía para cadenas vacías o solo espacios', () => {
+      expect(normalizarNombreActividad('')).toBe('');
+      expect(normalizarNombreActividad('   ')).toBe('');
+    });
+  });
+
+  describe('resolverWorkshop', () => {
+    const workshops = [
+      { name: 'Taller de chapas ', priceBase: 20, pricePlus: 30 },
+      { name: 'Fiesta aquatica básica', priceBase: 30, pricePlus: 35 },
+      { name: 'Slime', priceBase: 20, pricePlus: 30 }
+    ];
+
+    it('debería resolver un nombre del catálogo que tiene espacio final', () => {
+      const resultado = resolverWorkshop(workshops, 'Taller de chapas');
+      expect(resultado).not.toBeNull();
+      expect(resultado.name).toBe('Taller de chapas ');
+      expect(resultado.priceBase).toBe(20);
+    });
+
+    it('debería resolver ignorando mayúsculas y espacios en ambos lados', () => {
+      expect(resolverWorkshop(workshops, '  FIESTA AQUATICA BÁSICA ')).not.toBeNull();
+      expect(resolverWorkshop(workshops, 'sLiMe')?.priceBase).toBe(20);
+    });
+
+    it('debería devolver null cuando el nombre no está en el catálogo', () => {
+      expect(resolverWorkshop(workshops, 'ActividadFantasma')).toBeNull();
+    });
+
+    it('debería devolver null para cadenas vacías o de solo espacios', () => {
+      expect(resolverWorkshop(workshops, '')).toBeNull();
+      expect(resolverWorkshop(workshops, '   ')).toBeNull();
+    });
+
+    it('debería devolver null cuando el nombre no es string', () => {
+      expect(resolverWorkshop(workshops, 42)).toBeNull();
+      expect(resolverWorkshop(workshops, null)).toBeNull();
+      expect(resolverWorkshop(workshops, undefined)).toBeNull();
+    });
+
+    it('debería devolver null cuando el catálogo no es un array', () => {
+      expect(resolverWorkshop(undefined, 'Slime')).toBeNull();
+      expect(resolverWorkshop(null, 'Slime')).toBeNull();
+      expect(resolverWorkshop('Slime', 'Slime')).toBeNull();
+    });
+
+    it('debería ignorar entradas del catálogo sin name string', () => {
+      const sucio = [null, { priceBase: 10 }, { name: 7 }, { name: 'Slime', priceBase: 5 }];
+      expect(resolverWorkshop(sucio, 'Slime')?.priceBase).toBe(5);
+      expect(resolverWorkshop(sucio, 'Desconocida')).toBeNull();
     });
   });
 });

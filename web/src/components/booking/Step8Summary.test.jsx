@@ -37,7 +37,7 @@ describe('Step8Summary Component', () => {
 		niños: { cantidad: 12, menuId: 'm1' },
 		adultos: { cantidad: 2, comida: [] },
 		extras: {
-			taller: 'ninguno',
+			talleres: [],
 			personajes: [],
 			pinata: false,
 			observaciones: '',
@@ -67,15 +67,15 @@ describe('Step8Summary Component', () => {
 	it('debería renderizar sin errores con extras activos', () => {
 		const formDataWithExtras = {
 			...baseFormData,
-			extras: {
-				...baseFormData.extras,
-				taller: 'Cocina',
-				personajes: ['Pirata'],
-				pinata: true,
-				extension: 30,
-				observaciones: 'Nota de prueba',
-				alergenos: 'Gluten',
-			},
+				extras: {
+					...baseFormData.extras,
+					talleres: ['Cocina'],
+					personajes: ['Pirata'],
+					pinata: true,
+					extension: 30,
+					observaciones: 'Nota de prueba',
+					alergenos: 'Gluten',
+				},
 		};
 
 		render(<Step8Summary {...defaultProps} formData={formDataWithExtras} />);
@@ -211,5 +211,25 @@ describe('Step8Summary Component', () => {
 		const { container } = render(<Step8Summary {...defaultProps} formData={formDataUnknownCatalog} />);
 
 		expect(container.textContent).toContain('item-eliminado');
+	});
+
+	it('no debería duplicar el importe de actividades en el subtotal de extras', () => {
+		const formDataWithTallerAndCatalog = {
+			...baseFormData,
+			extras: {
+				...baseFormData.extras,
+				talleres: ['Cocina'],
+				catalogoItemIds: ['snack-bar'],
+			},
+		};
+
+		const { container } = render(<Step8Summary {...defaultProps} formData={formDataWithTallerAndCatalog} />);
+
+		// El bloque de actividades muestra el precio de Cocina
+		expect(container.textContent).toContain('20€');
+		// El subtotal de extras solo debe incluir el catálogo (25€), no la actividad
+		expect(container.textContent).toContain('Subtotal extras');
+		expect(container.textContent).toContain('25.00€');
+		expect(container.textContent).not.toContain('45.00€');
 	});
 });

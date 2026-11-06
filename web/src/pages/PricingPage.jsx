@@ -354,12 +354,12 @@ const PricingPage = () => {
 							whileInView="visible"
 							viewport={{ once: true, margin: '-60px' }}
 						>
-							<SectionHeader
-								emoji="✨"
-								title="Actividades"
-								subtitle="Un taller para toda la fiesta"
-								accentColor="bg-blue-100"
-							/>
+						<SectionHeader
+							emoji="✨"
+							title="Actividades"
+							subtitle="Hasta 3 actividades combinables"
+							accentColor="bg-blue-100"
+						/>
 							<HeroCard
 								title="Taller / Actividad"
 								subtitle="Dinámica especial para tus invitados"
