@@ -56,8 +56,14 @@ const eventSchema = new mongoose.Schema({
     },
     extras: {
       // Campo legacy `taller`: deprecated, solo lectura, sin default.
-      // Se conserva en el schema hasta TASK-08 para evitar que Mongoose lo
-      // omita al guardar reservas legacy durante la ventana deploy↔migración.
+      // La escritura YA NUNCA llega a este campo: `create`/`update` normalizan
+      // el payload de entrada con `normalizarActividadesLegacy`
+      // (utils/pricing), de modo que siempre se persiste `talleres` (Array) y
+      // `taller` se elimina (sin dual-write).
+      // Se conserva en el schema mientras dure la ventana de ROLLBACK DE DATOS:
+      // si se restaura un backup anterior a la migración, Mongoose debe poder
+      // hidratar `taller` para que `obtenerTalleres` haga su fallback de
+      // lectura. Retirarlo antes de cerrar esa ventana rompería esos documentos.
       taller: { type: String },
       talleres: {
         type: [String],

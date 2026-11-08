@@ -5,7 +5,14 @@
 
 /**
  * Devuelve el array de actividades seleccionadas, con fallback al campo legacy
- * `taller` durante la ventana deploy ↔ migración.
+ * `taller`.
+ *
+ * La escritura ya NUNCA genera `taller`: el controlador normaliza el payload
+ * en la entrada con `normalizarActividadesLegacy` antes de validar, calcular
+ * el precio y persistir. Este fallback se conserva SOLO como red de seguridad
+ * de LECTURA mientras dure la ventana de rollback de datos: si se restaura un
+ * backup antiguo, el documento vuelve a llegar con `taller` (String) y sin la
+ * clave `talleres`, y sin este fallback la actividad se perdería.
  *
  * Garantías:
  * - Si `extras.talleres` es un array, se devuelve una COPIA defensiva (nunca la
@@ -39,6 +46,54 @@ const obtenerTalleres = (extras) => {
   }
 
   return [];
+};
+
+/**
+ * Normaliza en sitio un objeto `detalles.extras` recibido de un cliente LEGACY.
+ *
+ * El bundle antiguo de la PWA (cached por `vite-plugin-pwa` con
+ * `registerType: 'prompt'`) sigue enviando `extras.taller` como String en vez
+ * del canónico `extras.talleres` (Array). Sin normalizar, ese payload:
+ * - persistiría de nuevo el campo legacy en documentos nuevos, y
+ * - NO dispararía el guard de invalidación del snapshot de actividades del
+ *   PATCH (`'talleres' in extras`), dejando `precioTallerApplied` stale.
+ *
+ * Semántica:
+ * - Si `extras` no es un objeto → se devuelve tal cual (sin tocar nada).
+ * - Si `extras.taller` es un string → `limpio = taller.trim()`. Cuando
+ *   `extras.talleres` NO es un array:
+ *     · `limpio` con contenido y distinto de 'ninguno' → `talleres = [limpio]`;
+ *     · `limpio` vacío o 'ninguno' (sentinel legacy de "sin actividad") →
+ *       `talleres = []`, una selección vacía EXPLÍCITA. Así el guard por
+ *       PRESENCIA de `'talleres'` también se dispara en un PATCH que vacía la
+ *       selección (mismo caso que el array vacío del cliente moderno).
+ * - Si `extras.talleres` ya es un array → se respeta tal cual: gana `talleres`
+ *   y `taller` se descarta (NO hay dual-write).
+ * - Siempre se elimina `extras.taller`, sea o no string.
+ *
+ * MUTA el objeto recibido y lo devuelve (contrato esperado por create/update).
+ *
+ * @param {*} extras - Objeto `detalles.extras` del payload; cualquier otra
+ *   entrada (undefined/null/string/number) se devuelve tal cual.
+ * @returns {*} El mismo `extras` normalizado (o la entrada original si no era
+ *   un objeto).
+ */
+const normalizarActividadesLegacy = (extras) => {
+  if (!extras || typeof extras !== 'object') return extras;
+
+  if (typeof extras.taller === 'string') {
+    const limpio = extras.taller.trim();
+    if (!Array.isArray(extras.talleres)) {
+      extras.talleres = (limpio !== '' && limpio.toLowerCase() !== 'ninguno')
+        ? [limpio]
+        : [];
+    }
+  }
+
+  // Sin dual-write: la clave legacy nunca sobrevive a la escritura.
+  delete extras.taller;
+
+  return extras;
 };
 
 /**
@@ -110,6 +165,7 @@ const resolverWorkshop = (workshops, nombre) => {
 
 module.exports = {
   obtenerTalleres,
+  normalizarActividadesLegacy,
   esGrupoGrande,
   obtenerPrecioTaller,
   normalizarNombreActividad,

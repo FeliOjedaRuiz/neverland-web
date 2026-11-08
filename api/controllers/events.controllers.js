@@ -6,7 +6,7 @@ const googleService = require('../services/google.service');
 const mailer = require('../config/mailer.config');
 const pushService = require('../services/push.service');
 const { safeParseDate, getSafeNow, createSafeDate } = require('../utils/date');
-const { obtenerTalleres, obtenerPrecioTaller, esGrupoGrande, normalizarNombreActividad, resolverWorkshop } = require('../utils/pricing');
+const { obtenerTalleres, obtenerPrecioTaller, esGrupoGrande, normalizarNombreActividad, resolverWorkshop, normalizarActividadesLegacy } = require('../utils/pricing');
 
 const Config = require('../models/config.model');
 
@@ -305,6 +305,15 @@ module.exports.create = async (req, res, next) => {
     // --- VALIDATION LAYER ---
     if (!fecha || !turno) throw createError(400, 'Fecha y turno requeridos');
 
+    // --- NORMALIZACIÓN DEL PAYLOAD LEGACY (escritura) ---
+    // Un cliente con el bundle antiguo de la PWA en caché envía
+    // `detalles.extras.taller` (String) en vez de `talleres` (Array). Se
+    // traduce ANTES de `validateEventData` y de `calculateEventPrice`, de modo
+    // que la validación de catálogo, el pricing y la persistencia ya trabajen
+    // con `talleres` y sin `taller` (sin dual-write). No-op si faltan
+    // `detalles` o `detalles.extras`.
+    normalizarActividadesLegacy(req.body.detalles?.extras);
+
     if (tipo === 'reserva') {
       if (!cliente?.nombreNiño || !cliente?.nombrePadre || !cliente?.telefono || !cliente?.email) {
         throw createError(400, 'Datos del cliente incompletos (Nombre, Móvil, Email son obligatorios)');
@@ -588,6 +597,14 @@ module.exports.update = async (req, res, next) => {
     if (req.body.detalles) {
       const oldDetalles = event.detalles.toObject();
       const newDetalles = req.body.detalles;
+
+      // --- NORMALIZACIÓN DEL PAYLOAD LEGACY, ANTES de los guards ---
+      // Imprescindible aquí: un cliente antiguo envía `extras.taller` (String)
+      // y el guard de invalidación comprueba `'talleres' in extras`. Sin
+      // traducirlo antes, el guard NO se dispara, el snapshot de actividades
+      // no se invalida y `precioTallerApplied` se queda stale. No-op si falta
+      // `detalles.extras`.
+      normalizarActividadesLegacy(newDetalles.extras);
 
       // Invalidate snapshots if crucial selections changed
       let shouldInvalidateCatalogSnapshot = false;

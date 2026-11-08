@@ -47,7 +47,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
       niños: { cantidad: 15, menuId: 'menu-1' },
       adultos: { cantidad: 5, comida: [] },
       extras: {
-        taller: 'Magia',
+        talleres: ['Magia'],
         personajes: [],
         pinata: true,
         observaciones: 'Mesa cerca de la puerta',
@@ -188,7 +188,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
         fecha: futureTuesday, // Martes
         detalles: {
           ...budgetFlowPayload.detalles,
-          extras: { ...budgetFlowPayload.detalles.extras, taller: 'ninguno', pinata: false }
+          extras: { ...budgetFlowPayload.detalles.extras, talleres: [], pinata: false }
         },
         horario: {
           inicio: '17:30',
@@ -222,7 +222,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
         fecha: martesDate,
         detalles: {
           ...budgetFlowPayload.detalles,
-          extras: { ...budgetFlowPayload.detalles.extras, personajes: [], taller: 'ninguno', pinata: false }
+          extras: { ...budgetFlowPayload.detalles.extras, personajes: [], talleres: [], pinata: false }
         }
       };
 
@@ -245,7 +245,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
         fecha: martesDate,
         detalles: {
           ...budgetFlowPayload.detalles,
-          extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa'], taller: 'ninguno', pinata: false }
+          extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa'], talleres: [], pinata: false }
         }
       };
 
@@ -267,7 +267,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
         fecha: martesDate,
         detalles: {
           ...budgetFlowPayload.detalles,
-          extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa', 'Anna'], taller: 'ninguno', pinata: false }
+          extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa', 'Anna'], talleres: [], pinata: false }
         }
       };
 
@@ -288,7 +288,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
         fecha: martesDate,
         detalles: {
           ...budgetFlowPayload.detalles,
-          extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa', 'Anna', 'Olaf'], taller: 'ninguno', pinata: false }
+          extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa', 'Anna', 'Olaf'], talleres: [], pinata: false }
         }
       };
 
@@ -309,7 +309,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
         fecha: martesDate,
         detalles: {
           ...budgetFlowPayload.detalles,
-          extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa', 'Anna', 'Olaf', 'Frozen'], taller: 'ninguno', pinata: false }
+          extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa', 'Anna', 'Olaf', 'Frozen'], talleres: [], pinata: false }
         }
       };
 
@@ -337,7 +337,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
         fecha: martesDate,
         detalles: {
           ...budgetFlowPayload.detalles,
-          extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa', 'Anna', 'Olaf'], taller: 'ninguno', pinata: false }
+          extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa', 'Anna', 'Olaf'], talleres: [], pinata: false }
         }
       };
 
@@ -362,7 +362,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
           ...budgetFlowPayload,
           detalles: {
             ...budgetFlowPayload.detalles,
-            extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa'], taller: 'ninguno', pinata: false }
+            extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa'], talleres: [], pinata: false }
           }
         });
 
@@ -379,7 +379,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
           detalles: {
             extras: {
               personajes: ['Elsa', 'Anna'],
-              taller: 'ninguno',
+              talleres: [],
               pinata: false,
               observaciones: '',
               alergenos: ''
@@ -401,7 +401,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
           ...budgetFlowPayload,
           detalles: {
             ...budgetFlowPayload.detalles,
-            extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Anna', 'Elsa'], taller: 'ninguno', pinata: false }
+            extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Anna', 'Elsa'], talleres: [], pinata: false }
           }
         });
 
@@ -416,7 +416,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
           detalles: {
             extras: {
               personajes: ['Elsa', 'Anna'],
-              taller: 'ninguno',
+              talleres: [],
               pinata: false,
               observaciones: '',
               alergenos: ''
@@ -437,7 +437,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
           ...budgetFlowPayload,
           detalles: {
             ...budgetFlowPayload.detalles,
-            extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa'], taller: 'ninguno', pinata: false }
+            extras: { ...budgetFlowPayload.detalles.extras, personajes: ['Elsa'], talleres: [], pinata: false }
           }
         });
 
@@ -452,7 +452,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
           detalles: {
             extras: {
               personajes: [],
-              taller: 'ninguno',
+              talleres: [],
               pinata: false,
               observaciones: '',
               alergenos: ''
@@ -478,7 +478,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
         .send(budgetFlowPayload);
 
       expect(createRes.statusCode).toBe(201);
-      expect(createRes.body.detalles.extras.taller).toBe('Magia');
+      expect(createRes.body.detalles.extras.talleres).toEqual(['Magia']);
       expect(createRes.body.detalles.extras.precioTallerApplied).toBe(25);
       const precioConMagia = createRes.body.precioTotal;
       const eventId = createRes.body.id;
@@ -517,7 +517,7 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
         .send(budgetFlowPayload);
 
       expect(createRes.statusCode).toBe(201);
-      expect(createRes.body.detalles.extras.taller).toBe('Magia');
+      expect(createRes.body.detalles.extras.talleres).toEqual(['Magia']);
       const precioConMagia = createRes.body.precioTotal;
       const eventId = createRes.body.id;
 
