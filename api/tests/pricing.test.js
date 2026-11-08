@@ -3,7 +3,8 @@ const {
   obtenerPrecioTaller,
   esGrupoGrande,
   normalizarNombreActividad,
-  resolverWorkshop
+  resolverWorkshop,
+  normalizarActividadesLegacy
 } = require('../utils/pricing');
 
 describe('helpers de precio', () => {
@@ -82,6 +83,56 @@ describe('helpers de precio', () => {
     it('debería devolver un array vacío cuando el taller legacy es un string vacío', () => {
       const extras = { taller: '' };
       expect(obtenerTalleres(extras)).toEqual([]);
+    });
+  });
+
+  describe('normalizarActividadesLegacy', () => {
+    it('debería convertir un string legacy válido en el array talleres (con trim)', () => {
+      expect(normalizarActividadesLegacy({ taller: 'Cocina' })).toEqual({ talleres: ['Cocina'] });
+      expect(normalizarActividadesLegacy({ taller: '  Cocina  ' })).toEqual({ talleres: ['Cocina'] });
+    });
+
+    it("debería convertir el sentinel legacy 'ninguno' en un array vacío", () => {
+      expect(normalizarActividadesLegacy({ taller: 'ninguno' })).toEqual({ talleres: [] });
+      expect(normalizarActividadesLegacy({ taller: ' NINGUNO ' })).toEqual({ talleres: [] });
+    });
+
+    it('debería convertir un string vacío o de solo espacios en un array vacío', () => {
+      expect(normalizarActividadesLegacy({ taller: '' })).toEqual({ talleres: [] });
+      expect(normalizarActividadesLegacy({ taller: '   ' })).toEqual({ talleres: [] });
+    });
+
+    it('debería conservar un talleres ya presente y eliminar taller (sin dual-write)', () => {
+      expect(normalizarActividadesLegacy({ talleres: ['Slime'], taller: 'Cocina' })).toEqual({ talleres: ['Slime'] });
+      expect(normalizarActividadesLegacy({ talleres: [], taller: 'Cocina' })).toEqual({ talleres: [] });
+      expect(normalizarActividadesLegacy({ talleres: 'Slime', taller: 'Cocina' })).toEqual({ talleres: ['Cocina'] });
+    });
+
+    it('debería ser no-op cuando no hay taller', () => {
+      expect(normalizarActividadesLegacy({ talleres: ['Slime'] })).toEqual({ talleres: ['Slime'] });
+      const vacio = {};
+      expect(normalizarActividadesLegacy(vacio)).toEqual({});
+      expect(vacio).toEqual({});
+    });
+
+    it('debería devolver tal cual cualquier entrada que no sea un objeto', () => {
+      expect(normalizarActividadesLegacy(undefined)).toBeUndefined();
+      expect(normalizarActividadesLegacy(null)).toBeNull();
+      expect(normalizarActividadesLegacy('taller')).toBe('taller');
+      expect(normalizarActividadesLegacy(42)).toBe(42);
+    });
+
+    it('debería mutar el objeto en sitio y devolver la misma referencia (contrato del flujo)', () => {
+      const extras = { taller: 'Magia' };
+      const resultado = normalizarActividadesLegacy(extras);
+      expect(resultado).toBe(extras);
+      expect(extras.talleres).toEqual(['Magia']);
+      expect('taller' in extras).toBe(false);
+    });
+
+    it('debería descartar un taller legacy que no sea string y limpiar la clave', () => {
+      expect(normalizarActividadesLegacy({ taller: 42 })).toEqual({});
+      expect(normalizarActividadesLegacy({ taller: { nombre: 'Cocina' } })).toEqual({});
     });
   });
 

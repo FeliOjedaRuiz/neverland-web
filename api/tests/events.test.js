@@ -507,6 +507,66 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
       }
     });
 
+    describe('Normalización del payload legacy en la escritura', () => {
+      it('POST legacy: convierte `extras.taller` (string) en `extras.talleres` y no persiste el campo legacy', async () => {
+        const res = await request(app)
+          .post('/api/v1/events')
+          .send(buildEvent({ taller: 'Magia' }));
+
+        expect(res.statusCode).toBe(201);
+        expect(res.body.detalles.extras.talleres).toEqual(['Magia']);
+        expect(res.body.detalles.extras.taller).toBeUndefined();
+        // priceBase de Magia en el catálogo (25 €), 12 niños → grupo normal
+        expect(res.body.detalles.extras.precioTallerApplied).toBe(25);
+      });
+
+      it('POST legacy: si vienen `taller` y `talleres`, gana `talleres` y `taller` no se guarda', async () => {
+        const res = await request(app)
+          .post('/api/v1/events')
+          .send(buildEvent({ talleres: ['Slime'], taller: 'Magia' }));
+
+        expect(res.statusCode).toBe(201);
+        expect(res.body.detalles.extras.talleres).toEqual(['Slime']);
+        expect(res.body.detalles.extras.taller).toBeUndefined();
+        // El precio se calcula con Slime (20 €), no con Magia (25 €)
+        expect(res.body.detalles.extras.precioTallerApplied).toBe(20);
+      });
+
+      it('PATCH legacy: un payload con `taller` dispara la invalidación del snapshot y recalcula el precio', async () => {
+        const fixedDate = getFutureDate(2, 60);
+        const { insertedId } = await Event.collection.insertOne({
+          tipo: 'reserva',
+          fecha: fixedDate,
+          turno: 'T1',
+          estado: 'pendiente',
+          cliente: {
+            nombreNiño: 'Leo',
+            nombrePadre: 'Ana',
+            email: 'ana@example.com',
+            telefono: '123456789',
+            privacyPolicyConsent: true
+          },
+          detalles: {
+            niños: { cantidad: 12, menuId: 'menu-1' },
+            // Snapshot stale a propósito: 99 € no corresponde a ningún precio real
+            extras: { talleres: ['Magia'], precioTallerApplied: 99 }
+          }
+        });
+
+        const res = await request(app)
+          .patch(`/api/v1/events/${insertedId}`)
+          .send({ detalles: { extras: { taller: 'Slime' } } });
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.detalles.extras.talleres).toEqual(['Slime']);
+        expect(res.body.detalles.extras.taller).toBeUndefined();
+        // Sin normalización el guard `'talleres' in extras` no dispara y el
+        // snapshot stale (99) sobreviviría al PATCH.
+        expect(res.body.detalles.extras.precioTallerApplied).toBe(20);
+        expect(res.body.detalles.extras.precioTallerApplied).not.toBe(99);
+      });
+    });
+
     it('Debería aceptar exactamente 3 actividades válidas', async () => {
       const res = await request(app)
         .post('/api/v1/events')
