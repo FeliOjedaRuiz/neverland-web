@@ -116,7 +116,7 @@ TDD (`openspec/config.yaml` `apply: tdd: true`): cada task de código lleva sus 
 - **Dependencias**: TASK-05 (wizards), TASK-06 (admin/colaterales).
 - **Verificación**: `cd api && npm test && cd ../web && npm run test:run && cd web && npm run build` en verde; matriz de smoke manual: ambos wizards con 0/1/2/3 actividades, admin edición preservando snapshots, `/mi-reserva/:id`, mailer y Calendar con N actividades, Safari/iOS.
 - **Requisitos**: `multi-activity-selection/REQ-07` (componente compartido) · `multi-activity-selection/REQ-08` (gate de colaterales) · `activity-sum-pricing/REQ-02` (consistencia cross-layer).
-- **Escenarios**: gate sobre "Frontend y backend consistentes a 15 niños" y edge "Componente compartido por BookingPage y BudgetPage"; no añade escenarios nuevos de spec (cuenta global intacta en 77).
+- **Escenarios**: gate sobre "Frontend y backend consistentes a 15 niños" y edge "Componente compartido por BookingPage y BudgetPage"; no añade escenarios nuevos de spec (cuenta global en 78).
 
 ---
 
@@ -142,8 +142,8 @@ TDD (`openspec/config.yaml` `apply: tdd: true`): cada task de código lleva sus 
 | `multi-activity-selection` | 8 (REQ-01…REQ-08) | 19 | TASK-05 (14) · TASK-06 (5: REQ-06 ×2, REQ-07 ×1, REQ-08 ×2) |
 | `activity-sum-pricing` | 7 (REQ-01…REQ-07) | 19 | TASK-03 (18) · TASK-01 (4 compartidos) · TASK-05 (5 compartidos) · TASK-07 gate ("Frontend y backend consistentes a 15 niños") |
 | `activity-validation` | 7 (REQ-01…REQ-07) | 15 | TASK-02 (11) · TASK-03 (2: REQ-05) · TASK-06 (2: REQ-06) |
-| `activity-data-migration` | 8 (REQ-01…REQ-08) | 24 | TASK-04 (17) · TASK-01 (5: REQ-07) · TASK-06 (2: REQ-08) · TASK-08 (ejecución real de REQ-01/04/05/06) |
-| **Total** | **30** | **77** (19+19+15+24) | Todo escenario cubierto por ≥1 task; los compartidos se listan en cada task |
+| `activity-data-migration` | 8 (REQ-01…REQ-08) | 25 | TASK-04 (17) · TASK-01 (6: REQ-07) · TASK-06 (2: REQ-08) · TASK-08 (ejecución real de REQ-01/04/05/06) |
+| **Total** | **30** | **78** (19+19+15+25) | Todo escenario cubierto por ≥1 task; los compartidos se listan en cada task |
 
 **Componentes del diseño (25/25)**: `api/models/event.model.js` → TASK-02 · `api/utils/pricing.js` → TASK-01 · `api/controllers/events.controllers.js` → TASK-02 + TASK-03 · `api/scripts/migrate-taller-to-array.js` → TASK-04 · `api/scripts/backup-before-migrate.js` → TASK-04 + TASK-08 (REUSE sin cambios) · `api/scripts/analyze-stale-snapshots.js`, `fix-stale-snapshots.js`, `backup-affected.js` → TASK-06 · `api/config/mailer.config.js` → TASK-06 · `api/services/google.service.js` → TASK-06 · `web/src/utils/bookingUtils.js` → TASK-05 · `web/src/components/booking/Step5Workshops.jsx` → TASK-05 · `web/src/pages/BookingPage.jsx`, `BudgetPage.jsx` → TASK-05 · `web/src/components/booking/Step8Summary.jsx`, `StepBudgetSummary.jsx` → TASK-05 · `web/src/components/admin/ReservationDetailView.jsx`, `ReservationDetailModal.jsx`, `DayDetailView.jsx`, `BlockDateModal.jsx` → TASK-06 · `web/src/pages/PricingPage.jsx` → TASK-06 · `api/tests/budget-flow.test.js` → TASK-03 · `api/tests/events.test.js` → TASK-02 · `web/src/utils/bookingUtils.test.js` → TASK-05 · `web/src/components/booking/Step5Workshops.test.jsx` → TASK-05. Nuevos ficheros adicionales: `api/tests/pricing.test.js` (TASK-01) y la suite transversal (TASK-07).
 

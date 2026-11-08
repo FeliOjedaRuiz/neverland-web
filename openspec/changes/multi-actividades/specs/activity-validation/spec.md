@@ -145,7 +145,7 @@ El check explícito de `talleres.length > 3` en `validateEventData` MUST existir
 |------|----------|
 | `talleres: undefined` en payload | El validador trata ausencia como "sin cambio de selección" — no valida catálogo |
 | `talleres: null` | Schema Mongoose rechaza (tipo array esperado) |
-| Nombre con espacios extra o case distinto | Comparación exacta por string — `'Slime'` ≠ `'slime'` ≠ `' Slime '` |
+| Nombre con espacios extra o case distinto | Comparación normalizada (trim + minúsculas) en ambos lados: `'Slime'` = `'slime'` = `' Slime '`. Se aplica a la deduplicación, a la detección de selección modificada y a la resolución contra el catálogo. Motivo: el catálogo de producción tiene nombres con espacio final y la migración recorta el valor legacy (fix D-01, PR #16) |
 | Catálogo vacío (`Config.workshops: []`) | Cualquier nombre es inválido → 400 si es selección nueva |
 | Duplicados entre `talleres` y `personajes` | Permitido — son arrays independientes; solo se deduplica dentro de cada array |
 | Payload con ambos `talleres` y `personajes` duplicados | Ambas validaciones aplican; primer error encontrado retorna 400 |

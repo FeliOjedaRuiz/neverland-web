@@ -858,7 +858,7 @@ La spec requiere “Quitar todas” con 2 o más selecciones. La interfaz ahora 
 - Commit de tests cross-layer/wizards/resúmenes: `ace1e14`.
 - Fix de etiqueta REQ-04: `a0e315b`.
 - Verificación final automatizada: API 144/144 tests; web 136/136 tests; build Vite exitoso.
-- Cobertura auditada: 30 requisitos, 77 escenarios, 25 componentes. Migración real y scripts de snapshots quedan como comprobaciones manuales de TASK-08.
+- Cobertura auditada: 30 requisitos, 78 escenarios, 25 componentes. (El recuento de las specs es 78: `activity-data-migration` tiene 25 escenarios, no 24; la auditoría de TASK-07 omitió el escenario "talleres vacío explícito gana al legacy", que sí está implementado y testeado en `pricing.test.js`.) Migración real y scripts de snapshots quedan como comprobaciones manuales de TASK-08.
 
 ### Próximo paso y límite operativo
 

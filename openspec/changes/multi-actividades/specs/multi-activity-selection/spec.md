@@ -89,7 +89,7 @@ Cuando ≥2 actividades estén seleccionadas, el botón "Sin actividad" MUST cam
 
 - GIVEN `talleres: ['Slime']` (solo 1 actividad)
 - WHEN el usuario observa el área de selección
-- THEN el botón muestra "Sin actividad" (no "Quitar todas"), y al pulsarlo limpia el array
+- THEN el botón muestra "Quitar actividad" (ni "Quitar todas" ni "Sin actividad"), y al pulsarlo limpia el array
 
 ### REQ-05: Chips de Actividades Seleccionadas
 
