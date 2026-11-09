@@ -33,15 +33,11 @@ router.patch(
 );
 router.get('/users', secure.isAdmin, users.list);
 
-// EVENTS (Reservations & Blocks)
-router.get('/events/availability', events.checkAvailability);
-router.post('/events', events.create); // Clients can create reservations
-router.get('/events', secure.isAdmin, events.list);
-router.get('/events/:id/public', events.publicDetail); // NEW: Public-safe detail
-router.get('/events/invitation/:invitationId', events.getInvitation); // NEW: Invitation safe detail
-router.get('/events/:id', secure.isAdmin, events.detail); // Sensitive full detail
-router.patch('/events/:id', (req, res, next) => {
-	// Attempt authentication but don't fail if token is missing or invalid
+// Middleware opcional de autenticación: si hay un JWT válido carga el usuario
+// en req.user, pero nunca devuelve 401/403 por ausencia o token inválido.
+// Se usa en endpoints públicos donde el rol condiciona la proyección de
+// escritura sin elevar el nivel de acceso.
+const optionalAuth = (req, res, next) => {
 	const token = req.headers.authorization?.split(" ")?.[1];
 	if (token) {
 		try {
@@ -50,13 +46,21 @@ router.patch('/events/:id', (req, res, next) => {
 				next();
 			});
 		} catch (err) {
-			// Invalid or expired token - proceed as anonymous
-			console.warn('Invalid token provided for PATCH /events, proceeding as anonymous');
+			// Token inválido o expirado: continuar como anónimo/cliente
+			console.warn('Invalid token provided, proceeding as anonymous');
 		}
 	}
-	// No token or invalid token? Proceed as anonymous/customer
 	next();
-}, events.update);
+};
+
+// EVENTS (Reservations & Blocks)
+router.get('/events/availability', events.checkAvailability);
+router.post('/events', optionalAuth, events.create); // Clients can create reservations
+router.get('/events', secure.isAdmin, events.list);
+router.get('/events/:id/public', events.publicDetail); // NEW: Public-safe detail
+router.get('/events/invitation/:invitationId', events.getInvitation); // NEW: Invitation safe detail
+router.get('/events/:id', secure.isAdmin, events.detail); // Sensitive full detail
+router.patch('/events/:id', optionalAuth, events.update);
 router.delete('/events/:id', secure.isAdmin, events.delete);
 
 const upload = require('../config/cloudinary.config');

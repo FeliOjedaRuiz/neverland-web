@@ -96,7 +96,7 @@ const eventSchema = new mongoose.Schema({
       precioCatalogoApplied: { type: Number }, // [NEW] Snapshot
       observaciones: { type: String, default: '', maxlength: 500 },
       alergenos: { type: String, default: '', maxlength: 500 },
-      costoExtra: { type: Number, default: 0, max: 999 }
+      costoExtra: { type: Number, default: 0, max: 999 } // Negativo permitido: descuento/ajuste legítimo de admin
     }
   },
 
@@ -105,7 +105,7 @@ const eventSchema = new mongoose.Schema({
     inicio: String, // Ej: "16:30"
     fin: String,    // Ej: "19:00"
     extensionMinutos: { type: Number, enum: [0, 30, 60], default: 0 },
-    costoExtension: { type: Number, default: 0 } // This already acted as a snapshot, keeping it.
+    costoExtension: { type: Number, default: 0, min: 0 } // This already acted as a snapshot, keeping it.
   },
 
   // Finanzas y Sincronización
