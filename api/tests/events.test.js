@@ -701,7 +701,8 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
         .send({ notasAdmin: 'Nota de prueba legacy' });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.notasAdmin).toBe('Nota de prueba legacy');
+      // PATCH anónimo no puede escribir notasAdmin (role-based-event-fields/REQ-02).
+      expect(res.body.notasAdmin).toBeFalsy();
     });
 
     it('Debería rechazar un PATCH con cliente inválido (la validación async debe propagarse como 400)', async () => {

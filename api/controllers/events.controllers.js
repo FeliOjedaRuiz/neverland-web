@@ -10,6 +10,42 @@ const { obtenerTalleres, obtenerPrecioTaller, esGrupoGrande, normalizarNombreAct
 
 const Config = require('../models/config.model');
 
+// Devuelve true solo cuando el JWT opcional ha cargado un usuario con rol admin.
+// Cualquier ausencia, token inválido o usuario no-admin se trata como cliente.
+const isAdmin = (req) => {
+  const user = req.user;
+  return Boolean(user && user.role === 'admin');
+};
+
+// Proyección de escritura por rol: los clientes no-admin no pueden escribir
+// campos administrativos ni snapshots de precio. El servidor los recalcula
+// desde el catálogo en TASK-02/TASK-04; aquí se descartan para cerrar la
+// superficie de ataque sin elevar el nivel de acceso.
+const applyClientProjection = (req) => {
+  delete req.body.publicId;
+  delete req.body.invitationId;
+  delete req.body.googleEventId;
+  delete req.body.notasAdmin;
+  delete req.body.precioTotal;
+
+  if (req.body.detalles) {
+    if (req.body.detalles.niños) {
+      delete req.body.detalles.niños.precioApplied;
+    }
+    if (req.body.detalles.extras) {
+      delete req.body.detalles.extras.costoExtra;
+      delete req.body.detalles.extras.precioTallerApplied;
+      delete req.body.detalles.extras.precioPersonajeApplied;
+      delete req.body.detalles.extras.precioPinataApplied;
+      delete req.body.detalles.extras.precioCatalogoApplied;
+    }
+  }
+
+  if (req.body.horario) {
+    delete req.body.horario.costoExtension;
+  }
+};
+
 // Centralized Shift Definitions
 const SHIFTS = {
   'T1': { start: [17, 0], end: [19, 0] },
@@ -300,6 +336,24 @@ const calculateEventPrice = async (eventData, config) => {
 
 module.exports.create = async (req, res, next) => {
   try {
+    // --- PROYECCIÓN DE ESCRITURA POR ROL ---
+    // El endpoint es público: sin token/inválido/no-admin se aplica política de
+    // cliente, ignorando en silencio campos administrativos y forzando estado.
+    const admin = isAdmin(req);
+    if (!admin) {
+      if (req.body.tipo === 'bloqueo') {
+        throw createError(400, 'No se permiten bloqueos desde este perfil');
+      }
+      // Solo forzamos 'reserva' cuando el tipo es válido o ausente; cualquier
+      // otro valor pasa al schema para que el enum de Mongoose lo rechace,
+      // preservando el comportamiento previo de validación de tipos inválidos.
+      if (!req.body.tipo || req.body.tipo === 'reserva') {
+        req.body.tipo = 'reserva';
+      }
+      req.body.estado = 'pendiente';
+      applyClientProjection(req);
+    }
+
     const { tipo, fecha, turno, detalles, horario, cliente } = req.body;
 
     // --- VALIDATION LAYER ---
@@ -548,16 +602,17 @@ module.exports.update = async (req, res, next) => {
       }
     }
 
-    // --- PERMISSION & WINDOW CHECK ---
-    const esAdmin = req.user && req.user.role === 'admin';
+    // --- PROYECCIÓN DE ESCRITURA POR ROL ---
+    const esAdmin = isAdmin(req);
 
     if (!esAdmin) {
-      // 1. Clients cannot change status
-      if (req.body.estado && req.body.estado !== event.estado) {
-        throw createError(403, 'No tienes permiso para cambiar el estado de la reserva');
-      }
+      // Los campos administrativos se ignoran silenciosamente para clientes
+      // (sin 400/403), para no romper envíos legítimos de PWA cacheada.
+      delete req.body.estado;
+      delete req.body.tipo;
+      applyClientProjection(req);
 
-      // 2. 72h window check with shift-precision
+      // 72h window check with shift-precision
       const [h, m] = (SHIFTS[event.turno]?.start || [0, 0]);
       const fechaEvento = safeParseDate(event.fecha);
       fechaEvento.setHours(h, m, 0, 0);
@@ -742,7 +797,7 @@ module.exports.update = async (req, res, next) => {
       event.precioTotal = newPrice;
     }
 
-    await event.save();
+    await event.save({ validateModifiedOnly: true });
 
     try {
       if (event.estado === 'cancelada') {
