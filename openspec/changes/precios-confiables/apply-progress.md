@@ -92,12 +92,83 @@ Revertir únicamente:
 - `role-based-event-fields/REQ-05` — estado en CREATE para clientes.
 - `server-price-authority/REQ-07` (parcial, protección de ediciones inocuas) — `validateModifiedOnly: true`.
 
+## TASK-02: CREATE — whitelist de precios y recálculo desde catálogo
+
+### Estado
+
+Completado.
+
+### Alcance implementado
+
+- `api/controllers/events.controllers.js`
+  - Nuevo helper `stripClientPriceSnapshots(body, admin)` que descarta `precioTotal` y todos los snapshots de precio (`precioApplied`, `precioUnitario`, `precioTallerApplied`, `precioPersonajeApplied`, `precioPinataApplied`, `precioCatalogoApplied`, `costoExtension`) del payload de CREATE.
+  - Preserva `detalles.extras.costoExtra` cuando el solicitante es admin (descuento/ajuste legítimo, no un precio de catálogo).
+  - `create` invoca `stripClientPriceSnapshots(req.body, admin)` para todos los roles, después de la proyección por rol de TASK-01.
+- `api/tests/helpers/eventFixtures.js`
+  - Nuevo helper `createFullConfig()` con catálogo completo: menú, comida de adultos, talleres, personajes, piñata y precios de extensión.
+- `api/tests/price-authority.test.js`
+  - Suite nueva "Autoridad de precio en CREATE" con 10 tests.
+
+### Tests
+
+- Nuevo `api/tests/price-authority.test.js` (10 tests):
+  - REQ-01: precio manipulado por cliente no se usa; snapshot enviado no queda almacenado.
+  - REQ-02: snapshots calculados desde catálogo para menú, taller, personaje, piñata, catálogo, extensión y comida de adultos.
+  - REQ-03: `precioTotal` recalculado server-side.
+  - REQ-08: respuestas (GET público) incluyen snapshots.
+  - Casos límite: `precioUnitario: 0`, payload PWA con `precioTotal`, admin con snapshots falsos conservando `costoExtra`.
+
+### Evidencia RED → GREEN
+
+- Primera corrida de `price-authority.test.js`: 4 fallos / 10 tests (RED).
+- Tras implementar `stripClientPriceSnapshots`: 10/10 tests verdes.
+- Suite completa API: **210 tests pasan** (200 anteriores + 10 nuevos).
+- Suite web: **138 tests pasan**, sin regresiones.
+
+### Comandos de verificación
+
+```bash
+cd api && npx jest tests/price-authority.test.js --setupFilesAfterEnv ./tests/setup.js --no-coverage
+cd api && npm test
+cd web && npm run test:run
+```
+
+### Commit
+
+- Hash: `d886f1c`
+- Mensaje: `feat(api): enforce server-side price snapshots on create`
+- Ficheros: `api/controllers/events.controllers.js`, `api/tests/helpers/eventFixtures.js`, `api/tests/price-authority.test.js`
+- Hook GGA: PASSED.
+
+### PR
+
+- Rama: `feat/precios-confiables-wu-2-create-precios`
+- Base: `feat/precios-confiables-wu-1-rol-identidad`
+- URL de creación manual: https://github.com/FeliOjedaRuiz/neverland-web/compare/feat/precios-confiables-wu-1-rol-identidad...feat/precios-confiables-wu-2-create-precios?expand=1
+- Nota: `gh` no está disponible en el entorno; la creación del PR requiere acción manual o instalación de GitHub CLI.
+
+### Rollback boundary
+
+Revertir únicamente:
+- `api/controllers/events.controllers.js`: eliminar `stripClientPriceSnapshots` y su invocación en `create`.
+- Borrar `api/tests/price-authority.test.js`.
+- Revertir la adición de `createFullConfig` en `api/tests/helpers/eventFixtures.js`.
+
+### Requisitos cubiertos
+
+- `server-price-authority/REQ-01` — whitelist de campos de precio en CREATE.
+- `server-price-authority/REQ-02` — cálculo de snapshots desde catálogo en CREATE.
+- `server-price-authority/REQ-03` — recálculo de `precioTotal` en CREATE.
+- `server-price-authority/REQ-08` — respuestas con snapshots.
+- `server-price-authority/REQ-09` — comida de adultos resuelta por catálogo en CREATE.
+- `role-based-event-fields/REQ-01` — admin conserva `costoExtra` (no tratado como snapshot de precio).
+
 ## Próxima work unit
 
-- **TASK-02**: CREATE — whitelist de precios y recálculo desde catálogo.
-  - Base: rama de PR 1 (`feat/precios-confiables-wu-1-rol-identidad`).
-  - Foco: `api/controllers/events.controllers.js#create` — descartar todos los campos de precio del payload, `calculateEventPrice` como única fuente.
-  - Tests: parte CREATE de `api/tests/price-authority.test.js`.
+- **TASK-03**: CREATE — validación de `menuId` solo para reservas.
+  - Base: rama de PR 2 (`feat/precios-confiables-wu-2-create-precios`).
+  - Foco: `events.controllers.js#create` — validar `menuId` contra `Config.menusNiños` solo para `tipo: 'reserva'`, 400 descriptivo sin crear documento.
+  - Tests: `api/tests/menu-id-validation.test.js`.
 
 ## Notas
 
