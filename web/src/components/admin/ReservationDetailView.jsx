@@ -673,6 +673,20 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 
 				{/* Content */}
 				<div className="flex-1 overflow-y-auto p-6 space-y-8 bg-cream-bg">
+					{/* Ventana de edición: el cliente solo puede modificar su reserva
+					    hasta 72 h antes del evento. Si no puede, se le explica por qué
+					    en lugar de dejar los botones de "Editar" simplesmente ausentes. */}
+					{!isAdmin && !isEditable() && (
+						<div className="max-w-3xl mx-auto flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+							<Clock size={16} className="mt-0.5 shrink-0 text-amber-600" />
+							<p className="text-sm font-medium leading-relaxed text-amber-900">
+								Esta reserva ya no se puede modificar en línea: los cambios solo están
+								disponibles hasta 72 horas antes del inicio del evento. Si necesitas cambiar
+								algo, escríbenos y lo buscamos contigo.
+							</p>
+						</div>
+					)}
+
 					{/* Client Info */}
 					<section className="max-w-3xl mx-auto">
 						<div className="bg-surface p-6 sm:p-8 rounded-[32px] border border-gray-100 shadow-sm relative">
@@ -1464,7 +1478,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 												closeModals();
 											} catch (err) {
 												console.error(err);
-												alert('Error al guardar');
+												toast.error(err.response?.data?.message || 'Error al guardar');
 											} finally {
 												setIsUpdating(false);
 											}
@@ -1487,7 +1501,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 												closeModals();
 											} catch (err) {
 												console.error(err);
-												alert('Error al guardar');
+												toast.error(err.response?.data?.message || 'Error al guardar');
 											} finally {
 												setIsUpdating(false);
 											}
@@ -1514,7 +1528,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 												closeModals();
 											} catch (err) {
 												console.error(err);
-												alert('Error al guardar');
+												toast.error(err.response?.data?.message || 'Error al guardar');
 											} finally {
 												setIsUpdating(false);
 											}
@@ -1546,7 +1560,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 												closeModals();
 											} catch (err) {
 												console.error(err);
-												alert('Error al guardar');
+												toast.error(err.response?.data?.message || 'Error al guardar');
 											} finally {
 												setIsUpdating(false);
 											}
@@ -1597,7 +1611,7 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 												closeModals();
 											} catch (err) {
 												console.error(err);
-												alert('Error al guardar');
+												toast.error(err.response?.data?.message || 'Error al guardar');
 											} finally {
 												setIsUpdating(false);
 											}
