@@ -936,6 +936,120 @@ describe('Flujo Presupuesto → Reserva (Budget Stepper Flow)', () => {
       // 15 niños * 15€ = 225€ + Magia 25€ = 250€
       expect(patchRes.body.precioTotal).toBe(250);
     });
+
+    // ---------------------------------------------------------------
+    // activity-sum-pricing/REQ-06 — guard por PRESENCIA del campo
+    // `talleres`. El test anterior NO es discriminante: su snapshot
+    // resultante (25) coincide con el recálculo, así que no distingue
+    // "el guard no se disparó" de "se invalidó y se recalculó al mismo
+    // valor". Estos dos tests usan un snapshot IMPOSIBLE (99 €) para
+    // separar ambos caminos.
+    // ---------------------------------------------------------------
+    it('REQ-06: NO debe tocar precioTallerApplied cuando el PATCH NO trae la clave `talleres`', async () => {
+      // 99 € jamás puede ser un precio real de actividades.
+      const evento = await Event.create({
+        tipo: 'reserva',
+        fecha: martesDate,
+        turno: 'T2',
+        cliente: {
+          nombreNiño: 'Nora',
+          edadNiño: 8,
+          nombrePadre: 'Ana',
+          telefono: '+34612345678',
+          email: 'ana@example.com',
+          privacyPolicyConsent: true,
+          marketingConsent: false
+        },
+        detalles: {
+          niños: { cantidad: 15, menuId: 'menu-1' },
+          adultos: { cantidad: 5, comida: [] },
+          extras: {
+            talleres: ['Magia'],
+            precioTallerApplied: 99,
+            personajes: [],
+            pinata: false
+          }
+        },
+        horario: {
+          inicio: '18:00',
+          fin: '20:00',
+          extensionMinutos: 0
+        }
+      });
+
+      // PATCH de un cliente con datos desactualizados: reenvía el snapshot
+      // viejo (99) pero NO incluye la clave `talleres` en `extras`.
+      const patchRes = await request(app)
+        .patch(`/api/v1/events/${evento.id}`)
+        .send({
+          detalles: {
+            extras: {
+              observaciones: 'Solo cambio de nota',
+              precioTallerApplied: 99
+            }
+          }
+        });
+
+      expect(patchRes.statusCode).toBe(200);
+      expect(patchRes.body.detalles.extras.talleres).toEqual(['Magia']);
+      // Discriminante: si el guard se disparara (invalidación no condicionada
+      // a la presencia de `talleres`), calculateEventPrice borraría 99 y lo
+      // recalcularía a 25 € (priceBase real de Magia).
+      expect(patchRes.body.detalles.extras.precioTallerApplied).toBe(99);
+    });
+
+    it('REQ-06: SÍ debe recalcular el snapshot cuando el PATCH SÍ trae `talleres` distinto', async () => {
+      const evento = await Event.create({
+        tipo: 'reserva',
+        fecha: martesDate,
+        turno: 'T2',
+        cliente: {
+          nombreNiño: 'Nora',
+          edadNiño: 8,
+          nombrePadre: 'Ana',
+          telefono: '+34612345678',
+          email: 'ana@example.com',
+          privacyPolicyConsent: true,
+          marketingConsent: false
+        },
+        detalles: {
+          niños: { cantidad: 15, menuId: 'menu-1' },
+          adultos: { cantidad: 5, comida: [] },
+          extras: {
+            talleres: ['Magia'],
+            precioTallerApplied: 99,
+            personajes: [],
+            pinata: false
+          }
+        },
+        horario: {
+          inicio: '18:00',
+          fin: '20:00',
+          extensionMinutos: 0
+        }
+      });
+
+      const patchRes = await request(app)
+        .patch(`/api/v1/events/${evento.id}`)
+        .send({
+          detalles: {
+            extras: {
+              talleres: ['Pintura'],
+              personajes: [],
+              pinata: false,
+              observaciones: 'Cambio de actividad',
+              alergenos: ''
+            }
+          }
+        });
+
+      expect(patchRes.statusCode).toBe(200);
+      expect(patchRes.body.detalles.extras.talleres).toEqual(['Pintura']);
+      // El snapshot stale (99) se invalidó y se recalculó con el precio real
+      // de Pintura (priceBase 20 con 15 niños).
+      expect(patchRes.body.detalles.extras.precioTallerApplied).toBe(20);
+      expect(patchRes.body.detalles.extras.precioTallerApplied).not.toBe(99);
+    });
   });
 
   // =====================================================

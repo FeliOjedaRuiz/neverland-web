@@ -38,7 +38,10 @@ const mongoose = require('mongoose');
 
 const Event = require('../models/event.model');
 const Config = require('../models/config.model');
-const { obtenerPrecioTaller, esGrupoGrande } = require('../utils/pricing');
+// DRY: `resolverWorkshop` vive en utils/pricing y compara trim + minúsculas
+// en ambos lados, exactamente igual que la implementación local que había
+// en este script. El comportamiento de la migración no cambia.
+const { obtenerPrecioTaller, esGrupoGrande, resolverWorkshop } = require('../utils/pricing');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/neverland';
 const IS_DRY_RUN = process.argv.includes('--dry-run');
@@ -76,16 +79,6 @@ function ejecutarBackup() {
     );
   }
   console.log('\n✓ Backup previo completado.\n');
-}
-
-/**
- * Busca un workshop por nombre de forma insensible a mayúsculas/minúsculas.
- */
-function resolverWorkshop(workshops, nombre) {
-  if (!Array.isArray(workshops) || typeof nombre !== 'string') return null;
-  const needle = nombre.trim().toLowerCase();
-  if (!needle) return null;
-  return workshops.find((w) => w && typeof w.name === 'string' && w.name.trim().toLowerCase() === needle) || null;
 }
 
 /**
@@ -187,7 +180,9 @@ async function migrar() {
       sinExtras: 0,
       snapshotPreservado: 0,
       snapshotBackfill: 0,
-      escrituras: 0,
+      // Documentos transformados por el loop: en modo real son también
+      // escrituras; en dry-run solo son transformaciones PREVISTAS.
+      transformaciones: 0,
       errores: 0
     };
 
@@ -252,7 +247,7 @@ async function migrar() {
         if (!IS_DRY_RUN) {
           await Event.updateOne({ _id: evento._id }, updateOps);
         }
-        stats.escrituras++;
+        stats.transformaciones++;
 
         const talleresFinal = updateOps.$set['detalles.extras.talleres'];
         const snapshotMsg = updateOps.$set['detalles.extras.precioTallerApplied'] !== undefined
@@ -280,9 +275,15 @@ async function migrar() {
     console.log(`Omitidos (sin extras):          ${stats.sinExtras}`);
     console.log(`Con snapshot preservado:        ${stats.snapshotPreservado}`);
     console.log(`Con snapshot a backfill:        ${stats.snapshotBackfill}`);
-    console.log(`Total de escrituras:            ${stats.escrituras}`);
+    // Etiquetas según el modo: el mismo contador (documentos transformados)
+    // se llama "previstas" en dry-run y "realizadas" en modo real, para no
+    // leer "N escrituras" cuando no se ha escrito nada.
     if (IS_DRY_RUN) {
-      console.log(`Escrituras reales:              0 (dry-run)`);
+      console.log(`Transformaciones previstas:      ${stats.transformaciones}`);
+      console.log('Escrituras realizadas:           0 (dry-run)');
+    } else {
+      console.log(`Transformaciones realizadas:     ${stats.transformaciones}`);
+      console.log(`Escrituras realizadas:           ${stats.transformaciones}`);
     }
     if (stats.errores > 0) {
       console.log(`Errores:                        ${stats.errores}`);

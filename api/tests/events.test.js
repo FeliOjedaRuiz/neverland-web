@@ -638,6 +638,26 @@ describe('Eventos API - Testing de Lógica de Reservas', () => {
       expect(res.body.message).toBe('Actividad no válida o inactiva: Cocina');
     });
 
+    it('REQ-05: debería rechazar con 400 un PATCH que modifica la selección a una actividad inexistente', async () => {
+      // Selección inicial VÁLIDA: Slime existe y está activo en el catálogo.
+      const createRes = await request(app)
+        .post('/api/v1/events')
+        .send(buildEvent({ talleres: ['Slime'] }));
+
+      expect(createRes.statusCode).toBe(201);
+      expect(createRes.body.detalles.extras.talleres).toEqual(['Slime']);
+
+      // PATCH que MODIFICA la selección hacia un nombre que no existe.
+      // Al cambiar el conjunto respecto al snapshot previo, la validación de
+      // catálogo (activity-validation/REQ-05) debe rechazarlo con 400.
+      const res = await request(app)
+        .patch(`/api/v1/events/${createRes.body.id}`)
+        .send({ detalles: { extras: { talleres: ['ActividadInexistente'] } } });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toBe('Actividad no válida o inactiva: ActividadInexistente');
+    });
+
     it('Debería aceptar todas las actividades válidas y activas', async () => {
       const res = await request(app)
         .post('/api/v1/events')
