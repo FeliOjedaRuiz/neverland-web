@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Calendar, Clock, Lock, Loader2 } from 'lucide-react';
 import { createBooking } from '../../services/api';
+import { toast } from 'react-hot-toast';
 
 const BlockDateModal = ({
 	isOpen,
@@ -40,9 +41,9 @@ const BlockDateModal = ({
 
 	const handleBlock = async (e) => {
 		e.preventDefault();
-		if (!fecha) return alert('Por favor selecciona una fecha');
+		if (!fecha) return toast.error('Por favor selecciona una fecha');
 		if (selectedTurns.length === 0)
-			return alert('Selecciona al menos un turno');
+			return toast.error('Selecciona al menos un turno');
 
 		setLoading(true);
 		try {
@@ -71,7 +72,7 @@ const BlockDateModal = ({
 			onClose();
 		} catch (err) {
 			console.error('Error creating block:', err);
-			alert(err.response?.data?.message || 'Error al crear el bloqueo');
+			toast.error(err.response?.data?.message || 'Error al crear el bloqueo');
 		} finally {
 			setLoading(false);
 		}

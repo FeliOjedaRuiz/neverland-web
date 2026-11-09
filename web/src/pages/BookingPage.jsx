@@ -34,6 +34,7 @@ import Step8Summary from '../components/booking/Step8Summary';
 import PackPriceBanner from '../components/booking/PackPriceBanner';
 import BookingSuccess from '../components/booking/BookingSuccess';
 import DataProtectionModal from '../components/booking/DataProtectionModal';
+import { toast } from 'react-hot-toast';
 
 // --- Constants & Data ---
 
@@ -384,7 +385,7 @@ const BookingPage = () => {
 			const errorMsg =
 				error.response?.data?.message ||
 				'Error al reservar. Por favor intenta de nuevo.';
-			alert(errorMsg);
+			toast.error(errorMsg);
 		}
 	};
 

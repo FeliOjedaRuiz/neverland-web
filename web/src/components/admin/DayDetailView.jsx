@@ -13,6 +13,7 @@ import {
 	Unlock,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 import {
 	getReservations,
 	createBooking,
@@ -68,7 +69,7 @@ const DayDetailView = () => {
 
 	const handleBlockDay = () => {
 		if (hasAnyReservation) {
-			alert(
+			toast.error(
 				'No puedes bloquear el día completo porque hay reservas confirmadas o solicitadas.',
 			);
 			return;
@@ -120,7 +121,7 @@ const DayDetailView = () => {
 				await fetchDayEvents();
 			} catch (err) {
 				console.error('Error blocking day:', err);
-				alert('Error al bloquear de forma masiva');
+				toast.error('Error al bloquear de forma masiva');
 			} finally {
 				setBlockingTurn(null);
 			}
@@ -142,7 +143,7 @@ const DayDetailView = () => {
 				await fetchDayEvents();
 			} catch (err) {
 				console.error('Error blocking turn:', err);
-				alert('Error al bloquear el turno');
+				toast.error('Error al bloquear el turno');
 			} finally {
 				setBlockingTurn(null);
 			}
@@ -161,7 +162,7 @@ const DayDetailView = () => {
 			await fetchDayEvents();
 		} catch (err) {
 			console.error(err);
-			alert('Error al desbloquear');
+			toast.error('Error al desbloquear');
 		}
 	};
 

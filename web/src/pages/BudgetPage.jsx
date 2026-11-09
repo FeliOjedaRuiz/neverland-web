@@ -33,6 +33,7 @@ import StepBudgetSummary from '../components/booking/StepBudgetSummary';
 import PackPriceBanner from '../components/booking/PackPriceBanner';
 import BookingSuccess from '../components/booking/BookingSuccess';
 import DataProtectionModal from '../components/booking/DataProtectionModal';
+import { toast } from 'react-hot-toast';
 
 // --- Constants & Data ---
 
@@ -452,7 +453,7 @@ const BudgetPage = () => {
 			const errorMsg =
 				error.response?.data?.message ||
 				'Error al reservar. Por favor intenta de nuevo.';
-			alert(errorMsg);
+			toast.error(errorMsg);
 		}
 	};
 
