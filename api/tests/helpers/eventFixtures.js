@@ -83,6 +83,24 @@ const createBaseConfig = () =>
     preciosExtras: { extension30: 30, extension60: 50 }
   });
 
+const createFullConfig = () =>
+  Config.create({
+    menusNiños: [{ id: 'menu-1', nombre: 'Menú Aventura', precio: 15 }],
+    plusFinDeSemana: 1.5,
+    preciosAdultos: [{ id: 'pa1', nombre: 'Pasteles', precio: 16 }],
+    workshops: [
+      { id: 'w1', name: 'Magia', priceBase: 25, pricePlus: 30 },
+      { id: 'w2', name: 'Pintura', priceBase: 25, pricePlus: 30 }
+    ],
+    preciosExtras: {
+      personaje: 40,
+      precioPack3Personajes: 100,
+      extension30: 30,
+      extension60: 50
+    },
+    extrasCatalogo: [{ slug: 'pinata', nombre: 'Piñata', precio: 15 }]
+  });
+
 module.exports = {
   getFutureDate,
   futureTuesday,
@@ -91,5 +109,6 @@ module.exports = {
   createAdminUser,
   createGuestUser,
   getUserToken,
-  createBaseConfig
+  createBaseConfig,
+  createFullConfig
 };
