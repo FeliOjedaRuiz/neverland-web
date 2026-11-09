@@ -3,6 +3,7 @@ const path = require('path');
 const createError = require('http-errors');
 const Config = require('../models/config.model');
 const { obtenerTalleres } = require('../utils/pricing');
+const { safeParseDate } = require('../utils/date');
 
 const KEYFILE_PATH = path.join(__dirname, '../google-credentials.json');
 
@@ -61,6 +62,97 @@ const SHIFTS = {
 };
 
 /**
+ * Construye el detalle comercial de la reserva: las líneas del resumen de
+ * precios (`precioLines`), los nombres de los extras (`extrasNombres`) y los
+ * nombres de las actividades (`tallerNames`) que alimentan la descripción del
+ * evento de Google Calendar.
+ *
+ * Función PURA: no accede a la base de datos ni a red. El catálogo de extras
+ * (`catalogItems`) se recibe como parámetro —vacío `[]` cuando la selección no
+ * usa el catálogo— y su lectura sigue siendo responsabilidad de
+ * `createCalendarEvent`.
+ *
+ * El ORDEN de `precioLines` es significativo: la descripción se compone con
+ * `precioLines.join('\n')` y no debe cambiar ni un carácter respecto a la
+ * implementación anterior (línea de niños, plus de fin de semana, comida,
+ * actividades, personajes, piñata legacy, ítems de catálogo, extensión y
+ * costo extra/descuento).
+ *
+ * @param {Object} detalles - `detalles` de la reserva.
+ * @param {Date|string} fecha - Fecha del evento (controla el plus de fin de semana).
+ * @param {Object} horario - `horario` de la reserva (extensión de tiempo).
+ * @param {Array} [catalogItems] - Ítems de `Config.extrasCatalogo` (vacío si no aplica).
+ * @returns {{precioLines: string[], extrasNombres: string[], tallerNames: string[]}}
+ */
+const construirDetalleComercial = (detalles, fecha, horario, catalogItems = []) => {
+  const catalogo = Array.isArray(catalogItems) ? catalogItems : [];
+  const precioLines = [];
+
+  // Resumen de precios de niños
+  const precioNinos = (detalles?.niños?.cantidad || 0) * (detalles?.niños?.precioApplied || 0);
+  if (precioNinos > 0) precioLines.push(`  ${detalles.niños.cantidad} Niños × ${(detalles.niños.precioApplied || 0).toFixed(2)}€ = ${precioNinos.toFixed(2)}€`);
+
+  // Plus Fin de Semana
+  if (fecha) {
+    const day = safeParseDate(fecha).getDay();
+    if (day === 0 || day === 5 || day === 6) {
+      const plus = 1.5; // plusFinDeSemana
+      const cant = detalles?.niños?.cantidad || 0;
+      const totalPlus = plus * cant;
+      if (totalPlus > 0) precioLines.push(`  Plus Fin de Semana (${cant} × ${plus.toFixed(2)}€) = ${totalPlus.toFixed(2)}€`);
+    }
+  }
+
+  // Comida de adultos
+  let precioAdultos = 0;
+  const comidaItems = detalles?.adultos?.comida || [];
+  comidaItems.forEach(c => { precioAdultos += (c.cantidad || 0) * (c.precioUnitario || 0); });
+  if (precioAdultos > 0) precioLines.push(`  Comida Adultos = ${precioAdultos.toFixed(2)}€`);
+
+  // Actividades (línea única para 1, plural para varias)
+  const tallerNames = obtenerTalleres(detalles?.extras);
+  if (tallerNames.length > 0 && detalles?.extras?.precioTallerApplied > 0) {
+    const actividadLineLabel = tallerNames.length > 1 ? 'Actividades' : 'Actividad';
+    precioLines.push(`  ${actividadLineLabel} (${tallerNames.join(', ')}) = ${detalles.extras.precioTallerApplied.toFixed(2)}€`);
+  }
+
+  // Personajes
+  if (detalles?.extras?.precioPersonajeApplied > 0) precioLines.push(`  Personajes (${(detalles.extras.personajes || []).join(', ')}) = ${detalles.extras.precioPersonajeApplied.toFixed(2)}€`);
+
+  // Genérico: catálogo de extras vs. legacy
+  const catalogoItemIds = detalles?.extras?.catalogoItemIds || [];
+  const hasCatalog = catalogoItemIds.length > 0;
+
+  // Legacy Piñata: only if not handled by catalog
+  if (!hasCatalog && detalles?.extras?.precioPinataApplied > 0) {
+    precioLines.push(`  Piñata = ${detalles.extras.precioPinataApplied.toFixed(2)}€`);
+  }
+
+  // Catalog items (individual breakdown)
+  let extrasNombres = [];
+  if (hasCatalog) {
+    catalogoItemIds.forEach(itemId => {
+      const item = catalogo.find(i => i.slug === itemId || String(i.id) === String(itemId));
+      const nombre = item?.nombre || itemId;
+      const precio = item?.precio ?? 0;
+      extrasNombres.push(nombre);
+      precioLines.push(`  ${nombre} = ${Number(precio).toFixed(2)}€`);
+    });
+  } else if (detalles?.extras?.pinata) {
+    extrasNombres.push('Piñata');
+  }
+
+  // Extensión de horario y costo extra/descuento
+  if (horario?.costoExtension > 0) precioLines.push(`  Extensión (+${horario.extensionMinutos}min) = ${horario.costoExtension.toFixed(2)}€`);
+  if (detalles?.extras?.costoExtra && detalles.extras.costoExtra !== 0) {
+    const label = detalles.extras.costoExtra > 0 ? 'Costo Extra' : 'Descuento';
+    precioLines.push(`  ${label} = ${detalles.extras.costoExtra > 0 ? '+' : ''}${detalles.extras.costoExtra.toFixed(2)}€`);
+  }
+
+  return { precioLines, extrasNombres, tallerNames };
+};
+
+/**
  * Creates a calendar event for a new booking.
  * @param {Object} booking - The booking object from database
  */
@@ -98,63 +190,21 @@ module.exports.createCalendarEvent = async (booking) => {
     } else {
       const { detalles } = booking;
 
-      // Build price summary lines
-      const precioLines = [];
-      const precioNinos = (detalles?.niños?.cantidad || 0) * (detalles?.niños?.precioApplied || 0);
-      if (precioNinos > 0) precioLines.push(`  ${detalles.niños.cantidad} Niños × ${(detalles.niños.precioApplied || 0).toFixed(2)}€ = ${precioNinos.toFixed(2)}€`);
-      // Plus Fin de Semana
-      if (fecha) {
-        const day = new Date(fecha).getDay();
-        if (day === 0 || day === 5 || day === 6) {
-          const plus = 1.5; // plusFinDeSemana
-          const cant = detalles?.niños?.cantidad || 0;
-          const totalPlus = plus * cant;
-          if (totalPlus > 0) precioLines.push(`  Plus Fin de Semana (${cant} × ${plus.toFixed(2)}€) = ${totalPlus.toFixed(2)}€`);
-        }
-      }
-      let precioAdultos = 0;
-      const comidaItems = detalles?.adultos?.comida || [];
-      comidaItems.forEach(c => { precioAdultos += (c.cantidad || 0) * (c.precioUnitario || 0); });
-      if (precioAdultos > 0) precioLines.push(`  Comida Adultos = ${precioAdultos.toFixed(2)}€`);
-      const tallerNames = obtenerTalleres(detalles?.extras);
-      if (tallerNames.length > 0 && detalles?.extras?.precioTallerApplied > 0) {
-        const actividadLineLabel = tallerNames.length > 1 ? 'Actividades' : 'Actividad';
-        precioLines.push(`  ${actividadLineLabel} (${tallerNames.join(', ')}) = ${detalles.extras.precioTallerApplied.toFixed(2)}€`);
-      }
-      if (detalles?.extras?.precioPersonajeApplied > 0) precioLines.push(`  Personajes (${(detalles.extras.personajes || []).join(', ')}) = ${detalles.extras.precioPersonajeApplied.toFixed(2)}€`);
-
-      // Generic catalog extras vs legacy
+      // Única lectura de BD del bloque de descripción: solo se consulta el
+      // catálogo de extras cuando la selección tiene `catalogoItemIds`.
+      // La construcción del detalle comercial es una función pura (testable).
       const catalogoItemIds = detalles?.extras?.catalogoItemIds || [];
-      const hasCatalog = catalogoItemIds.length > 0;
       let catalogItems = [];
-      if (hasCatalog) {
+      if (catalogoItemIds.length > 0) {
         catalogItems = (await Config.findOne().lean())?.extrasCatalogo || [];
       }
 
-      // Legacy Piñata: only if not handled by catalog
-      if (!hasCatalog && detalles?.extras?.precioPinataApplied > 0) {
-        precioLines.push(`  Piñata = ${detalles.extras.precioPinataApplied.toFixed(2)}€`);
-      }
-
-      // Catalog items (individual breakdown)
-      let extrasNombres = [];
-      if (hasCatalog) {
-        catalogoItemIds.forEach(itemId => {
-          const item = catalogItems.find(i => i.slug === itemId || String(i.id) === String(itemId));
-          const nombre = item?.nombre || itemId;
-          const precio = item?.precio ?? 0;
-          extrasNombres.push(nombre);
-          precioLines.push(`  ${nombre} = ${Number(precio).toFixed(2)}€`);
-        });
-      } else if (detalles?.extras?.pinata) {
-        extrasNombres.push('Piñata');
-      }
-
-      if (booking.horario?.costoExtension > 0) precioLines.push(`  Extensión (+${booking.horario.extensionMinutos}min) = ${booking.horario.costoExtension.toFixed(2)}€`);
-      if (detalles?.extras?.costoExtra && detalles.extras.costoExtra !== 0) {
-        const label = detalles.extras.costoExtra > 0 ? 'Costo Extra' : 'Descuento';
-        precioLines.push(`  ${label} = ${detalles.extras.costoExtra > 0 ? '+' : ''}${detalles.extras.costoExtra.toFixed(2)}€`);
-      }
+      const { precioLines, extrasNombres, tallerNames } = construirDetalleComercial(
+        detalles,
+        fecha,
+        booking.horario,
+        catalogItems
+      );
 
       description = `
 **🎂 NIÑO/A**: ${cliente.nombreNiño} (${cliente.edadNiño} años)
@@ -366,3 +416,11 @@ module.exports.listEvents = async (timeMin, timeMax) => {
     throw error; // Re-throw to be handled by controller
   }
 };
+
+/**
+ * Función pura extraída de `createCalendarEvent` para poder testear la
+ * composición del detalle comercial (líneas de precios, extras y actividades)
+ * sin autenticar con Google Calendar. No sustituye a los exports anteriores:
+ * se añade a ellos.
+ */
+module.exports.construirDetalleComercial = construirDetalleComercial;
