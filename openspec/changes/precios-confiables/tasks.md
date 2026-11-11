@@ -51,7 +51,7 @@ TDD (`openspec/config.yaml` `apply: tdd: true`): cada task de código lleva sus 
 
 ## Fase 2: Autoridad de precio en CREATE y validación de menú
 
-### [ ] TASK-02: CREATE — whitelist de precios y recálculo desde catálogo
+### [x] TASK-02: CREATE — whitelist de precios y recálculo desde catálogo
 - **Alcance**: `api/controllers/events.controllers.js#create` — proyectar el payload descartando TODOS los campos de precio antes de construir el documento: `precioTotal` top-level, `detalles.niños.precioApplied`, `detalles.adultos.comida[].precioUnitario`, `detalles.extras.precioTallerApplied`/`precioPersonajeApplied`/`precioPinataApplied`/`precioCatalogoApplied` y `horario.costoExtension` (REQ-01: ningún valor de precio del cliente queda almacenado ni se muestra en panel). `calculateEventPrice` recibe solo selecciones y snapshots confiables → resuelve SIEMPRE desde `Config`: `precioApplied` por `menuId` en `menusNiños`, `precioTallerApplied` por `obtenerPrecioTaller` (fallback 25/30 € de `workshop-pricing-safety` conservado), `precioPersonajeApplied`, piñata/catálogo, `costoExtension` por `extensionMinutos` (payload negativo ignorado, calculado del catálogo) y `precioUnitario` de comida adulta por `id`/`nombre` en `Config.preciosAdultos` (REQ-02, `REQ-09` en CREATE); `precioTotal` = suma de snapshots (REQ-03). Respuesta conserva snapshots para display (REQ-08). Tests RED primero: parte CREATE de `api/tests/price-authority.test.js`, afirmando respuesta Y documento persistido.
 - **Dependencias**: TASK-01 (proyección por rol e `isAdmin`).
 - **Verificación** (TDD): `cd api && npx jest tests/price-authority.test.js` en verde + `cd api && npm test` sin regresiones.

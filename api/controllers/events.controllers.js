@@ -46,6 +46,39 @@ const applyClientProjection = (req) => {
   }
 };
 
+// Descarta los snapshots de precio del payload para que el servidor los
+// resuelva siempre desde el catálogo. Preserva `costoExtra` cuando el
+// solicitante es admin (descuento/ajuste legítimo, no un precio de catálogo).
+const stripClientPriceSnapshots = (body, admin = false) => {
+  delete body.precioTotal;
+
+  if (body.detalles) {
+    if (body.detalles.niños) {
+      delete body.detalles.niños.precioApplied;
+    }
+
+    if (Array.isArray(body.detalles.adultos?.comida)) {
+      body.detalles.adultos.comida.forEach(item => {
+        delete item.precioUnitario;
+      });
+    }
+
+    if (body.detalles.extras) {
+      if (!admin) {
+        delete body.detalles.extras.costoExtra;
+      }
+      delete body.detalles.extras.precioTallerApplied;
+      delete body.detalles.extras.precioPersonajeApplied;
+      delete body.detalles.extras.precioPinataApplied;
+      delete body.detalles.extras.precioCatalogoApplied;
+    }
+  }
+
+  if (body.horario) {
+    delete body.horario.costoExtension;
+  }
+};
+
 // Centralized Shift Definitions
 const SHIFTS = {
   'T1': { start: [17, 0], end: [19, 0] },
@@ -203,6 +236,11 @@ const calculateEventPrice = async (eventData, config) => {
         if (adultOption) {
           total += adultOption.precio * item.cantidad;
           item.precioUnitario = adultOption.precio;
+        } else {
+          // Sin coincidencia por id ni por nombre: el importe queda a 0 €.
+          // Se avisa para que no pase inadvertido (p. ej. un plato renombrado
+          // con un cliente que sirve una config cacheada).
+          console.warn(`Comida de adultos "${item.item}" no resuelta en el catálogo; el importe queda a 0 €. Revisar el catálogo o el id enviado.`);
         }
       }
     });
@@ -353,6 +391,11 @@ module.exports.create = async (req, res, next) => {
       req.body.estado = 'pendiente';
       applyClientProjection(req);
     }
+
+    // Los snapshots de precio se descartan SIEMPRE, incluso para admin:
+    // el servidor es la única fuente de verdad. El admin conserva su
+    // `costoExtra` porque es un descuento/ajuste, no un precio de catálogo.
+    stripClientPriceSnapshots(req.body, admin);
 
     const { tipo, fecha, turno, detalles, horario, cliente } = req.body;
 
