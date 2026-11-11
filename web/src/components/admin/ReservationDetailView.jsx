@@ -2117,6 +2117,7 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 						(p) => p.nombre === name || p.id === name,
 					);
 					return {
+						id: configItem?.id,
 						item: name,
 						cantidad: qty,
 						precioUnitario: configItem?.precio || 0,
@@ -2139,7 +2140,7 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 		} else {
 			setAdultosList([
 				...adultosList,
-				{ item: item.nombre, cantidad: 1, precioUnitario: item.precio },
+				{ id: item.id, item: item.nombre, cantidad: 1, precioUnitario: item.precio },
 			]);
 		}
 	};

@@ -236,6 +236,11 @@ const calculateEventPrice = async (eventData, config) => {
         if (adultOption) {
           total += adultOption.precio * item.cantidad;
           item.precioUnitario = adultOption.precio;
+        } else {
+          // Sin coincidencia por id ni por nombre: el importe queda a 0 €.
+          // Se avisa para que no pase inadvertido (p. ej. un plato renombrado
+          // con un cliente que sirve una config cacheada).
+          console.warn(`Comida de adultos "${item.item}" no resuelta en el catálogo; el importe queda a 0 €. Revisar el catálogo o el id enviado.`);
         }
       }
     });

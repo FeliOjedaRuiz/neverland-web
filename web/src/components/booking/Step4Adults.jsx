@@ -118,6 +118,7 @@ const Step4Adults = ({ formData, setFormData, ADULT_MENU_OPTIONS }) => {
 								};
 							} else {
 								newComida.push({
+									id: item.id,
 									item: item.nombre,
 									cantidad: 1,
 									precioUnitario: item.precio,
