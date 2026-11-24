@@ -350,7 +350,11 @@ module.exports.inscribir = async (req, res, next) => {
       emailResponsable,
       privacyPolicyConsent: consentimientoPrivacidad,
       marketingConsent: consentimientoMarketing || false,
-      fechaConsentimiento: getSafeNow()
+      fechaConsentimiento: getSafeNow(),
+      // Toda inscripción nace SIN pagar: el pago del taller por transferencia
+      // lo verifica y marca el admin desde el panel (defensa en profundidad:
+      // aunque el payload trajera `pagoTaller`, aquí se pone a false a mano).
+      pagoTaller: false
     };
 
     const resultado = await Taller.findOneAndUpdate(
@@ -438,6 +442,40 @@ module.exports.editarInscripcion = async (req, res, next) => {
   try {
     const { nombreNiño, edadNiño, nombreResponsable, telefonoResponsable, emailResponsable } = req.body;
 
+    // --- PERMISOS del estado de pago (defensa en profundidad) ---
+    // La ruta PATCH /talleres/:id/inscripciones/:inscripcionId lleva
+    // `secure.isAdmin` DESDE SU CREACIÓN (commit 8cfd0c9), así que en la
+    // práctica un no-admin recibe 401 del middleware y NUNCA llega a este
+    // controller. Este guard queda como defensa en profundidad: protege la
+    // invariante de que `pagoTaller` solo lo escribe el admin, aunque mañana
+    // alguien cambiara la ruta a `optionalAuth` (misma estrategia que
+    // `pagoReserva` en events.controllers.js, donde la ruta SÍ es opcional y
+    // el 403 es alcanzable por HTTP).
+    const esAdmin = req.user && req.user.role === 'admin';
+
+    if (!esAdmin) {
+      // Booleano: se comprueba `!== undefined` (no truthiness, porque `false`
+      // también es un intento de cambio).
+      if (req.body.pagoTaller !== undefined) {
+        throw createError(403, 'No tienes permiso para cambiar el estado de pago del taller');
+      }
+
+      // `pagoTallerFecha` es un campo derivado que solo estampa el servidor
+      // al cambiar el booleano (abajo): un no-admin no debe poder escribirla,
+      // ni para falsificar la conciliación banco↔web.
+      if (req.body.pagoTallerFecha !== undefined && req.body.pagoTallerFecha !== null) {
+        throw createError(403, 'No tienes permiso para modificar la fecha de pago');
+      }
+    }
+
+    // `pagoTallerFecha` es un DERIVADO de `pagoTaller`: SOLO el servidor la
+    // estampa. Se elimina del payload ANTES de aplicarlo para que ningún
+    // request (ni siquiera de un admin) pueda fijar una fecha arbitraria: la
+    // fecha de conciliación banco↔web tiene que ser fiable. Mismo patrón que
+    // `pagoReservaFecha` en events.controllers.js (commit 9af8599 de esta
+    // rama); para los no-admin, el guard de arriba ya devuelve 403 antes.
+    delete req.body.pagoTallerFecha;
+
     const taller = await Taller.findOne({ _id: req.params.id, 'inscripciones._id': req.params.inscripcionId });
     if (!taller) throw createError(404, 'Taller o inscripción no encontrado');
 
@@ -449,6 +487,16 @@ module.exports.editarInscripcion = async (req, res, next) => {
     if (nombreResponsable !== undefined) inscripcion.nombreResponsable = nombreResponsable;
     if (telefonoResponsable !== undefined) inscripcion.telefonoResponsable = telefonoResponsable;
     if (emailResponsable !== undefined) inscripcion.emailResponsable = emailResponsable;
+
+    // Estado de pago: al marcar pagado se estampa "ahora"; al desmarcar se
+    // limpia para no dejar la fecha de un pago anterior. Solo se actúa si el
+    // valor CAMBIA de verdad (reenviar el mismo valor no restampa la fecha).
+    // El toggle NO toca `precio` ni `aforo` del taller: vive en el
+    // subdocumento de la inscripción (cubierto en pago-taller.test.js).
+    if (req.body.pagoTaller !== undefined && req.body.pagoTaller !== inscripcion.pagoTaller) {
+      inscripcion.pagoTaller = req.body.pagoTaller;
+      inscripcion.pagoTallerFecha = req.body.pagoTaller ? getSafeNow() : undefined;
+    }
 
     await taller.save();
 

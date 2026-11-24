@@ -1859,6 +1859,10 @@ const ConfigurationPanel = () => {
 									Estos datos se usan para enviar al cliente los datos de la
 									transferencia de la señal (50€) mediante el botón de WhatsApp
 									del detalle de reserva. No se muestran públicamente en la web.
+									<br />
+									El concepto de la transferencia se genera automáticamente con
+									el nombre del niño y la fecha de la reserva, para poder
+									conciliar cada pago con su reserva.
 								</p>
 
 								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1904,32 +1908,6 @@ const ConfigurationPanel = () => {
 										/>
 									</label>
 								</div>
-
-								<label className="flex flex-col gap-1 p-4 bg-gray-50/50 rounded-2xl border border-gray-50">
-									<span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter ml-0.5">
-										Concepto de la transferencia
-									</span>
-									<input
-										type="text"
-										value={config.datosBancarios?.concepto || ''}
-										onChange={(e) =>
-											setConfig({
-												...config,
-												datosBancarios: {
-													...(config.datosBancarios || {}),
-													concepto: e.target.value,
-												},
-											})
-										}
-										placeholder="Neverland - Señal de reserva"
-										className="w-full bg-transparent p-0 text-lg font-display font-black text-text-black outline-none border-none ring-0 placeholder:text-gray-300 placeholder:font-bold"
-									/>
-									<span className="text-[10px] text-gray-400 leading-relaxed">
-										Se antepone al identificador de cada reserva al enviar el
-										mensaje de WhatsApp, para poder conciliar cada transferencia
-										con su reserva.
-									</span>
-								</label>
 							</div>
 						</AccordionSection>
 					</div>

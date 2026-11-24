@@ -46,13 +46,12 @@ const configConDatos = {
 	datosBancarios: {
 		iban: 'ES9121000418450200051332',
 		titular: 'Neverland Cúllar Vega',
-		concepto: 'NEVERLAND',
 	},
 };
 
 const configSinDatos = {
 	...configConDatos,
-	datosBancarios: { iban: '', titular: '', concepto: '' },
+	datosBancarios: { iban: '', titular: '' },
 };
 
 const reservaBase = {
@@ -243,7 +242,7 @@ describe('ReservationDetailView — estado de pago de la señal (pagoReserva)', 
 	});
 
 	describe('Botón de WhatsApp con datos bancarios', () => {
-		it('abre wa.me con importe, concepto único e IBAN', () => {
+		it('abre wa.me con importe, concepto (nombre + fecha) e IBAN', () => {
 			renderAdmin({ ...reservaBase, pagoReserva: false });
 
 			fireEvent.click(
@@ -255,9 +254,39 @@ describe('ReservationDetailView — estado de pago de la señal (pagoReserva)', 
 			expect(url).toContain('https://wa.me/612345678');
 			const mensaje = decodeURIComponent(url.split('?text=')[1]);
 			expect(mensaje).toContain('Importe: 50€');
-			expect(mensaje).toContain('NEVERLAND NAV123');
+			// El concepto se construye con el nombre del niño y la fecha de la
+			// reserva (DD/MM/YY, formato de safeDate): "Leo 15/06/27".
+			expect(mensaje).toContain('Concepto de la transferencia: "Leo 15/06/27"');
 			expect(mensaje).toContain('ES9121000418450200051332');
 			expect(mensaje).toContain('Neverland Cúllar Vega');
+		});
+
+		it('el concepto usa el nombre del niño y la fecha REAL de la reserva', () => {
+			renderAdmin({
+				...reservaBase,
+				cliente: { ...reservaBase.cliente, nombreNiño: 'Dino' },
+				fecha: '2027-09-15T00:00:00.000Z',
+				pagoReserva: false,
+			});
+
+			fireEvent.click(
+				screen.getByTitle(/Enviar al cliente los datos bancarios/i),
+			);
+
+			const mensaje = decodeURIComponent(openSpy.mock.calls[0][0].split('?text=')[1]);
+			expect(mensaje).toContain('"Dino 15/09/27"');
+		});
+
+		it('el concepto NO usa el publicId ni un prefijo configurable', () => {
+			renderAdmin({ ...reservaBase, pagoReserva: false });
+
+			fireEvent.click(
+				screen.getByTitle(/Enviar al cliente los datos bancarios/i),
+			);
+
+			const mensaje = decodeURIComponent(openSpy.mock.calls[0][0].split('?text=')[1]);
+			expect(mensaje).not.toContain('NAV123');
+			expect(mensaje).not.toContain('NEVERLAND ');
 		});
 
 		it('usa el precioTotal si es menor que 50€', () => {

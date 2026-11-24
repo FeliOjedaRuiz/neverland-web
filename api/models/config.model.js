@@ -69,12 +69,13 @@ const configSchema = new mongoose.Schema({
   // PATCH /config; NUNCA se hardcodean en el código. Vacíos por defecto: el
   // front debe tratarlos como "aún sin configurar" y avisar en vez de enviar
   // un WhatsApp con datos incompletos.
+  // El `concepto` NO se guarda aquí: el concepto de cada transferencia se
+  // construye con los datos de la reserva (nombre del niño + fecha), que es
+  // lo que permite conciliar banco↔web sin que el admin tenga que mantener
+  // un prefijo configurable.
   datosBancarios: {
     iban: { type: String, default: '' },
-    titular: { type: String, default: '' },
-    // Prefijo del concepto de transferencia (el identificador único por
-    // reserva lo añade el frontend: "<concepto> <publicId>").
-    concepto: { type: String, default: '' }
+    titular: { type: String, default: '' }
   }
 }, {
   timestamps: true,

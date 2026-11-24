@@ -32,7 +32,7 @@ module.exports.get = (req, res, next) => {
         preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, extension30: 30, extension60: 50 },
         // Datos bancarios de la señal: siempre presentes en la respuesta para
         // que el front nunca reciba `undefined` en ese bloque.
-        datosBancarios: { iban: '', titular: '', concepto: '' }
+        datosBancarios: { iban: '', titular: '' }
       };
 
       if (!config) {

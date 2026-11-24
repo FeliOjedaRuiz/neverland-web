@@ -364,6 +364,9 @@ module.exports.sendTallerConfirmationEmail = async (taller, inscripcion) => {
         .btn-gcal { display: inline-block; border: 2px solid #24635A; color: #24635A; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: 800; font-size: 14px; background: #ffffff; margin: 5px; }
         .btn-cancel { display: inline-block; background-color: #DC2626; color: #FFFFFF; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: 800; font-size: 14px; margin-top: 20px; }
         .btn-cancel:hover { background-color: #B91C1C; }
+        .payment-notice { background-color: #FDEBD0; border: 2px solid #24635A; border-radius: 16px; padding: 16px 20px; margin: 20px 0; text-align: center; }
+        .payment-notice-title { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #24635A; margin-bottom: 6px; }
+        .payment-notice-text { font-size: 14px; color: #374151; margin: 0; line-height: 1.5; }
         .footer { background-color: #F9FAFB; padding: 30px; text-align: center; font-size: 12px; color: #9CA3AF; }
       </style>
     </head>
@@ -385,7 +388,7 @@ module.exports.sendTallerConfirmationEmail = async (taller, inscripcion) => {
             Has inscrito a <span class="highlight">${inscripcion.nombreNiño}</span> en <span class="highlight">${taller.nombre}</span>.
           </p>
           <p class="message" style="font-size: 14px; margin-top: -10px;">
-            Tu plaza está confirmada. Te esperamos en Neverland para disfrutar de esta experiencia.
+            Hemos recibido tu inscripción. Te esperamos en Neverland para disfrutar de esta experiencia.
           </p>
 
           <div style="margin: 25px 0 35px 0;">
@@ -409,6 +412,20 @@ module.exports.sendTallerConfirmationEmail = async (taller, inscripcion) => {
                 <td style="text-align:right; font-weight:inherit; font-size:inherit; color:inherit;">${taller.precio}€</td>
               </tr>
             </table>
+          </div>
+
+          <!-- Aviso de pago: la plaza se confirma abonando por transferencia y
+               enviando el comprobante por WhatsApp. SIN IBAN (decisión de
+               seguridad de esta rama: los datos bancarios solo viajan por
+               WhatsApp desde el panel admin). -->
+          <div class="payment-notice">
+            <div class="payment-notice-title">💶 Aviso: para confirmar tu plaza</div>
+            <p class="payment-notice-text">
+              Tu plaza se confirma abonando el importe del taller (${taller.precio}€) por transferencia.
+              Envíanos el comprobante por WhatsApp al
+              <a href="https://wa.me/34651707985" style="color: #24635A; font-weight: bold;">651 707 985</a>
+              y la daremos por confirmada.
+            </p>
           </div>
 
           <div style="margin-top: 20px;">

@@ -16,6 +16,34 @@ const InscripcionesList = ({ inscripciones = [], aforo = 0, tallerId, onRefresh 
 	const [deleting, setDeleting] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [editForm, setEditForm] = useState({});
+	// Estado de pago por inscripción: override optimista mientras el PATCH
+	// viaja (si falla, se revierte al valor del servidor).
+	const [pagoLocal, setPagoLocal] = useState({});
+	const [togglingId, setTogglingId] = useState(null);
+
+	// ── Toggle de pago del taller (solo admin: la ruta exige secure.isAdmin) ──
+	const handleTogglePago = async (insc) => {
+		const inscId = insc._id;
+		const objetivo = !(pagoLocal[inscId] ?? !!insc.pagoTaller);
+		setTogglingId(inscId);
+		// Optimista: el switch cambia de inmediato…
+		setPagoLocal((prev) => ({ ...prev, [inscId]: objetivo }));
+		try {
+			await editarInscripcion(tallerId, inscId, { pagoTaller: objetivo });
+			toast.success(objetivo ? 'Inscripción marcada como pagada' : 'Pago del taller marcado como pendiente');
+			onRefresh();
+		} catch (err) {
+			// …y se revierte si el servidor rechaza el cambio.
+			setPagoLocal((prev) => {
+				const copia = { ...prev };
+				delete copia[inscId];
+				return copia;
+			});
+			toast.error('Error al actualizar el estado de pago');
+		} finally {
+			setTogglingId(null);
+		}
+	};
 
 	// ── Iniciar edición ──
 	const startEdit = (insc) => {
@@ -172,13 +200,48 @@ const InscripcionesList = ({ inscripciones = [], aforo = 0, tallerId, onRefresh 
 													<Mail size={10} className="shrink-0 text-gray-300" />
 													<span className="font-medium truncate">{insc.emailResponsable}</span>
 												</div>
-												<a href={whatsappLink(insc.telefonoResponsable)} target="_blank" rel="noopener noreferrer"
-													onClick={(e) => e.stopPropagation()}
-													className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-green-600 transition-colors group/wa">
-													<Phone size={10} className="shrink-0 text-gray-300 group-hover/wa:text-green-500 transition-colors" />
-													<span className="font-medium">{insc.telefonoResponsable}</span>
-													<MessageCircle size={10} className="text-green-500 opacity-50 group-hover/wa:opacity-100 transition-opacity" />
-												</a>
+												{/* Fila teléfono + switch de pago (diminuto) */}
+												<div className="flex items-center gap-2">
+													<a href={whatsappLink(insc.telefonoResponsable)} target="_blank" rel="noopener noreferrer"
+														onClick={(e) => e.stopPropagation()}
+														className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-green-600 transition-colors group/wa min-w-0">
+														<Phone size={10} className="shrink-0 text-gray-300 group-hover/wa:text-green-500 transition-colors" />
+														<span className="font-medium truncate">{insc.telefonoResponsable}</span>
+														<MessageCircle size={10} className="text-green-500 opacity-50 group-hover/wa:opacity-100 transition-opacity shrink-0" />
+													</a>
+
+													{/* Switch de pago DEL TALLER — más diminuto que el de reservas
+													    (h-3.5 w-7 vs h-5 w-9) porque aquí el espacio es escaso.
+													    Rojo = sin pagar, verde = pagado. Mismo patrón
+													    role="switch" + aria-checked que ReservationDetailView. */}
+													<button
+														type="button"
+														role="switch"
+														aria-checked={pagoLocal[insc._id] ?? !!insc.pagoTaller}
+														aria-label={`Pago del taller de ${insc.nombreNiño}`}
+														title={
+															(pagoLocal[insc._id] ?? !!insc.pagoTaller)
+																? 'Pagado. Pulsa para marcarlo como pendiente'
+																: 'Sin pagar. Pulsa para marcarlo como pagado'
+														}
+														onClick={(e) => { e.stopPropagation(); handleTogglePago(insc); }}
+														disabled={togglingId === insc._id}
+														className={`relative inline-flex h-3.5 w-7 shrink-0 items-center rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-neverland-green/60 ${
+															(pagoLocal[insc._id] ?? !!insc.pagoTaller)
+																? 'bg-neverland-green'
+																: 'bg-red-500'
+														} ${togglingId === insc._id ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+													>
+														<span
+															aria-hidden="true"
+															className={`pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
+																(pagoLocal[insc._id] ?? !!insc.pagoTaller)
+																	? 'translate-x-3.5'
+																	: 'translate-x-0.5'
+															}`}
+														/>
+													</button>
+												</div>
 											</div>
 										</motion.div>
 									)}

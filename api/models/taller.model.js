@@ -8,7 +8,16 @@ const inscripcionSchema = new mongoose.Schema({
   emailResponsable: { type: String, required: true },
   privacyPolicyConsent: { type: Boolean, required: true },
   marketingConsent: { type: Boolean, default: false },
-  fechaConsentimiento: { type: Date, default: Date.now }
+  fechaConsentimiento: { type: Date, default: Date.now },
+  // Estado de pago del taller (transferencia del importe total). El admin lo
+  // marca desde el panel tras verificar la transferencia en su banco; los
+  // clientes no pueden escribirlo (ver guard en talleres.editarInscripcion).
+  // Las inscripciones antiguas sin el campo hidratan `false` por el default
+  // de Mongoose: NO hace falta migración de datos.
+  pagoTaller: { type: Boolean, default: false },
+  // Derivada de `pagoTaller`: SOLO el servidor la estampa (al pasar a true)
+  // y la limpia (al volver a false). Nunca se acepta desde el payload.
+  pagoTallerFecha: { type: Date }
 }, { timestamps: true });
 
 const tallerSchema = new mongoose.Schema({

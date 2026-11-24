@@ -331,9 +331,11 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 		}
 	};
 
-	// Abre WhatsApp con los datos bancarios y el concepto ÚNICO de esta
-	// reserva (prefijo de Config + publicId) para que el cliente pueda
-	// transferir y el admin concilie banco↔web.
+	// Abre WhatsApp con los datos bancarios y el concepto de esta reserva
+	// para que el cliente pueda transferir y el admin concilie banco↔web.
+	// El concepto se construye con los datos de la reserva (nombre del niño +
+	// fecha): es legible para el cliente y único por reserva, que es lo que
+	// permite distinguir un pago real de una transferencia ajena.
 	const handleWhatsAppSenal = () => {
 		try {
 			const datos = config?.datosBancarios;
@@ -356,14 +358,28 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 				return;
 			}
 
-			const concepto = `${(datos.concepto || 'NEVERLAND').toUpperCase()} ${reservation.publicId}`;
+			// Concepto de la transferencia: "<Nombre del niño> <DD/MM/YY>".
+			// Se usa `formatSafeDate` (no `new Date(string)`) por el problema
+			// de parseo de Safari con "YYYY-MM-DD".
+			const nombre = (reservation.cliente?.nombreNiño || '').trim();
+			const fecha = formatSafeDate(reservation.fecha);
+
+			const concepto = [nombre, fecha].filter(Boolean).join(' ');
+
+			if (!concepto) {
+				toast.error('No se puede construir el concepto: faltan el nombre del niño o la fecha de la reserva');
+				return;
+			}
+
 			const mensaje = [
 				`Hola ${reservation.cliente?.nombrePadre || ''}, le envío los datos para la señal de tu reserva:`,
 				'',
 				`Importe: ${importe}€`,
-				`Concepto: ${concepto} (imprescindible para identificar tu pago)`,
+				`Concepto de la transferencia: "${concepto}"`,
 				`IBAN: ${datos.iban}`,
 				`Titular: ${datos.titular}`,
+				'',
+				'Es importante que indiques ese concepto en la transferencia para que podamos identificar tu pago.',
 			].join('\n');
 
 			window.open(
