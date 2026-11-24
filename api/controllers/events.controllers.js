@@ -462,7 +462,20 @@ module.exports.detail = async (req, res, next) => {
 
 module.exports.publicDetail = async (req, res, next) => {
   try {
-    const event = await Event.findById(req.params.id);
+    // El enlace público "/mi-reserva/<id>" puede llevar dos formatos:
+    //  - el `publicId` corto (6 caracteres) que se muestra al cliente, o
+    //  - el ObjectId de Mongo que ya se ha compartido en enlaces antiguos.
+    // `findById` solo entiende el segundo: con un `publicId` lanzaba CastError
+    // y el handler global lo convertia en 404, dejando el enlace del cliente
+    // sin funcionar. Se resuelve primero por `publicId` y, si el valor parece
+    // un ObjectId, se cae a `findById`.
+    const rawId = String(req.params.id);
+    const looksLikeObjectId = /^[a-f\d]{24}$/i.test(rawId);
+
+    const event = looksLikeObjectId
+      ? await Event.findById(rawId)
+      : await Event.findOne({ publicId: rawId });
+
     if (!event) return next(createError(404, 'Reserva no encontrada'));
 
     // We only return public-safe fields (matching what the frontend needs)
