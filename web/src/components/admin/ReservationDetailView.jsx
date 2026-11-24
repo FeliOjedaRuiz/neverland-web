@@ -2117,6 +2117,7 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 						(p) => p.nombre === name || p.id === name,
 					);
 					return {
+						id: configItem?.id,
 						item: name,
 						cantidad: qty,
 						precioUnitario: configItem?.precio || 0,
@@ -2139,7 +2140,7 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 		} else {
 			setAdultosList([
 				...adultosList,
-				{ item: item.nombre, cantidad: 1, precioUnitario: item.precio },
+				{ id: item.id, item: item.nombre, cantidad: 1, precioUnitario: item.precio },
 			]);
 		}
 	};
@@ -2420,7 +2421,7 @@ const MenusEdit = ({ current, config, onCancel, onSave }) => {
 };
 
 // Sub-component for Extras Edit
-const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
+export const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 	// Initialize with talleres array (handle legacy taller string conversion)
 	const initialFormData = { ...current };
 	if (!Array.isArray(initialFormData.talleres)) {
@@ -2821,9 +2822,9 @@ const ExtrasEdit = ({ current, ninosCantidad, config, onCancel, onSave }) => {
 									{(formData.personajes.length || 0)}×{unitPrice}€ = {displayPrice}€
 								</span>
 							)}
-							{personajesChanged && originalSnapshot > 0 && (
+							{personajesChanged && originalPersonajeSnapshot > 0 && (
 								<span className="text-[9px] font-bold text-gray-400 italic">
-									Antes: {originalSnapshot}€
+									Antes: {originalPersonajeSnapshot}€
 								</span>
 							)}
 						</div>
