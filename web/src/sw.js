@@ -7,6 +7,7 @@
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
 import { NetworkFirst, CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { ExpirationPlugin } from 'workbox-expiration';
 
 // 1. Precache de assets estáticos (inyectado por Vite PWA en build)
 precacheAndRoute(self.__WB_MANIFEST);
@@ -20,15 +21,42 @@ registerRoute(
 );
 
 // API calls — Network First (datos dinámicos, con fallback a caché)
+// La caché de la API está ACOTADA a propósito: sin `ExpirationPlugin`, cada
+// respuesta 200 de /api/ (config, disponibilidad, detalle de cada reserva)
+// se guardaba para siempre y `cache.put()` terminaba lanzando
+// `QuotaExceededError` (unhandled rejection en el SW) al agotarse la cuota
+// del navegador. `maxEntries` + `maxAgeSeconds` acotan el crecimiento y
+// `purgeOnQuotaError` evita que un fallo de cuota tumbe la app.
 registerRoute(
 	({ url }) => url.pathname.startsWith('/api/'),
-	new NetworkFirst({ cacheName: 'api-cache' })
+	new NetworkFirst({
+		cacheName: 'api-cache',
+		plugins: [
+			new ExpirationPlugin({
+				maxEntries: 50,
+				maxAgeSeconds: 24 * 60 * 60, // 24 horas
+				purgeOnQuotaError: true,
+			}),
+		],
+	})
 );
 
 // Assets de Cloudinary — Stale While Revalidate
+// También acotada: las imágenes transformadas de Cloudinary son lo que más
+// bytes aporta a la Cache Storage, y sin límites acababan agotando la cuota
+// del navegador (QuotaExceededError en el SW).
 registerRoute(
 	({ url }) => url.origin === 'https://res.cloudinary.com',
-	new StaleWhileRevalidate({ cacheName: 'cloudinary-images' })
+	new StaleWhileRevalidate({
+		cacheName: 'cloudinary-images',
+		plugins: [
+			new ExpirationPlugin({
+				maxEntries: 60,
+				maxAgeSeconds: 30 * 24 * 60 * 60, // 30 días
+				purgeOnQuotaError: true,
+			}),
+		],
+	})
 );
 
 // 3. Push Notifications — Listener para mostrar la notificación
