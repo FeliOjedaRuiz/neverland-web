@@ -28,6 +28,10 @@ jobs:
         working-directory: web
         run: npm ci
 
+      - name: Run Frontend Lint (ESLint)
+        working-directory: web
+        run: npm run lint
+
       - name: Run Frontend Tests (Vitest)
         working-directory: web
         run: npm run test:run

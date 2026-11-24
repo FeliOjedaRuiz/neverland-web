@@ -59,11 +59,11 @@ export const uploadConfigImage = (file) => {
   });
 };
 
-// Workshops (actividades extras para cumpleaños — config)
-export const getWorkshops = () => api.get('/workshops');
-export const createWorkshop = (data) => api.post('/workshops', data);
-export const updateWorkshop = (id, data) => api.patch(`/workshops/${id}`, data);
-export const deleteWorkshop = (id) => api.delete(`/workshops/${id}`);
+// NOTA: las actividades del config (`config.workshops`) NO tienen endpoint propio:
+// se gestionan desde `PATCH /config`. El backend expone los "talleres" (sesiones
+// independientes) bajo /talleres. Antes existían aquí helpers contra /workshops*,
+// ruta que nunca estuvo registrada en la API y que solo podía producir
+// 404 "Route not found".
 
 // Talleres (sesiones programadas independientes)
 export const getTalleres = (params) => api.get('/talleres', { params }); // Admin: todos
