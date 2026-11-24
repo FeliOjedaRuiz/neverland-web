@@ -21,6 +21,7 @@ import {
 	Calendar,
 	Gift,
 	AlertTriangle,
+	Banknote,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useOutletContext } from 'react-router-dom';
@@ -116,6 +117,7 @@ const ConfigurationPanel = () => {
 		characters: false,
 		extrasCatalogo: false,
 		others: false,
+		bank: false,
 	});
 	const [uploadingId, setUploadingId] = useState(null);
 	const [editingWorkshopIdx, setEditingWorkshopIdx] = useState(null);
@@ -379,6 +381,12 @@ const ConfigurationPanel = () => {
 			return (
 				JSON.stringify(config.characters) !==
 				JSON.stringify(originalConfig.characters)
+			);
+		}
+		if (section === 'bank') {
+			return (
+				JSON.stringify(config.datosBancarios || {}) !==
+				JSON.stringify(originalConfig.datosBancarios || {})
 			);
 		}
 		return false;
@@ -1818,6 +1826,110 @@ const ConfigurationPanel = () => {
 											</div>
 										</div>
 									))}
+							</div>
+						</AccordionSection>
+
+						{/* Datos Bancarios (señal de reserva) */}
+						<AccordionSection
+							title="Datos Bancarios"
+							subtitle="Señal de Reserva"
+							icon={Banknote}
+							color="border-l-neverland-green"
+							isOpen={openSections.bank}
+							onToggle={() => toggleSection('bank')}
+							action={
+								<button
+									onClick={(e) => {
+										e.stopPropagation();
+										handleSave();
+									}}
+									className={`p-2 rounded-xl transition-all ${
+										hasChanges('bank')
+											? 'text-neverland-green bg-neverland-green/10 hover:bg-neverland-green/20'
+											: 'text-gray-300 hover:text-gray-400'
+									}`}
+									title="Guardar Cambios"
+								>
+									<Save size={20} />
+								</button>
+							}
+						>
+							<div className="py-2 space-y-4">
+								<p className="text-xs text-gray-500 leading-relaxed">
+									Estos datos se usan para enviar al cliente los datos de la
+									transferencia de la señal (50€) mediante el botón de WhatsApp
+									del detalle de reserva. No se muestran públicamente en la web.
+								</p>
+
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<label className="flex flex-col gap-1 p-4 bg-gray-50/50 rounded-2xl border border-gray-50">
+										<span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter ml-0.5">
+											IBAN
+										</span>
+										<input
+											type="text"
+											value={config.datosBancarios?.iban || ''}
+											onChange={(e) =>
+												setConfig({
+													...config,
+													datosBancarios: {
+														...(config.datosBancarios || {}),
+														iban: e.target.value,
+													},
+												})
+											}
+											placeholder="ES00 0000 0000 0000 0000 0000"
+											className="w-full bg-transparent p-0 text-lg font-display font-black text-text-black outline-none border-none ring-0 placeholder:text-gray-300 placeholder:font-bold"
+										/>
+									</label>
+
+									<label className="flex flex-col gap-1 p-4 bg-gray-50/50 rounded-2xl border border-gray-50">
+										<span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter ml-0.5">
+											Titular de la cuenta
+										</span>
+										<input
+											type="text"
+											value={config.datosBancarios?.titular || ''}
+											onChange={(e) =>
+												setConfig({
+													...config,
+													datosBancarios: {
+														...(config.datosBancarios || {}),
+														titular: e.target.value,
+													},
+												})
+											}
+											placeholder="Nombre o razón social"
+											className="w-full bg-transparent p-0 text-lg font-display font-black text-text-black outline-none border-none ring-0 placeholder:text-gray-300 placeholder:font-bold"
+										/>
+									</label>
+								</div>
+
+								<label className="flex flex-col gap-1 p-4 bg-gray-50/50 rounded-2xl border border-gray-50">
+									<span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter ml-0.5">
+										Concepto de la transferencia
+									</span>
+									<input
+										type="text"
+										value={config.datosBancarios?.concepto || ''}
+										onChange={(e) =>
+											setConfig({
+												...config,
+												datosBancarios: {
+													...(config.datosBancarios || {}),
+													concepto: e.target.value,
+												},
+											})
+										}
+										placeholder="Neverland - Señal de reserva"
+										className="w-full bg-transparent p-0 text-lg font-display font-black text-text-black outline-none border-none ring-0 placeholder:text-gray-300 placeholder:font-bold"
+									/>
+									<span className="text-[10px] text-gray-400 leading-relaxed">
+										Se antepone al identificador de cada reserva al enviar el
+										mensaje de WhatsApp, para poder conciliar cada transferencia
+										con su reserva.
+									</span>
+								</label>
 							</div>
 						</AccordionSection>
 					</div>

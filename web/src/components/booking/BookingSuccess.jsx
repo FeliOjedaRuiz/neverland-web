@@ -14,6 +14,15 @@ const BookingSuccess = ({ formData, createdId, getExtendedTime }) => {
 	}
 	const clientName = formData?.cliente?.nombrePadre || 'Cliente';
 
+	// Señal estándar de 50€ (o el total si es menor). `formData.precioTotal`
+	// solo está presente si la página que renderiza este componente lo incluye
+	// en el state; sin él se asume 50€. Si el total existe y es 0, la reserva
+	// no es pagable y NO se muestra el aviso.
+	const precioTotal = formData?.precioTotal;
+	const importeSenal = Number.isFinite(precioTotal)
+		? Math.min(50, precioTotal)
+		: 50;
+
 	let formattedDate = '';
 	try {
 		formattedDate = formatSafeDate(reservationDate);
@@ -60,6 +69,15 @@ const BookingSuccess = ({ formData, createdId, getExtendedTime }) => {
 						{createdId || '---'}
 					</span>
 				</div>
+				{importeSenal > 0 && (
+					<div className="bg-energy-orange/10 border border-energy-orange/20 p-4 rounded-2xl">
+						<p className="text-energy-orange font-bold text-sm">
+							💶 Recuerda que para que tu reserva sea confirmada, debes
+							hacer una transferencia de {importeSenal}€ en concepto de
+							reserva
+						</p>
+					</div>
+				)}
 				<div className="bg-neverland-green/5 border border-neverland-green/10 p-4 rounded-2xl">
 					<p className="text-neverland-green font-bold text-sm mb-1">
 						📧 Revisa tu correo

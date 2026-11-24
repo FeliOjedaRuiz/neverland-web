@@ -475,6 +475,11 @@ module.exports.publicDetail = async (req, res, next) => {
       estado: event.estado,
       precioTotal: event.precioTotal,
       horario: event.horario,
+      // El cliente necesita ver si la señal está pagada (p. ej. para saber si
+      // debe transferir o ya quedó resuelta), pero NO se expone
+      // `pagoReservaFecha`: es un dato interno de conciliación banco↔web que
+      // solo interesa al admin y se sirve en GET /events/:id (admin-only).
+      pagoReserva: event.pagoReserva,
       cliente: {
         nombreNiño: event.cliente.nombreNiño,
         edadNiño: event.cliente.edadNiño,
@@ -555,6 +560,23 @@ module.exports.update = async (req, res, next) => {
       // 1. Clients cannot change status
       if (req.body.estado && req.body.estado !== event.estado) {
         throw createError(403, 'No tienes permiso para cambiar el estado de la reserva');
+      }
+
+      // 1b. Clients cannot change the payment status either. Mismo patrón que
+      // `estado`, con dos matices porque es un booleano: se comprueba
+      // `!== undefined` (no truthiness, porque `false` también es un intento
+      // de cambio) y solo se bloquea si realmente CAMBIA el valor — reenviar
+      // el mismo valor (PWA cacheada) no debe romper nada.
+      if (req.body.pagoReserva !== undefined && req.body.pagoReserva !== event.pagoReserva) {
+        throw createError(403, 'No tienes permiso para cambiar el estado de pago de la reserva');
+      }
+
+      // 1c. `pagoReservaFecha` es un campo derivado que solo estampa el
+      // servidor al cambiar el booleano (arriba): un cliente no debe poder
+      // escribirla, ni para falsificar la conciliación banco↔web. Los clientes
+      // legítimos no la envían nunca porque el payload público no la incluye.
+      if (req.body.pagoReservaFecha !== undefined && req.body.pagoReservaFecha !== null) {
+        throw createError(403, 'No tienes permiso para modificar la fecha de pago');
       }
 
       // 2. 72h window check with shift-precision
@@ -733,7 +755,24 @@ module.exports.update = async (req, res, next) => {
       await validateEventData({ tipo: event.tipo, cliente: { ...event.cliente, ...req.body.cliente } });
     }
 
+    // `pagoReservaFecha` es un DERIVADO de `pagoReserva`: SOLO el servidor la
+    // estampa. Se elimina del payload ANTES de `event.set` para que ningún
+    // request (ni siquiera de un admin) pueda fijar una fecha arbitraria: la
+    // fecha de conciliación banco↔web tiene que ser fiable.
+    // Para los clientes, el guard 1c de arriba ya devuelve 403; aquí se cubre
+    // el caso del admin, que es de fiar pero podría estampar una fecha a mano.
+    delete req.body.pagoReservaFecha;
+
     event.set(req.body);
+
+    // Al marcar pagado se estampa "ahora"; al desmarcar se limpia para no
+    // dejar la fecha de un pago anterior.
+    // Este campo vive en la RAÍZ del schema, por lo que no toca `detalles`,
+    // `fecha`, `turno` ni `horario`: el recálculo de `precioTotal` de abajo
+    // NO se dispara al togglear el pago (cubierto en pago-reserva.test.js).
+    if (event.isModified('pagoReserva')) {
+      event.pagoReservaFecha = event.pagoReserva ? getSafeNow() : undefined;
+    }
 
     if (event.isModified('detalles') || event.isModified('fecha') || event.isModified('turno') || event.isModified('horario')) {
       const eventData = event.toObject();

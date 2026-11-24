@@ -114,4 +114,59 @@ describe('BookingSuccess Component', () => {
 		expect(styleTag).toBeDefined();
 		expect(styleTag.textContent).toContain('successBounce');
 	});
+
+	// === TESTS DE LA SEÑAL DE RESERVA (50€) ===
+
+	it('debería mostrar el aviso de la transferencia de 50€ por defecto', () => {
+		render(
+			<BookingSuccess
+				formData={mockFormData}
+				createdId="NAV-12345"
+				getExtendedTime={() => '17:00 - 19:30'}
+			/>,
+		);
+
+		expect(
+			screen.getByText(/transferencia de 50€ en concepto de reserva/i),
+		).toBeDefined();
+	});
+
+	it('NO debería mostrar el aviso si el precioTotal es 0 (reserva no pagable)', () => {
+		render(
+			<BookingSuccess
+				formData={{ ...mockFormData, precioTotal: 0 }}
+				createdId="NAV-12345"
+				getExtendedTime={() => '17:00 - 19:30'}
+			/>,
+		);
+
+		expect(screen.queryByText(/transferencia de/i)).toBeNull();
+	});
+
+	it('debería usar el precioTotal si es menor que 50€', () => {
+		render(
+			<BookingSuccess
+				formData={{ ...mockFormData, precioTotal: 30 }}
+				createdId="NAV-12345"
+				getExtendedTime={() => '17:00 - 19:30'}
+			/>,
+		);
+
+		expect(
+			screen.getByText(/transferencia de 30€ en concepto de reserva/i),
+		).toBeDefined();
+	});
+
+	it('NO incluye el IBAN en la pantalla de éxito (seguridad: solo por WhatsApp desde el panel admin)', () => {
+		const { container } = render(
+			<BookingSuccess
+				formData={mockFormData}
+				createdId="NAV-12345"
+				getExtendedTime={() => '17:00 - 19:30'}
+			/>,
+		);
+
+		expect(container.textContent).not.toMatch(/IBAN/i);
+		expect(container.textContent).not.toMatch(/ES\d{2}/);
+	});
 });

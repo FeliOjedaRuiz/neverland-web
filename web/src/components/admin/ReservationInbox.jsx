@@ -4,6 +4,8 @@ import {
 	MessageCircle,
 	Loader2,
 	Calendar as CalendarIcon,
+	CheckCircle2,
+	XCircle,
 	ChevronLeft,
 	ChevronRight,
 	Clock,
@@ -279,6 +281,39 @@ const ReservationInbox = () => {
 													: item.turno === 'T2'
 														? '18:00 - 20:00'
 														: '19:15 - 21:15'}
+										</div>
+										{/* Estado de pago de la señal: solo lectura aquí
+                                            (el toggle vive en el detalle de la reserva) */}
+										<div
+											role="img"
+											aria-label={
+												item.pagoReserva
+													? 'Señal de reserva pagada'
+													: 'Señal de reserva no pagada'
+											}
+											title={
+												item.pagoReserva
+													? 'Señal de reserva pagada'
+													: 'Señal de reserva no pagada'
+											}
+											className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase border bg-white border-gray-100"
+										>
+											{item.pagoReserva ? (
+												<>
+													<CheckCircle2
+														size={12}
+														className="text-emerald-500"
+													/>
+													<span className="text-emerald-600">
+														Pagada
+													</span>
+												</>
+											) : (
+												<>
+													<XCircle size={12} className="text-red-400" />
+													<span className="text-red-400">Sin pagar</span>
+												</>
+											)}
 										</div>
 									</div>
 

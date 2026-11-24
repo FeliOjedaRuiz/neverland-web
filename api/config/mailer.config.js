@@ -120,6 +120,11 @@ ${publicUrl}
   // Preparamos el texto del taller/lista de actividades
   const { label: actividadLabel, total: actividadTotal, nombres: actividadNombres } = tallerText(detalles.extras);
 
+  // Aviso de la señal de reserva: 50€ fijos, o el total si es menor.
+  // SIN IBAN aquí (decisión de seguridad): los datos bancarios solo viajan
+  // por WhatsApp desde el panel admin. Si el total es 0 no hay señal.
+  const senalImporte = Number.isFinite(precioTotal) ? Math.min(50, precioTotal) : 50;
+
   const html = `
     <!DOCTYPE html>
     <html lang="es">
@@ -145,6 +150,9 @@ ${publicUrl}
         .summary-value { color: #111827; font-weight: 600; text-align: right; margin-left: 10px; }
         .footer { background-color: #F9FAFB; padding: 30px; text-align: center; font-size: 12px; color: #9CA3AF; }
         .total-row { border-top: 1px solid #E5E7EB; margin-top: 15px; padding-top: 15px; font-weight: 800; font-size: 18px; color: #10B981; }
+        .payment-notice { background-color: #FDEBD0; border: 2px solid #24635A; border-radius: 16px; padding: 16px 20px; margin: 20px 0; text-align: center; }
+        .payment-notice-title { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #24635A; margin-bottom: 6px; }
+        .payment-notice-text { font-size: 14px; color: #374151; margin: 0; line-height: 1.5; }
       </style>
     </head>
     <body>
@@ -179,6 +187,12 @@ ${publicUrl}
               </p>
             </div>
           </div>
+
+          ${senalImporte > 0 ? `
+          <div class="payment-notice">
+            <div class="payment-notice-title">💶 Aviso: señal de reserva</div>
+            <p class="payment-notice-text">Recuerda que para que tu reserva sea confirmada, debes hacer una transferencia de ${senalImporte}€ en concepto de reserva.</p>
+          </div>` : ''}
 
           <div style="margin: 25px 0 35px 0;">
              <a href="${googleCalendarUrl}" target="_blank" style="display: inline-block; border: 2px solid #24635A; color: #24635A; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: 800; font-size: 14px; background: #ffffff;">🗓️ Añadir a Google Calendar</a>

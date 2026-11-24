@@ -21,6 +21,8 @@ import {
 	Trash2,
 	ChevronRight,
 	CheckCircle,
+	CheckCircle2,
+	XCircle,
 	Pizza,
 	Mail,
 	MessageSquare,
@@ -66,6 +68,8 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 	const [loading, setLoading] = useState(!propReservation);
 	const [noEncontrada, setNoEncontrada] = useState(false);
 	const [showConfirmSuccessModal, setShowConfirmSuccessModal] = useState(false);
+	const [showPagoConfirm, setShowPagoConfirm] = useState(false);
+	const [pagoObjetivo, setPagoObjetivo] = useState(false);
 
 	const isAdmin = React.useMemo(
 		() =>
@@ -86,26 +90,28 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 	// --- Modal Navigation Handling (Back button to close modal) ---
 	useEffect(() => {
 		const handlePopState = () => {
-			if (activeModal || showDeleteConfirm) {
+			if (activeModal || showDeleteConfirm || showPagoConfirm) {
 				// Don't call history.back() here as we are ALREADY going back
 				setActiveModal(null);
 				setShowDeleteConfirm(false);
+				setShowPagoConfirm(false);
 			}
 		};
 
-		if (activeModal || showDeleteConfirm) {
+		if (activeModal || showDeleteConfirm || showPagoConfirm) {
 			window.history.pushState({ isModal: true }, '');
 			window.addEventListener('popstate', handlePopState);
 		}
 
 		return () => window.removeEventListener('popstate', handlePopState);
-	}, [activeModal, showDeleteConfirm]);
+	}, [activeModal, showDeleteConfirm, showPagoConfirm]);
 
 	const closeModals = () => {
-		if (activeModal || showDeleteConfirm || showConfirmSuccessModal) {
+		if (activeModal || showDeleteConfirm || showConfirmSuccessModal || showPagoConfirm) {
 			setActiveModal(null);
 			setShowDeleteConfirm(false);
 			setShowConfirmSuccessModal(false);
+			setShowPagoConfirm(false);
 			// If we manually close and the current state is the modal state, go back to clean up history
 			if (window.history.state?.isModal) {
 				window.history.back();
@@ -288,6 +294,85 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 			toast.error('Error al eliminar la reserva');
 			setShowDeleteConfirm(false);
 			setIsUpdating(false);
+		}
+	};
+
+	// --- Pago de la señal (estado INDEPENDIENTE de `estado`) ---
+	// El switch solo ABRE el modal de confirmación; el PATCH se dispara
+	// únicamente tras confirmar (handlePagoConfirm).
+	const handlePagoClick = () => {
+		setPagoObjetivo(!reservation.pagoReserva);
+		setShowPagoConfirm(true);
+	};
+
+	const handlePagoConfirm = async () => {
+		setIsUpdating(true);
+		try {
+			const res = await updateReservation(reservation.id, {
+				pagoReserva: pagoObjetivo,
+			});
+			if (res.data) {
+				setReservation(res.data);
+				toast.success(
+					pagoObjetivo
+						? 'Reserva marcada como pagada'
+						: 'Pago de la señal marcado como pendiente',
+				);
+			}
+			setShowPagoConfirm(false);
+			if (window.history.state?.isModal) {
+				window.history.back();
+			}
+		} catch (err) {
+			console.error('Error updating payment status:', err);
+			toast.error('Error al actualizar el estado de pago');
+		} finally {
+			setIsUpdating(false);
+		}
+	};
+
+	// Abre WhatsApp con los datos bancarios y el concepto ÚNICO de esta
+	// reserva (prefijo de Config + publicId) para que el cliente pueda
+	// transferir y el admin concilie banco↔web.
+	const handleWhatsAppSenal = () => {
+		try {
+			const datos = config?.datosBancarios;
+			const telefono = String(reservation.cliente?.telefono || '').replace(/\D/g, '');
+			const precioTotal = reservation.precioTotal;
+			// Señal de 50€, o el total si es menor. Si el total es 0 o no
+			// existe la reserva no es pagable: no se envía nada.
+			const importe = Number.isFinite(precioTotal) ? Math.min(50, precioTotal) : 0;
+
+			if (importe <= 0) {
+				toast.error('Esta reserva no tiene importe asociado: no hay señal que solicitar');
+				return;
+			}
+			if (!datos?.iban || !datos?.titular) {
+				toast.error('Faltan los datos bancarios en Config: añade IBAN y titular antes de enviar la señal');
+				return;
+			}
+			if (!telefono) {
+				toast.error('Esta reserva no tiene teléfono de contacto para enviar el WhatsApp');
+				return;
+			}
+
+			const concepto = `${(datos.concepto || 'NEVERLAND').toUpperCase()} ${reservation.publicId}`;
+			const mensaje = [
+				`Hola ${reservation.cliente?.nombrePadre || ''}, le envío los datos para la señal de tu reserva:`,
+				'',
+				`Importe: ${importe}€`,
+				`Concepto: ${concepto} (imprescindible para identificar tu pago)`,
+				`IBAN: ${datos.iban}`,
+				`Titular: ${datos.titular}`,
+			].join('\n');
+
+			window.open(
+				`https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`,
+				'_blank',
+			);
+		} catch (err) {
+			console.error('Error opening WhatsApp for senal:', err);
+			toast.error('No se pudo abrir WhatsApp');
 		}
 	};
 
@@ -489,6 +574,53 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 					</div>
 				)}
 
+				{/* Modal de Confirmación de Pago de la Señal */}
+				{showPagoConfirm && (
+					<div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all animate-in fade-in duration-200">
+						<div className="bg-white w-full max-w-sm rounded-[32px] p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+							<div
+								className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 ${
+									pagoObjetivo
+										? 'bg-neverland-green/10 text-neverland-green'
+										: 'bg-red-50 text-red-500'
+								}`}
+							>
+								{pagoObjetivo ? (
+									<CheckCircle2 size={32} />
+								) : (
+									<XCircle size={32} />
+								)}
+							</div>
+							<h3 className="text-xl font-display font-black text-text-black text-center mb-2">
+								{pagoObjetivo
+									? '¿Marcar como pagado?'
+									: '¿Marcar como no pagado?'}
+							</h3>
+							<p className="text-gray-500 text-sm text-center mb-8 px-2">
+								{pagoObjetivo
+									? 'Confirma que has verificado la transferencia en tu banco. Se registrará la fecha de pago de esta reserva.'
+									: 'El pago de la señal quedará como pendiente y se borrará la fecha de pago registrada.'}
+							</p>
+							<div className="flex flex-col gap-3">
+								<button
+									onClick={handlePagoConfirm}
+									disabled={isUpdating}
+									className="w-full py-4 bg-neverland-green hover:bg-neverland-green/90 text-white rounded-2xl font-black text-sm shadow-lg shadow-neverland-green/20 transition-all active:scale-95"
+								>
+									{isUpdating ? 'Guardando...' : 'Confirmar'}
+								</button>
+								<button
+									onClick={closeModals}
+									disabled={isUpdating}
+									className="w-full py-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl font-black text-sm transition-all active:scale-95"
+								>
+									Cancelar
+								</button>
+							</div>
+						</div>
+					</div>
+				)}
+
 				{/* Header con fondo verde */}
 				<div className="flex items-center gap-3 p-4 bg-neverland-green text-white shrink-0 relative z-20">
 					<div className="flex-1 min-w-0">
@@ -505,20 +637,21 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 							ID: {reservation.publicId}
 						</p>
 
-						{/* Fila 3: Fecha + Turno + Horario + Boton Estado */}
-						<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-							<div className="flex items-center gap-2 text-[11px] font-black">
-								<span className="opacity-90">
-									{formatDate(reservation.fecha, 'short')}
-								</span>
-								<span className="text-white/40 bg-white/10 px-1 rounded text-[9px]">
-									{reservation.turno}
-								</span>
-								<span className="opacity-95 text-[11px]">
-									{getTurnoLabel(reservation.turno, reservation.horario)}
-								</span>
-							</div>
+						{/* Fila 3: Fecha + Turno + Horario (enfatizado) */}
+						<div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3">
+							<span className="text-base sm:text-lg font-black opacity-95 tracking-tight">
+								{formatDate(reservation.fecha, 'short')}
+							</span>
+							<span className="text-white/50 bg-white/15 px-2 py-0.5 rounded-lg text-[11px] font-black">
+								{reservation.turno}
+							</span>
+							<span className="text-base sm:text-lg font-black opacity-95 tracking-tight">
+								{getTurnoLabel(reservation.turno, reservation.horario)}
+							</span>
+						</div>
 
+						{/* Fila 4: Estado de la reserva + Estado de pago + IBAN */}
+						<div className="flex flex-wrap items-center gap-x-2 gap-y-2">
 							<div className="relative">
 								{isAdmin ? (
 									<>
@@ -599,6 +732,95 @@ const ReservationDetailView = ({ reservation: propReservation }) => {
 										Estado: {reservation.estado}
 									</div>
 								)}
+							</div>
+
+							{/* Botón de WhatsApp con los datos bancarios de la señal */}
+							{isAdmin && (
+								<button
+									type="button"
+									onClick={handleWhatsAppSenal}
+									disabled={isUpdating}
+									className="flex items-center gap-1.5 px-2.5 py-1 rounded-2xl text-[9px] font-black uppercase bg-[#25D366] hover:bg-[#128C7E] text-white transition-all active:scale-95 shadow-md shadow-green-900/20 shrink-0"
+									title="Enviar al cliente los datos bancarios y el concepto para pagar la señal"
+								>
+									{/* Icono oficial de WhatsApp (mismo SVG que usa el
+									    resto del panel admin) */}
+									<svg
+										viewBox="0 0 24 24"
+										className="w-3 h-3 fill-current shrink-0"
+										aria-hidden="true"
+									>
+										<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884a9.81 9.81 0 017.008 2.895 9.835 9.835 0 012.876 7.003c-.001 5.45-4.437 9.884-9.885 9.884m8.413-18.293A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+									</svg>
+									IBAN
+								</button>
+							)}
+
+							{/* Estado de pago de la señal (independiente de `estado`).
+							    Admin: switch clásico (palanca) + badge de estado a su
+							    derecha. El switch abre el modal de confirmación antes
+							    del PATCH. Visitante: solo el badge informativo. */}
+							<div className="flex items-center gap-2 shrink-0">
+								{/* Switch clásico — solo admin */}
+								{isAdmin && (
+									<button
+										type="button"
+										role="switch"
+										aria-checked={!!reservation.pagoReserva}
+										aria-disabled={isUpdating}
+										aria-label="Marcar la señal de reserva como pagada"
+										title={
+											reservation.pagoReserva
+												? 'Señal pagada. Pulsa para marcarla como no pagada'
+												: 'Señal no pagada. Pulsa para marcarla como pagada'
+										}
+										onClick={handlePagoClick}
+										disabled={isUpdating}
+										className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
+											reservation.pagoReserva
+												? 'bg-emerald-400'
+												: 'bg-white/25'
+										} ${isUpdating ? 'opacity-60 cursor-not-allowed' : ''}`}
+									>
+										<span
+											aria-hidden="true"
+											className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+												reservation.pagoReserva
+													? 'translate-x-4'
+													: 'translate-x-0'
+											}`}
+										/>
+									</button>
+								)}
+
+								{/* Badge de estado — visible para admin y visitante */}
+								<div
+									role="img"
+									aria-label={
+										reservation.pagoReserva
+											? 'Señal de reserva pagada'
+											: 'Señal de reserva no pagada'
+									}
+									title={
+										reservation.pagoReserva
+											? 'Señal de reserva pagada'
+											: 'Señal de reserva no pagada'
+									}
+									className={`flex items-center gap-1.5 px-2.5 py-1 rounded-2xl text-[9px] font-black uppercase shrink-0 border ${
+										reservation.pagoReserva
+											? 'bg-emerald-400/20 text-emerald-200 border-emerald-400/40'
+											: 'bg-red-400/20 text-red-200 border-red-400/40'
+									}`}
+								>
+									{reservation.pagoReserva ? (
+										<CheckCircle2 size={12} className="text-emerald-300" />
+									) : (
+										<XCircle size={12} className="text-red-300" />
+									)}
+									<span>
+										{reservation.pagoReserva ? 'Pagada' : 'Sin pagar'}
+									</span>
+								</div>
 							</div>
 						</div>
 

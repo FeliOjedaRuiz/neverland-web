@@ -110,6 +110,18 @@ const eventSchema = new mongoose.Schema({
 
   // Finanzas y Sincronización
   precioTotal: { type: Number, default: 0 },
+
+  // --- Señal de reserva (50€) ---
+  // Estado de pago INDEPENDIENTE de `estado`: una reserva confirmada puede
+  // estar aún sin señar y una reserva pendiente puede haberse pagado ya.
+  // Nombre NEUTRO (no "transferencia"/"bizum"): hoy lo marca el admin a mano
+  // tras verificar la transferencia en su banco; más adelante Stripe podrá
+  // escribir este mismo campo (p. ej. desde un webhook) sin migrar datos.
+  pagoReserva: { type: Boolean, default: false },
+  // Instante en el que se marcó como pagada. Se estampa al pasar a `true` y
+  // se limpia (undefined) al volver a `false` para no conservar la fecha de
+  // un pago anterior: el booleano y la fecha nunca quedan en desacuerdo.
+  pagoReservaFecha: { type: Date },
   publicId: { type: String, unique: true },
   invitationId: { type: String, unique: true, sparse: true },
   googleEventId: String, // ID devuelto por Google Calendar API

@@ -64,7 +64,18 @@ const configSchema = new mongoose.Schema({
       imageUrl: String,
       active: { type: Boolean, default: true }
     }
-  ]
+  ],
+  // Datos bancarios para el pago de la señal de reserva. Admin-editable vía
+  // PATCH /config; NUNCA se hardcodean en el código. Vacíos por defecto: el
+  // front debe tratarlos como "aún sin configurar" y avisar en vez de enviar
+  // un WhatsApp con datos incompletos.
+  datosBancarios: {
+    iban: { type: String, default: '' },
+    titular: { type: String, default: '' },
+    // Prefijo del concepto de transferencia (el identificador único por
+    // reserva lo añade el frontend: "<concepto> <publicId>").
+    concepto: { type: String, default: '' }
+  }
 }, {
   timestamps: true,
   toJSON: {

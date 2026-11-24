@@ -29,7 +29,10 @@ module.exports.get = (req, res, next) => {
           'Mario', 'Luigi', 'Bella', 'Bestia', 'Cenicienta', 'Príncipe', 'Aladín', 'Jasmín',
           'Blancanieves', 'Elsa', 'Anna', 'Olaf', 'K-Pop', 'Vaina'
         ],
-        preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, extension30: 30, extension60: 50 }
+        preciosExtras: { tallerBase: 25, tallerPlus: 30, personaje: 40, extension30: 30, extension60: 50 },
+        // Datos bancarios de la señal: siempre presentes en la respuesta para
+        // que el front nunca reciba `undefined` en ese bloque.
+        datosBancarios: { iban: '', titular: '', concepto: '' }
       };
 
       if (!config) {
@@ -42,6 +45,14 @@ module.exports.get = (req, res, next) => {
       if (!configObj.menusNiños || configObj.menusNiños.length === 0) {
         configObj.menusNiños = defaults.menusNiños;
       }
+
+      // Los documentos creados antes de añadir el bloque no traen
+      // `datosBancarios`: se rellenan solo las claves que falten, sin pisar lo
+      // que el admin ya haya guardado.
+      configObj.datosBancarios = {
+        ...defaults.datosBancarios,
+        ...(configObj.datosBancarios || {}),
+      };
 
       res.json(configObj);
     })
